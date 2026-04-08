@@ -1,6 +1,6 @@
 // @ts-check
 import Phaser from "phaser";
-import { PlayerColors } from "../types.js";
+import { loadSettings } from "../settings.js";
 
 /**
  * Title screen with player count selection.
@@ -12,6 +12,9 @@ export class TitleScene extends Phaser.Scene {
 
   create() {
     const { width, height } = this.scale;
+
+    // Hydrate settings from localStorage into the Phaser registry
+    loadSettings(this.registry);
 
     // Title
     this.add
@@ -83,11 +86,51 @@ export class TitleScene extends Phaser.Scene {
       });
     }
 
+    // ── Settings section ────────────────────────────────────────────────
+    this.add
+      .text(width / 2, height / 2 + 140, "⚙️ Settings", {
+        fontSize: "18px",
+        fontFamily: "Georgia, serif",
+        color: "#888899",
+      })
+      .setOrigin(0.5);
+
+    const showAll = this.registry.get("showAllScores") ?? true;
+    const toggleText = this.add
+      .text(
+        width / 2,
+        height / 2 + 175,
+        `Show all scores: ${showAll ? "ON" : "OFF"}`,
+        {
+          fontSize: "16px",
+          fontFamily: "Arial",
+          color: showAll ? "#66bb6a" : "#888899",
+          backgroundColor: "#2a2a4e",
+          padding: { x: 16, y: 8 },
+        }
+      )
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+
+    toggleText.on("pointerover", () => toggleText.setStyle({ color: "#f5c518" }));
+    toggleText.on("pointerout", () => {
+      const current = this.registry.get("showAllScores") ?? true;
+      toggleText.setStyle({ color: current ? "#66bb6a" : "#888899" });
+    });
+
+    toggleText.on("pointerdown", () => {
+      const current = this.registry.get("showAllScores") ?? true;
+      const next = !current;
+      this.registry.set("showAllScores", next);
+      toggleText.setText(`Show all scores: ${next ? "ON" : "OFF"}`);
+      toggleText.setStyle({ color: next ? "#66bb6a" : "#888899" });
+    });
+
     // Flavor text
     this.add
       .text(
         width / 2,
-        height - 60,
+        height - 40,
         "Seat patrons in your theater to earn the most victory points!\nHot-seat: pass the device between turns.",
         {
           fontSize: "14px",

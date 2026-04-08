@@ -3,11 +3,13 @@ import Phaser from "phaser";
 import { Card } from "../objects/Card.js";
 import {
   createDeck,
+  DefaultLayout,
   PatronColors,
   PlayerColors,
   PlayerColorsHex,
   PlayerNames,
 } from "../types.js";
+import { scorePlayer } from "../scoring.js";
 
 const ROWS = 4;
 const COLS = 5;
@@ -80,6 +82,9 @@ export class GameScene extends Phaser.Scene {
     this.bannerText = null;
 
     /** @type {Phaser.GameObjects.Text[]} */
+    this.scoreTexts = [];
+
+    /** @type {Phaser.GameObjects.Text[]} */
     this.seatLabels = [];
   }
 
@@ -120,6 +125,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.seatGrid = [];
+    this.scoreTexts = [];
   }
 
   create() {
@@ -229,6 +235,19 @@ export class GameScene extends Phaser.Scene {
         color: "#888899",
       })
       .setOrigin(1, 0.5);
+
+    // ── VP Scoreboard ───────────────────────────────────────────────
+    this.scoreTexts = [];
+    for (let p = 0; p < this.playerCount; p++) {
+      const scoreText = this.add
+        .text(width - 30, 118 + p * 22, "", {
+          fontSize: "14px",
+          fontFamily: "Arial",
+          color: PlayerColors[p],
+        })
+        .setOrigin(1, 0.5);
+      this.scoreTexts.push(scoreText);
+    }
 
     this.infoText = this.add
       .text(width / 2, height - 25, "", {
@@ -372,6 +391,7 @@ export class GameScene extends Phaser.Scene {
     this.renderTheater();
     this.renderHand();
     this.updateUI();
+    this.updateScoreboard();
     this.turnPhase = "play";
 
     if (this.infoText) {
@@ -548,6 +568,9 @@ export class GameScene extends Phaser.Scene {
       yoyo: true,
     });
 
+    // Recalculate scores after placement
+    this.updateScoreboard();
+
     // Remove card from hand (visual and data)
     const cardIndex = this.handCards.indexOf(this.selectedCard);
     if (cardIndex >= 0) {
@@ -652,6 +675,34 @@ export class GameScene extends Phaser.Scene {
   }
 
   // ══════════════════════════════════════════════════════════════════
+  // SCOREBOARD
+  // ══════════════════════════════════════════════════════════════════
+
+  /**
+   * Recalculate and display VP scores for all players.
+   * Respects the showAllScores setting from the Phaser registry.
+   */
+  updateScoreboard() {
+    const showAll = this.registry.get("showAllScores") ?? true;
+
+    for (let p = 0; p < this.playerCount; p++) {
+      const text = this.scoreTexts[p];
+      if (!text) continue;
+
+      const { total } = scorePlayer(this.placedPatrons[p], DefaultLayout);
+      const name = PlayerNames[p];
+
+      if (showAll || p === this.currentPlayer) {
+        text.setText(`${name}: ${total} VP`);
+        text.setAlpha(p === this.currentPlayer ? 1 : 0.6);
+        text.setVisible(true);
+      } else {
+        text.setVisible(false);
+      }
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════════════
   // UI UPDATE
   // ══════════════════════════════════════════════════════════════════
 
@@ -706,17 +757,15 @@ export class GameScene extends Phaser.Scene {
         .setOrigin(0.5)
     );
 
-    // Calculate scores (simple count for now — real scoring later)
+    // Calculate real VP scores
     /** @type {number[]} */
     const scores = [];
+    /** @type {import('../scoring.js').PlayerScore[]} */
+    const playerScores = [];
     for (let p = 0; p < this.playerCount; p++) {
-      let count = 0;
-      for (let r = 0; r < ROWS; r++) {
-        for (let c = 0; c < COLS; c++) {
-          if (this.placedPatrons[p][r][c]) count++;
-        }
-      }
-      scores.push(count);
+      const result = scorePlayer(this.placedPatrons[p], DefaultLayout);
+      scores.push(result.total);
+      playerScores.push(result);
     }
 
     // Find winner
@@ -754,7 +803,7 @@ export class GameScene extends Phaser.Scene {
         .text(
           baseX + miniGridW / 2,
           baseY - 10,
-          `${scores[p]} patrons seated${isWinner ? " 🏆" : ""}`,
+          `${scores[p]} VP${isWinner ? " 🏆" : ""}`,
           {
             fontSize: "12px",
             fontFamily: "Arial",
@@ -771,20 +820,40 @@ export class GameScene extends Phaser.Scene {
           const y = baseY + 10 + r * (miniSeatSize + miniGap) + miniSeatSize / 2;
           const cardData = this.placedPatrons[p][r][c];
 
+          const seatVP = playerScores[p].perSeat[r][c];
           const seatColor = cardData
             ? PatronColors[cardData.type] || 0x607d8b
             : 0x1a1a3e;
 
           const rect = this.add
             .rectangle(x, y, miniSeatSize, miniSeatSize, seatColor)
-            .setStrokeStyle(1, 0x3a3a5e);
+            .setStrokeStyle(
+              1,
+              cardData
+                ? seatVP < 0
+                  ? 0xff4444
+                  : seatVP > 3
+                    ? 0xf5c518
+                    : 0x888888
+                : 0x3a3a5e
+            );
           container.add(rect);
 
           if (cardData) {
             const e = this.add
-              .text(x, y, cardData.emoji, { fontSize: "12px" })
+              .text(x, y - 4, cardData.emoji, { fontSize: "10px" })
               .setOrigin(0.5);
             container.add(e);
+
+            // Show per-seat VP
+            const vpLabel = this.add
+              .text(x, y + 7, `${seatVP}`, {
+                fontSize: "8px",
+                fontFamily: "Arial",
+                color: seatVP < 0 ? "#ff6666" : seatVP > 0 ? "#ffffff" : "#888888",
+              })
+              .setOrigin(0.5);
+            container.add(vpLabel);
           }
         }
       }

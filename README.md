@@ -72,24 +72,22 @@ theater-card-game/
 - ✅ **Game Over** — End screen with "Play Again" button
 - ✅ **Full Deck** — 56 cards with all patron types implemented
 - ✅ **Responsive** — Scales to fit browser window
+- ✅ **Scoring Engine** — Implement VIP bonuses, Teacher/Kid capping, adjacency debuffs
+- ✅ **Victory Points Display** — Show running score during gameplay, with settings to toggle on/off
 
 ## 📝 Notes
 
-- **No scoring yet** — The game tracks turns and seats patrons, but the full VP scoring system (VIP bonuses, Teacher/Kid capping, adjacency effects) is not yet implemented
 - **Geometric shapes** — Uses Phaser rectangles/text instead of sprites
 - **No audio** — Sound effects not yet added
 
 ## 🚧 Roadmap
 
 ### Next Up
-- [ ] **Scoring Engine** — Implement VIP bonuses, Teacher/Kid capping, adjacency debuffs
-- [ ] **Victory Points Display** — Show running score during gameplay
-
+- [ ] **Play Variants** — Different theater layouts and "plays" with special rules
+- 
 ### Future
 - [ ] **Visual Assets** — Replace rectangles with 2D sprites
 - [ ] **Audio** — Ambient theater sounds and placement effects
-- [ ] **More Players** — Support 3-4 player games
-- [ ] **Play Variants** — Different theater layouts and "plays" with special rules
 
 ## 📚 Learning Phaser?
 

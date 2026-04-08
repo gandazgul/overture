@@ -7,7 +7,8 @@
   "tasks": {
     "dev": "deno run -A npm:vite@5",
     "build": "deno run -A npm:vite@5 build",
-    "preview": "deno run -A npm:vite@5 preview"
+    "preview": "deno run -A npm:vite@5 preview",
+    "test": "deno test src/"
   },
   "imports": {
     "phaser": "npm:phaser@^3.86.0"
