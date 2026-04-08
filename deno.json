@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "checkJs": true,
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "strict": true
+  },
+  "tasks": {
+    "dev": "deno run -A npm:vite@5",
+    "build": "deno run -A npm:vite@5 build",
+    "preview": "deno run -A npm:vite@5 preview"
+  },
+  "imports": {
+    "phaser": "npm:phaser@^3.86.0"
+  },
+  "nodeModulesDir": "auto"
+}
