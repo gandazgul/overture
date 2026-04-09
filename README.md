@@ -11,6 +11,32 @@ deno task dev
 # Open http://localhost:5173 in your browser
 ```
 
+## 🧰 Available Tasks
+
+All tasks are defined in `deno.json` and run via `deno task <name>`:
+
+| Task | Command | Description |
+|------|---------|-------------|
+| `dev` | `deno run -A npm:vite@5` | Start the Vite dev server with HMR |
+| `build` | `deno run -A npm:vite@5 build` | Production build to `dist/` |
+| `preview` | `deno run -A npm:vite@5 preview` | Preview the production build locally |
+| `check` | `deno check --doc src/**/*.js` | Type-check JS files (validates JSDoc code blocks too) |
+| `lint` | `deno lint src/` | Lint source files with Deno's built-in linter |
+| `test` | `deno test src/` | Run all unit tests |
+| `ci` | `check → lint → test` | Run the full CI pipeline sequentially |
+
+### Running CI Locally
+
+```bash
+# Run all checks in one command (type-check → lint → test)
+deno task ci
+
+# Or run individually
+deno task check
+deno task lint
+deno task test
+```
+
 ## 📋 How to Play
 
 1. **Start** — Click "Start Game" on the title screen
@@ -47,18 +73,22 @@ Seat patrons strategically to earn victory points. Different patron types have s
 ```
 theater-card-game/
 ├── src/
-│   ├── main.js          # Game entry point & config
-│   ├── types.js         # Card data, patron types, deck creation
+│   ├── main.js            # Game entry point & Phaser config
+│   ├── config.js          # Layout constants & responsive scaling
+│   ├── types.js           # Card data, patron types, deck creation
+│   ├── scoring.js         # Scoring engine — pure functions, no Phaser dependency
+│   ├── scoring.test.js    # Unit tests for scoring & deck logic
+│   ├── settings.js        # Runtime game settings
 │   ├── scenes/
-│   │   ├── TitleScene.js   # Title/menu screen
-│   │   └── GameScene.js    # Main gameplay
+│   │   ├── TitleScene.js  # Title/menu screen
+│   │   └── GameScene.js   # Main gameplay
 │   └── objects/
 │       └── Card.js        # Card game object (Container)
-├── index.html           # HTML entry point
-├── deno.json            # Deno config & tasks
-├── vite.config.js       # Vite configuration
-├── GAME_DESIGN.md       # Full game design document
-└── README.md            # This file
+├── index.html             # HTML entry point
+├── deno.json              # Deno config, tasks & import map
+├── vite.config.js         # Vite configuration
+├── GAME_DESIGN.md         # Full game design document
+└── README.md              # This file
 ```
 
 ## 🎮 Current Features
@@ -75,17 +105,35 @@ theater-card-game/
 - ✅ **Scoring Engine** — Implement VIP bonuses, Teacher/Kid capping, adjacency debuffs
 - ✅ **Victory Points Display** — Show running score during gameplay, with settings to toggle on/off
 
+## 🧪 Testing
+
+The project uses **Deno's built-in test runner** — no extra test framework needed.
+
+```bash
+deno task test
+```
+
+**Coverage**: 93.5% branch / 99.2% line across `scoring.js` and `types.js` (39 tests).
+
+Tests live alongside source files (`src/scoring.test.js`) and cover:
+
+- All 10 patron scoring rules (Standard, Bespectacled, VIP, Lovebirds, Kid/Teacher capping, Tall/Short interactions, Critic, Noisy adjacency)
+- Edge cases: empty grids, unknown patron types, overlapping debuffs, back-row multipliers
+- Deck creation: correct card count, patron distribution, and metadata
+
+The scoring engine (`src/scoring.js`) is intentionally kept as **pure functions with no Phaser dependency**, making it straightforward to test in isolation.
+
 ## 📝 Notes
 
 - **Geometric shapes** — Uses Phaser rectangles/text instead of sprites
 - **No audio** — Sound effects not yet added
+- **Deno-compatible globals** — Uses `globalThis` instead of `window` for cross-runtime compatibility
+- **JSDoc types** — All type annotations via JSDoc; `deno task check` validates them including code blocks in doc comments
 
 ## 🚧 Roadmap
 
 ### Next Up
 - [ ] **Play Variants** — Different theater layouts and "plays" with special rules
-- 
-### Future
 - [ ] **Visual Assets** — Replace rectangles with 2D sprites
 - [ ] **Audio** — Ambient theater sounds and placement effects
 
