@@ -7,7 +7,7 @@
 
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/assert_equals.ts";
 import { scorePlayer, getOrthogonalNeighbors, isAisleSeat, findHorizontalKidGroups } from "./scoring.js";
-import { PatronType, DefaultLayout } from "./types.js";
+import { PatronType, DefaultLayout, createDeck, PatronInfo } from "./types.js";
 
 /** @typedef {import('./types.js').CardData} CardData */
 
@@ -339,4 +339,70 @@ Deno.test("Bespectacled in row 2 (last bonus row) scores 4 VP", () => {
   place(grid, 2, 2, PatronType.BESPECTACLED);
   const result = scorePlayer(grid, DefaultLayout);
   assertEquals(result.perSeat[2][2], 4);
+});
+
+// ── Unknown patron type ─────────────────────────────────────────────
+
+Deno.test("Unknown patron type scores 0 VP", () => {
+  const grid = emptyGrid();
+  grid[1][1] = { type: "UNKNOWN", label: "UNKNOWN", emoji: "", description: "" };
+  const result = scorePlayer(grid, DefaultLayout);
+  assertEquals(result.perSeat[1][1], 0);
+});
+
+// ── Tall behindPenalty applied to non-Short patron ──────────────────
+
+Deno.test("Non-Short patron behind Tall gets behindPenalty", () => {
+  const grid = emptyGrid();
+  place(grid, 0, 2, PatronType.TALL);      // front
+  place(grid, 1, 2, PatronType.STANDARD);  // behind Tall
+  const result = scorePlayer(grid, DefaultLayout);
+  // Standard: 3 base + (-2) behindPenalty = 1
+  assertEquals(result.perSeat[1][2], 1);
+});
+
+// ── Short with non-Tall patron in front (no bonus, no penalty) ──────
+
+Deno.test("Short with non-Tall, non-empty front gets base only", () => {
+  const grid = emptyGrid();
+  place(grid, 0, 2, PatronType.STANDARD);  // non-Tall in front
+  place(grid, 1, 2, PatronType.SHORT);
+  const result = scorePlayer(grid, DefaultLayout);
+  // Short: 2 base, no bonus, no penalty
+  assertEquals(result.perSeat[1][2], 2);
+});
+
+// ── createDeck tests ────────────────────────────────────────────────
+
+Deno.test("createDeck returns 56 cards", () => {
+  const deck = createDeck();
+  assertEquals(deck.length, 56);
+});
+
+Deno.test("createDeck includes correct count per patron type", () => {
+  const deck = createDeck();
+  /** @type {Record<string, number>} */
+  const counts = {};
+  for (const c of deck) {
+    counts[c.type] = (counts[c.type] ?? 0) + 1;
+  }
+  assertEquals(counts[PatronType.STANDARD], 8);
+  assertEquals(counts[PatronType.BESPECTACLED], 8);
+  assertEquals(counts[PatronType.VIP], 4);
+  assertEquals(counts[PatronType.LOVEBIRDS], 8);
+  assertEquals(counts[PatronType.KID], 8);
+  assertEquals(counts[PatronType.TEACHER], 5);
+  assertEquals(counts[PatronType.TALL], 4);
+  assertEquals(counts[PatronType.SHORT], 3);
+  assertEquals(counts[PatronType.CRITIC], 4);
+  assertEquals(counts[PatronType.NOISY], 4);
+});
+
+Deno.test("createDeck cards have emoji and description from PatronInfo", () => {
+  const deck = createDeck();
+  for (const c of deck) {
+    const info = PatronInfo[c.type];
+    assertEquals(c.emoji, info.emoji);
+    assertEquals(c.description, info.description);
+  }
 });

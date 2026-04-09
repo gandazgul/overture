@@ -2,6 +2,7 @@
 import Phaser from "phaser";
 import { TitleScene } from "./scenes/TitleScene.js";
 import { GameScene } from "./scenes/GameScene.js";
+import { GAME_WIDTH, GAME_HEIGHT } from "./config.js";
 
 /**
  * ========================================================================
@@ -35,8 +36,8 @@ import { GameScene } from "./scenes/GameScene.js";
 /** @type {Phaser.Types.Core.GameConfig} */
 const config = {
   type: Phaser.AUTO,
-  width: 1024,
-  height: 768,
+  width: GAME_WIDTH,
+  height: GAME_HEIGHT,
   backgroundColor: "#1a1a2e",
 
   // Scene array: TitleScene starts first, GameScene is registered for later
@@ -67,5 +68,5 @@ const game = new Phaser.Game(config);
 
 // Make the game instance available for debugging in the browser console
 // Try typing `game.scene.scenes` in DevTools to see active scenes!
-// @ts-ignore
+// @ts-ignore: expose Phaser game instance for browser DevTools debugging
 globalThis.__PHASER_GAME__ = game;

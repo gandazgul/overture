@@ -10,11 +10,29 @@ import {
   PlayerNames,
 } from "../types.js";
 import { scorePlayer } from "../scoring.js";
+import { s, px } from "../config.js";
 
 const ROWS = 4;
 const COLS = 5;
-const SEAT_SIZE = 80;
-const SEAT_GAP = 10;
+const SEAT_SIZE = s(80);
+const SEAT_GAP = s(10);
+
+/**
+ * Concise scoring reminders shown when a card is selected.
+ * @type {Record<string, string>}
+ */
+const SCORING_HINTS = {
+  "Standard": "Base 3 VP\n⚠ −2 VP if adjacent to Noisy",
+  "Bespectacled": "Base 2 VP\n+2 VP in rows A–C (front 3)",
+  "VIP": "Base 5 VP\n+3 VP in rows A–B (front 2)\n⚠ −3 VP per adjacent Kid or Noisy",
+  "Lovebirds": "+3 VP per adjacent Lovebirds\n×2 VP in back row\n0 VP if alone",
+  "Kid": "⚠ 0 VP unless capped by Teacher\n+2 VP when Teacher is adjacent",
+  "Teacher": "Base 1 VP\n+1 VP per adjacent capped Kid",
+  "Tall Person": "Base 1 VP\n⚠ Patron behind gets −2 VP",
+  "Short Person": "Base 2 VP\n+2 VP if no one in front\n⚠ −3 VP if Tall is in front",
+  "Critic": "Base 2 VP\n×3 VP in an aisle seat (col 1 or 5)",
+  "Noisy": "0 VP\n⚠ Adjacent Standard patrons get −2 VP each",
+};
 
 export class GameScene extends Phaser.Scene {
   constructor() {
@@ -86,6 +104,9 @@ export class GameScene extends Phaser.Scene {
 
     /** @type {Phaser.GameObjects.Text[]} */
     this.seatLabels = [];
+
+    /** @type {Phaser.GameObjects.Text | null} */
+    this.scoringTooltip = null;
   }
 
   /**
@@ -133,13 +154,13 @@ export class GameScene extends Phaser.Scene {
 
     // ── Top banner (player color indicator) ─────────────────────────
     this.topBanner = this.add
-      .rectangle(width / 2, 0, width, 56, 0x000000)
+      .rectangle(width / 2, 0, width, s(56), 0x000000)
       .setOrigin(0.5, 0)
       .setDepth(0);
 
     this.bannerText = this.add
-      .text(width / 2, 28, "", {
-        fontSize: "22px",
+      .text(width / 2, s(28), "", {
+        fontSize: px(22),
         fontFamily: "Georgia, serif",
         color: "#ffffff",
       })
@@ -149,15 +170,15 @@ export class GameScene extends Phaser.Scene {
     // ── Stage area ──────────────────────────────────────────────────
     const gridWidth = COLS * (SEAT_SIZE + SEAT_GAP) - SEAT_GAP;
     const gridStartX = (width - gridWidth) / 2;
-    const gridStartY = 100;
+    const gridStartY = s(100);
 
     this.add
-      .rectangle(width / 2, gridStartY - 25, gridWidth + 40, 20, 0x8b4513)
-      .setStrokeStyle(1, 0xdaa520);
+      .rectangle(width / 2, gridStartY - s(25), gridWidth + s(40), s(20), 0x8b4513)
+      .setStrokeStyle(s(1), 0xdaa520);
 
     this.add
-      .text(width / 2, gridStartY - 25, "🎬 STAGE", {
-        fontSize: "12px",
+      .text(width / 2, gridStartY - s(25), "🎬 STAGE", {
+        fontSize: px(12),
         color: "#ffd700",
         fontFamily: "Arial",
       })
@@ -172,10 +193,10 @@ export class GameScene extends Phaser.Scene {
 
       this.add
         .text(
-          gridStartX - 10,
+          gridStartX - s(10),
           gridStartY + row * (SEAT_SIZE + SEAT_GAP) + SEAT_SIZE / 2,
           rowLabels[row],
-          { fontSize: "11px", color: "#888899", fontFamily: "Arial" }
+          { fontSize: px(11), color: "#888899", fontFamily: "Arial" }
         )
         .setOrigin(1, 0.5);
 
@@ -185,7 +206,7 @@ export class GameScene extends Phaser.Scene {
 
         const seat = this.add
           .rectangle(x, y, SEAT_SIZE, SEAT_SIZE, 0x1a1a3e)
-          .setStrokeStyle(2, 0x3a3a5e)
+          .setStrokeStyle(s(2), 0x3a3a5e)
           .setInteractive({ useHandCursor: true });
 
         seat.setData("row", row);
@@ -198,14 +219,14 @@ export class GameScene extends Phaser.Scene {
             this.selectedCard
           ) {
             seat.setFillStyle(0x2a2a5e);
-            seat.setStrokeStyle(2, 0xf5c518);
+            seat.setStrokeStyle(s(2), 0xf5c518);
           }
         });
 
         seat.on("pointerout", () => {
           if (!this.placedPatrons[this.currentPlayer][row][col]) {
             seat.setFillStyle(0x1a1a3e);
-            seat.setStrokeStyle(2, 0x3a3a5e);
+            seat.setStrokeStyle(s(2), 0x3a3a5e);
           }
         });
 
@@ -221,16 +242,16 @@ export class GameScene extends Phaser.Scene {
 
     // ── UI text ─────────────────────────────────────────────────────
     this.turnText = this.add
-      .text(width - 30, 70, "", {
-        fontSize: "16px",
+      .text(width - s(30), s(70), "", {
+        fontSize: px(16),
         fontFamily: "Arial",
         color: "#888899",
       })
       .setOrigin(1, 0.5);
 
     this.deckText = this.add
-      .text(width - 30, 92, "", {
-        fontSize: "14px",
+      .text(width - s(30), s(92), "", {
+        fontSize: px(14),
         fontFamily: "Arial",
         color: "#888899",
       })
@@ -240,8 +261,8 @@ export class GameScene extends Phaser.Scene {
     this.scoreTexts = [];
     for (let p = 0; p < this.playerCount; p++) {
       const scoreText = this.add
-        .text(width - 30, 118 + p * 22, "", {
-          fontSize: "14px",
+        .text(width - s(30), s(118) + p * s(22), "", {
+          fontSize: px(14),
           fontFamily: "Arial",
           color: PlayerColors[p],
         })
@@ -250,8 +271,8 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.infoText = this.add
-      .text(width / 2, height - 25, "", {
-        fontSize: "14px",
+      .text(width / 2, height - s(25), "", {
+        fontSize: px(14),
         fontFamily: "Arial",
         color: "#888899",
       })
@@ -289,23 +310,23 @@ export class GameScene extends Phaser.Scene {
 
     // Colored accent bar at top
     const accent = this.add
-      .rectangle(width / 2, 0, width, 8, colorHex)
+      .rectangle(width / 2, 0, width, s(8), colorHex)
       .setOrigin(0.5, 0);
     container.add(accent);
 
     // Player emoji/icon
     const icons = ["🔵", "🔴", "🟢", "🟠"];
     const icon = this.add
-      .text(width / 2, height / 2 - 100, icons[this.currentPlayer], {
-        fontSize: "64px",
+      .text(width / 2, height / 2 - s(100), icons[this.currentPlayer], {
+        fontSize: px(64),
       })
       .setOrigin(0.5);
     container.add(icon);
 
     // "Pass to Player X"
     const title = this.add
-      .text(width / 2, height / 2 - 20, `${name}'s Turn`, {
-        fontSize: "42px",
+      .text(width / 2, height / 2 - s(20), `${name}'s Turn`, {
+        fontSize: px(42),
         fontFamily: "Georgia, serif",
         color: color,
       })
@@ -316,10 +337,10 @@ export class GameScene extends Phaser.Scene {
     const roundInfo = this.add
       .text(
         width / 2,
-        height / 2 + 40,
+        height / 2 + s(40),
         `Round ${this.round} of ${this.totalRounds}  •  Deck: ${this.deck.length} cards`,
         {
-          fontSize: "16px",
+          fontSize: px(16),
           fontFamily: "Arial",
           color: "#aaaaaa",
         }
@@ -329,12 +350,12 @@ export class GameScene extends Phaser.Scene {
 
     // Ready button
     const readyBtn = this.add
-      .text(width / 2, height / 2 + 120, "👆 I'm Ready", {
-        fontSize: "28px",
+      .text(width / 2, height / 2 + s(120), "👆 I'm Ready", {
+        fontSize: px(28),
         fontFamily: "Georgia, serif",
         color: "#ffffff",
         backgroundColor: "#4a2c7a",
-        padding: { x: 30, y: 15 },
+        padding: { x: s(30), y: s(15) },
       })
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
@@ -430,12 +451,12 @@ export class GameScene extends Phaser.Scene {
           seat.setStrokeStyle(2, 0xffffff, 0.8);
 
           const emoji = this.add
-            .text(seat.x, seat.y - 10, cardData.emoji, { fontSize: "22px" })
+            .text(seat.x, seat.y - s(10), cardData.emoji, { fontSize: px(22) })
             .setOrigin(0.5);
 
           const label = this.add
-            .text(seat.x, seat.y + 18, cardData.type, {
-              fontSize: "9px",
+            .text(seat.x, seat.y + s(18), cardData.type, {
+              fontSize: px(9),
               color: "#ffffff",
               fontFamily: "Arial",
             })
@@ -455,6 +476,7 @@ export class GameScene extends Phaser.Scene {
   // ══════════════════════════════════════════════════════════════════
 
   clearHandVisuals() {
+    this.hideScoringTooltip();
     for (const card of this.handCards) {
       card.destroy();
     }
@@ -470,12 +492,12 @@ export class GameScene extends Phaser.Scene {
     const handSize = hand.length;
     if (handSize === 0) return;
 
-    const handStartX = width / 2 - ((handSize - 1) * (Card.WIDTH + 20)) / 2;
-    const handY = height - 100;
+    const handStartX = width / 2 - ((handSize - 1) * (Card.WIDTH + s(20))) / 2;
+    const handY = height - s(100);
 
     for (let i = 0; i < handSize; i++) {
       const cardData = hand[i];
-      const x = handStartX + i * (Card.WIDTH + 20);
+      const x = handStartX + i * (Card.WIDTH + s(20));
       const card = new Card(this, x, handY, cardData);
 
       card.on("pointerdown", () => {
@@ -488,7 +510,7 @@ export class GameScene extends Phaser.Scene {
 
       // Animate in
       const targetY = card.y;
-      card.y = targetY + 150;
+      card.y = targetY + s(150);
       card.setAlpha(0);
       this.tweens.add({
         targets: card,
@@ -522,6 +544,48 @@ export class GameScene extends Phaser.Scene {
         `Selected: ${card.cardData.emoji} ${card.cardData.type} — Click a seat to place it!`
       );
     }
+
+    this.showScoringTooltip(card);
+  }
+
+  /**
+   * Show a scoring reminder above the selected card.
+   * @param {Card} card
+   */
+  showScoringTooltip(card) {
+    this.hideScoringTooltip();
+
+    const hint = SCORING_HINTS[card.cardData.type] || "";
+    if (!hint) return;
+
+    this.scoringTooltip = this.add
+      .text(card.x, card.y - Card.HEIGHT / 2 - s(12), hint, {
+        fontSize: px(11),
+        fontFamily: "Arial",
+        color: "#ffffff",
+        backgroundColor: "#1a1a2eee",
+        padding: { x: s(8), y: s(5) },
+        align: "center",
+        wordWrap: { width: s(220) },
+      })
+      .setOrigin(0.5, 1)
+      .setDepth(100);
+
+    // Fade in
+    this.scoringTooltip.setAlpha(0);
+    this.tweens.add({
+      targets: this.scoringTooltip,
+      alpha: 1,
+      duration: 150,
+    });
+  }
+
+  /** Remove the scoring tooltip if visible. */
+  hideScoringTooltip() {
+    if (this.scoringTooltip) {
+      this.scoringTooltip.destroy();
+      this.scoringTooltip = null;
+    }
   }
 
   /**
@@ -548,11 +612,11 @@ export class GameScene extends Phaser.Scene {
     seat.setStrokeStyle(2, 0xffffff, 0.8);
 
     const emoji = this.add
-      .text(seat.x, seat.y - 10, cardData.emoji, { fontSize: "22px" })
+      .text(seat.x, seat.y - s(10), cardData.emoji, { fontSize: px(22) })
       .setOrigin(0.5);
     const label = this.add
-      .text(seat.x, seat.y + 18, cardData.type, {
-        fontSize: "9px",
+      .text(seat.x, seat.y + s(18), cardData.type, {
+        fontSize: px(9),
         color: "#ffffff",
         fontFamily: "Arial",
       })
@@ -585,6 +649,7 @@ export class GameScene extends Phaser.Scene {
       this.handCards.splice(cardIndex, 1);
     }
     this.selectedCard = null;
+    this.hideScoringTooltip();
 
     // Check if 2-player discard is needed
     if (this.playerCount === 2 && this.playerHands[this.currentPlayer].length > 1) {
@@ -594,7 +659,7 @@ export class GameScene extends Phaser.Scene {
       }
       // Highlight remaining cards for discard
       for (const c of this.handCards) {
-        c.background.setStrokeStyle(3, 0xff4444, 1);
+        c.background.setStrokeStyle(s(3), 0xff4444, 1);
       }
       return;
     }
@@ -625,7 +690,7 @@ export class GameScene extends Phaser.Scene {
     this.tweens.add({
       targets: card,
       alpha: 0,
-      y: card.y + 80,
+      y: card.y + s(80),
       duration: 300,
       onComplete: () => card.destroy(),
     });
@@ -741,7 +806,7 @@ export class GameScene extends Phaser.Scene {
 
     // Full overlay
     this.add
-      .rectangle(width / 2, height / 2, width, height, 0x000000, 0.9)
+      .rectangle(width / 2, height / 2, width, height, 0x000000, 0.93)
       .setDepth(300);
 
     const container = this.add.container(0, 0).setDepth(301);
@@ -749,8 +814,8 @@ export class GameScene extends Phaser.Scene {
     // Title
     container.add(
       this.add
-        .text(width / 2, 30, "🎭 Show's Over!", {
-          fontSize: "36px",
+        .text(width / 2, s(30), "🎭 Show's Over!", {
+          fontSize: px(32),
           fontFamily: "Georgia, serif",
           color: "#f5c518",
         })
@@ -771,53 +836,109 @@ export class GameScene extends Phaser.Scene {
     // Find winner
     const maxScore = Math.max(...scores);
 
-    // Draw mini theaters for each player
-    const miniSeatSize = 22;
-    const miniGap = 3;
+    // ── Layout: 2-column grid ───────────────────────────────────────
+    // 2 players → 1 row, 2 cols
+    // 3 players → row 1: 2 cols, row 2: 1 centered
+    // 4 players → 2 rows, 2 cols
+    const gridCols = 2;
+    const gridRows = this.playerCount <= 2 ? 1 : 2;
+
+    // Size the mini seats to fill available space
+    const titleAreaH = s(60);                // space for title at top
+    const footerAreaH = s(90);               // space for winner text + button
+    const availH = height - titleAreaH - footerAreaH;
+    const availW = width - s(60);            // horizontal margin
+
+    const cellGapX = s(40);                  // gap between grid columns
+    const cellGapY = s(30);                  // gap between grid rows
+    const labelH = s(45);                    // player name + score above grid
+
+    // Compute max seat size that fits
+    const cellW = (availW - (gridCols - 1) * cellGapX) / gridCols;
+    const cellH = (availH - (gridRows - 1) * cellGapY) / gridRows;
+    const maxSeatFromW = (cellW - (COLS - 1) * s(3)) / COLS;
+    const maxSeatFromH = (cellH - labelH - (ROWS - 1) * s(3)) / ROWS;
+    const miniSeatSize = Math.min(Math.floor(Math.min(maxSeatFromW, maxSeatFromH)), s(50));
+    const miniGap = s(3);
+
     const miniGridW = COLS * (miniSeatSize + miniGap) - miniGap;
     const miniGridH = ROWS * (miniSeatSize + miniGap) - miniGap;
-    const totalGridsWidth =
-      this.playerCount * miniGridW +
-      (this.playerCount - 1) * 40;
-    const gridsStartX = (width - totalGridsWidth) / 2;
+    const panelW = miniGridW;                // width of one player panel
+    const panelH = labelH + miniGridH;       // height of one player panel
 
+    // Compute grid positions for each player slot
+    // Returns {cx, cy} — the center-x of the panel and top-y
+    /**
+     * @param {number} idx
+     * @returns {{cx: number, topY: number}}
+     */
+    const slotPosition = (idx) => {
+      let col, row;
+      if (this.playerCount === 3 && idx === 2) {
+        // 3rd player: centered on second row
+        col = 0.5; // will be centered
+        row = 1;
+      } else {
+        col = idx % gridCols;
+        row = Math.floor(idx / gridCols);
+      }
+
+      const totalRowW = (col === 0.5)
+        ? panelW  // single centered panel
+        : gridCols * panelW + (gridCols - 1) * cellGapX;
+      const rowStartX = (width - totalRowW) / 2;
+
+      const cx = (col === 0.5)
+        ? width / 2
+        : rowStartX + col * (panelW + cellGapX) + panelW / 2;
+
+      const totalH = gridRows * panelH + (gridRows - 1) * cellGapY;
+      const gridStartY = titleAreaH + (availH - totalH) / 2;
+      const topY = gridStartY + row * (panelH + cellGapY);
+
+      return { cx, topY };
+    };
+
+    // Draw each player's theater
     for (let p = 0; p < this.playerCount; p++) {
-      const baseX = gridsStartX + p * (miniGridW + 40);
-      const baseY = 120;
+      const { cx, topY } = slotPosition(p);
+      const baseX = cx - miniGridW / 2;      // left edge of grid
+      const gridTopY = topY + labelH;         // top of seat grid
       const color = PlayerColors[p];
       const isWinner = scores[p] === maxScore;
 
       // Player name
       container.add(
         this.add
-          .text(baseX + miniGridW / 2, baseY - 30, PlayerNames[p], {
-            fontSize: "16px",
+          .text(cx, topY, PlayerNames[p], {
+            fontSize: px(18),
             fontFamily: "Georgia, serif",
             color: color,
           })
-          .setOrigin(0.5)
+          .setOrigin(0.5, 0)
       );
 
       // Score
-      const scoreTxt = this.add
-        .text(
-          baseX + miniGridW / 2,
-          baseY - 10,
-          `${scores[p]} VP${isWinner ? " 🏆" : ""}`,
-          {
-            fontSize: "12px",
-            fontFamily: "Arial",
-            color: isWinner ? "#f5c518" : "#aaaaaa",
-          }
-        )
-        .setOrigin(0.5);
-      container.add(scoreTxt);
+      container.add(
+        this.add
+          .text(
+            cx,
+            topY + s(22),
+            `${scores[p]} VP${isWinner ? " 🏆" : ""}`,
+            {
+              fontSize: px(14),
+              fontFamily: "Arial",
+              color: isWinner ? "#f5c518" : "#aaaaaa",
+            }
+          )
+          .setOrigin(0.5, 0)
+      );
 
       // Mini grid
       for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
           const x = baseX + c * (miniSeatSize + miniGap) + miniSeatSize / 2;
-          const y = baseY + 10 + r * (miniSeatSize + miniGap) + miniSeatSize / 2;
+          const y = gridTopY + r * (miniSeatSize + miniGap) + miniSeatSize / 2;
           const cardData = this.placedPatrons[p][r][c];
 
           const seatVP = playerScores[p].perSeat[r][c];
@@ -828,7 +949,7 @@ export class GameScene extends Phaser.Scene {
           const rect = this.add
             .rectangle(x, y, miniSeatSize, miniSeatSize, seatColor)
             .setStrokeStyle(
-              1,
+              s(1),
               cardData
                 ? seatVP < 0
                   ? 0xff4444
@@ -840,15 +961,19 @@ export class GameScene extends Phaser.Scene {
           container.add(rect);
 
           if (cardData) {
+            const emojiSize = Math.max(8, Math.round(miniSeatSize * 0.45));
+            const vpSize = Math.max(6, Math.round(miniSeatSize * 0.32));
             const e = this.add
-              .text(x, y - 4, cardData.emoji, { fontSize: "10px" })
+              .text(x, y - miniSeatSize * 0.12, cardData.emoji, {
+                fontSize: `${emojiSize}px`,
+              })
               .setOrigin(0.5);
             container.add(e);
 
             // Show per-seat VP
             const vpLabel = this.add
-              .text(x, y + 7, `${seatVP}`, {
-                fontSize: "8px",
+              .text(x, y + miniSeatSize * 0.28, `${seatVP}`, {
+                fontSize: `${vpSize}px`,
                 fontFamily: "Arial",
                 color: seatVP < 0 ? "#ff6666" : seatVP > 0 ? "#ffffff" : "#888888",
               })
@@ -859,9 +984,11 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
-    // Winner announcement
+    // ── Winner announcement & Play Again ─────────────────────────────
+    const footerY = height - footerAreaH;
+
     const winners = scores
-      .map((s, i) => (s === maxScore ? PlayerNames[i] : null))
+      .map((sc, i) => (sc === maxScore ? PlayerNames[i] : null))
       .filter(Boolean);
     const winnerMsg =
       winners.length > 1
@@ -870,29 +997,28 @@ export class GameScene extends Phaser.Scene {
 
     container.add(
       this.add
-        .text(width / 2, baseYForButton(this.playerCount), winnerMsg, {
-          fontSize: "28px",
+        .text(width / 2, footerY, winnerMsg, {
+          fontSize: px(26),
           fontFamily: "Georgia, serif",
           color: "#f5c518",
         })
-        .setOrigin(0.5)
+        .setOrigin(0.5, 0)
     );
 
-    // Play again button
     const restartBtn = this.add
       .text(
         width / 2,
-        baseYForButton(this.playerCount) + 50,
+        footerY + s(40),
         "▶  Play Again",
         {
-          fontSize: "24px",
+          fontSize: px(22),
           fontFamily: "Georgia, serif",
           color: "#ffffff",
           backgroundColor: "#4a2c7a",
-          padding: { x: 20, y: 10 },
+          padding: { x: s(20), y: s(10) },
         }
       )
-      .setOrigin(0.5)
+      .setOrigin(0.5, 0)
       .setInteractive({ useHandCursor: true });
 
     restartBtn.on("pointerdown", () => {
@@ -912,12 +1038,4 @@ export class GameScene extends Phaser.Scene {
   }
 }
 
-/**
- * Helper: Y position for the winner text based on player count.
- * @param {number} playerCount
- * @returns {number}
- */
-function baseYForButton(playerCount) {
-  // Mini grids end around y=230. Give space below.
-  return 280;
-}
+

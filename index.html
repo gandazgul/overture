@@ -5,15 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Theater Ushers - Card Game</title>
   <style>
-    /* Center the Phaser canvas in the browser window */
+    /* Phaser's autoCenter: CENTER_BOTH handles canvas positioning.
+       Avoid CSS flex centering here — it conflicts with Phaser's
+       inline styles and shifts the canvas off-center. */
     body {
       margin: 0;
       padding: 0;
       background: #0a0a1a;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
       overflow: hidden;
     }
   </style>

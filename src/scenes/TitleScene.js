@@ -1,6 +1,7 @@
 // @ts-check
 import Phaser from "phaser";
 import { loadSettings } from "../settings.js";
+import { s, px } from "../config.js";
 
 /**
  * Title screen with player count selection.
@@ -19,7 +20,7 @@ export class TitleScene extends Phaser.Scene {
     // Title
     this.add
       .text(width / 2, height / 4, "🎭 Theater Ushers", {
-        fontSize: "52px",
+        fontSize: px(52),
         fontFamily: "Georgia, serif",
         color: "#f5c518",
       })
@@ -27,8 +28,8 @@ export class TitleScene extends Phaser.Scene {
 
     // Subtitle
     this.add
-      .text(width / 2, height / 4 + 70, "A Card Game of Seating Strategy", {
-        fontSize: "20px",
+      .text(width / 2, height / 4 + s(70), "A Card Game of Seating Strategy", {
+        fontSize: px(20),
         fontFamily: "Georgia, serif",
         color: "#aaaacc",
       })
@@ -36,8 +37,8 @@ export class TitleScene extends Phaser.Scene {
 
     // "How many players?" label
     this.add
-      .text(width / 2, height / 2 - 10, "How many players?", {
-        fontSize: "24px",
+      .text(width / 2, height / 2 - s(10), "How many players?", {
+        fontSize: px(24),
         fontFamily: "Georgia, serif",
         color: "#ccccdd",
       })
@@ -45,23 +46,23 @@ export class TitleScene extends Phaser.Scene {
 
     // Player count buttons
     const counts = [2, 3, 4];
-    const buttonWidth = 160;
-    const gap = 30;
+    const buttonWidth = s(160);
+    const gap = s(30);
     const totalWidth = counts.length * buttonWidth + (counts.length - 1) * gap;
     const startX = (width - totalWidth) / 2 + buttonWidth / 2;
 
     for (let i = 0; i < counts.length; i++) {
       const n = counts[i];
       const x = startX + i * (buttonWidth + gap);
-      const y = height / 2 + 60;
+      const y = height / 2 + s(60);
 
       const btn = this.add
         .text(x, y, `${n} Players`, {
-          fontSize: "26px",
+          fontSize: px(26),
           fontFamily: "Georgia, serif",
           color: "#ffffff",
           backgroundColor: "#4a2c7a",
-          padding: { x: 24, y: 14 },
+          padding: { x: s(24), y: s(14) },
         })
         .setOrigin(0.5)
         .setInteractive({ useHandCursor: true });
@@ -88,8 +89,8 @@ export class TitleScene extends Phaser.Scene {
 
     // ── Settings section ────────────────────────────────────────────────
     this.add
-      .text(width / 2, height / 2 + 140, "⚙️ Settings", {
-        fontSize: "18px",
+      .text(width / 2, height / 2 + s(140), "⚙️ Settings", {
+        fontSize: px(18),
         fontFamily: "Georgia, serif",
         color: "#888899",
       })
@@ -99,14 +100,14 @@ export class TitleScene extends Phaser.Scene {
     const toggleText = this.add
       .text(
         width / 2,
-        height / 2 + 175,
+        height / 2 + s(175),
         `Show all scores: ${showAll ? "ON" : "OFF"}`,
         {
-          fontSize: "16px",
+          fontSize: px(16),
           fontFamily: "Arial",
           color: showAll ? "#66bb6a" : "#888899",
           backgroundColor: "#2a2a4e",
-          padding: { x: 16, y: 8 },
+          padding: { x: s(16), y: s(8) },
         }
       )
       .setOrigin(0.5)
@@ -130,10 +131,10 @@ export class TitleScene extends Phaser.Scene {
     this.add
       .text(
         width / 2,
-        height - 40,
+        height - s(40),
         "Seat patrons in your theater to earn the most victory points!\nHot-seat: pass the device between turns.",
         {
-          fontSize: "14px",
+          fontSize: px(14),
           fontFamily: "Georgia, serif",
           color: "#666688",
           align: "center",

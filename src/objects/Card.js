@@ -1,6 +1,7 @@
 // @ts-check
 import Phaser from "phaser";
 import { PatronColors } from "../types.js";
+import { s, px } from "../config.js";
 
 /**
  * ========================================================================
@@ -34,8 +35,8 @@ export class Card extends Phaser.GameObjects.Container {
   /** @type {boolean} */
   isSelected = false;
 
-  static WIDTH = 90;
-  static HEIGHT = 120;
+  static WIDTH = s(90);
+  static HEIGHT = s(120);
 
   /**
    * @param {Phaser.Scene} scene - The scene this card belongs to
@@ -58,23 +59,23 @@ export class Card extends Phaser.GameObjects.Container {
 
     this.background = scene.add
       .rectangle(0, 0, Card.WIDTH, Card.HEIGHT, color)
-      .setStrokeStyle(2, 0xffffff, 0.5);
+      .setStrokeStyle(s(2), 0xffffff, 0.5);
 
     // Emoji icon
     const emoji = scene.add
-      .text(0, -15, cardData.emoji, {
-        fontSize: "28px",
+      .text(0, s(-15), cardData.emoji, {
+        fontSize: px(28),
       })
       .setOrigin(0.5);
 
     // Patron type label
     const label = scene.add
-      .text(0, 25, cardData.label, {
-        fontSize: "11px",
+      .text(0, s(25), cardData.label, {
+        fontSize: px(11),
         fontFamily: "Arial",
         color: "#ffffff",
         align: "center",
-        wordWrap: { width: Card.WIDTH - 10 },
+        wordWrap: { width: Card.WIDTH - s(10) },
       })
       .setOrigin(0.5);
 
@@ -145,10 +146,10 @@ export class Card extends Phaser.GameObjects.Container {
   setSelected(selected) {
     this.isSelected = selected;
     if (selected) {
-      this.background.setStrokeStyle(3, 0xf5c518, 1);
+      this.background.setStrokeStyle(s(3), 0xf5c518, 1);
       this.setScale(1.15);
     } else {
-      this.background.setStrokeStyle(2, 0xffffff, 0.5);
+      this.background.setStrokeStyle(s(2), 0xffffff, 0.5);
       this.setScale(1.0);
     }
   }

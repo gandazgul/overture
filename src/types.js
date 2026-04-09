@@ -18,7 +18,7 @@
  * @readonly
  * @enum {string}
  */
-export const PatronType = /** @type {Object} Frozen */ ({
+export const PatronType = /** @type {Object} */ ({
   STANDARD: "Standard",
   BESPECTACLED: "Bespectacled",
   VIP: "VIP",

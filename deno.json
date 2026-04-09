@@ -8,7 +8,10 @@
     "dev": "deno run -A npm:vite@5",
     "build": "deno run -A npm:vite@5 build",
     "preview": "deno run -A npm:vite@5 preview",
-    "test": "deno test src/"
+    "check": "deno check --doc src/**/*.js",
+    "lint": "deno lint src/",
+    "test": "deno test src/",
+    "ci": "deno task check && deno task lint && deno task test"
   },
   "imports": {
     "phaser": "npm:phaser@^3.86.0"
