@@ -2,6 +2,7 @@
 import Phaser from "phaser";
 import { loadSettings } from "../settings.js";
 import { s, px } from "../config.js";
+import { Layouts, LayoutOrder } from "../types.js";
 
 /**
  * Title screen with player count selection.
@@ -9,13 +10,25 @@ import { s, px } from "../config.js";
 export class TitleScene extends Phaser.Scene {
   constructor() {
     super("TitleScene");
+    /** @type {number} */
+    this.selectedPlayerCount = 2;
   }
 
   create() {
-    const { width, height } = this.scale;
-
     // Hydrate settings from localStorage into the Phaser registry
     loadSettings(this.registry);
+    this.showMainMenu();
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  // MAIN MENU — Player count + settings
+  // ══════════════════════════════════════════════════════════════════
+
+  showMainMenu() {
+    this.children.removeAll(true);
+    this.tweens.killAll();
+
+    const { width, height } = this.scale;
 
     // Title
     this.add
@@ -83,7 +96,8 @@ export class TitleScene extends Phaser.Scene {
       btn.on("pointerout", () => btn.setStyle({ color: "#ffffff" }));
 
       btn.on("pointerdown", () => {
-        this.scene.start("GameScene", { playerCount: n });
+        this.selectedPlayerCount = n;
+        this.showTheaterSelect();
       });
     }
 
@@ -141,5 +155,144 @@ export class TitleScene extends Phaser.Scene {
         }
       )
       .setOrigin(0.5);
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  // THEATER SELECTION
+  // ══════════════════════════════════════════════════════════════════
+
+  showTheaterSelect() {
+    this.children.removeAll(true);
+    this.tweens.killAll();
+
+    const { width, height } = this.scale;
+
+    // Title
+    this.add
+      .text(width / 2, s(40), "🎭 Choose Your Theater", {
+        fontSize: px(36),
+        fontFamily: "Georgia, serif",
+        color: "#f5c518",
+      })
+      .setOrigin(0.5);
+
+    this.add
+      .text(width / 2, s(80), `${this.selectedPlayerCount} Players`, {
+        fontSize: px(16),
+        fontFamily: "Arial",
+        color: "#aaaacc",
+      })
+      .setOrigin(0.5);
+
+    // Theater cards in a 2-column grid
+    const layouts = LayoutOrder.map((id) => Layouts[id]);
+    const cardW = s(220);
+    const cardH = s(110);
+    const cardGapX = s(30);
+    const cardGapY = s(20);
+    const gridCols = 2;
+    const gridTotalW = gridCols * cardW + (gridCols - 1) * cardGapX;
+    const gridStartX = (width - gridTotalW) / 2;
+    const gridStartY = s(120);
+
+    for (let i = 0; i < layouts.length; i++) {
+      const layout = layouts[i];
+      const col = i % gridCols;
+      const row = Math.floor(i / gridCols);
+      const x = gridStartX + col * (cardW + cardGapX) + cardW / 2;
+      const y = gridStartY + row * (cardH + cardGapY) + cardH / 2;
+
+      // Card background
+      const card = this.add
+        .rectangle(x, y, cardW, cardH, 0x2a2a4e)
+        .setStrokeStyle(s(2), 0x4a4a6e)
+        .setInteractive({ useHandCursor: true });
+
+      // Theater emoji + name
+      this.add
+        .text(x, y - s(28), `${layout.emoji} ${layout.name}`, {
+          fontSize: px(18),
+          fontFamily: "Georgia, serif",
+          color: "#ffffff",
+        })
+        .setOrigin(0.5);
+
+      // Description
+      this.add
+        .text(x, y + s(2), layout.description, {
+          fontSize: px(11),
+          fontFamily: "Arial",
+          color: "#aaaacc",
+          wordWrap: { width: cardW - s(20) },
+          align: "center",
+        })
+        .setOrigin(0.5);
+
+      // Grid size
+      this.add
+        .text(x, y + s(30), `${layout.cols}\u00d7${layout.rows}`, {
+          fontSize: px(10),
+          fontFamily: "Arial",
+          color: "#888899",
+        })
+        .setOrigin(0.5);
+
+      // Hover
+      card.on("pointerover", () => {
+        card.setFillStyle(0x3a3a6e);
+        card.setStrokeStyle(s(2), 0xf5c518);
+      });
+      card.on("pointerout", () => {
+        card.setFillStyle(0x2a2a4e);
+        card.setStrokeStyle(s(2), 0x4a4a6e);
+      });
+
+      card.on("pointerdown", () => {
+        this.scene.start("GameScene", {
+          playerCount: this.selectedPlayerCount,
+          layoutId: layout.id,
+        });
+      });
+    }
+
+    // Random button
+    const randomY =
+      gridStartY +
+      Math.ceil(layouts.length / gridCols) * (cardH + cardGapY) +
+      s(20);
+    const randomBtn = this.add
+      .text(width / 2, randomY, "🎲 Random Theater", {
+        fontSize: px(22),
+        fontFamily: "Georgia, serif",
+        color: "#ffffff",
+        backgroundColor: "#4a2c7a",
+        padding: { x: s(24), y: s(12) },
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+
+    randomBtn.on("pointerover", () => randomBtn.setStyle({ color: "#f5c518" }));
+    randomBtn.on("pointerout", () => randomBtn.setStyle({ color: "#ffffff" }));
+    randomBtn.on("pointerdown", () => {
+      const randomId =
+        LayoutOrder[Math.floor(Math.random() * LayoutOrder.length)];
+      this.scene.start("GameScene", {
+        playerCount: this.selectedPlayerCount,
+        layoutId: randomId,
+      });
+    });
+
+    // Back button
+    const backBtn = this.add
+      .text(s(20), s(20), "← Back", {
+        fontSize: px(16),
+        fontFamily: "Arial",
+        color: "#888899",
+      })
+      .setInteractive({ useHandCursor: true });
+
+    backBtn.on("pointerover", () => backBtn.setStyle({ color: "#f5c518" }));
+    backBtn.on("pointerout", () => backBtn.setStyle({ color: "#888899" }));
+    backBtn.on("pointerdown", () => this.showMainMenu());
   }
 }

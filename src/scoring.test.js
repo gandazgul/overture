@@ -16,6 +16,9 @@ import {
   PatronType,
   Trait,
   DefaultLayout,
+  BlackboxLayout,
+  RoyalTheatreLayout,
+  PromenadeLayout,
   createDeck,
   PatronInfo,
   TraitInfo,
@@ -26,11 +29,14 @@ import {
 // ── Helpers ─────────────────────────────────────────────────────────
 
 /**
- * Create an empty 4×5 grid.
+ * Create an empty grid for a given layout.
+ * @param {import('./types.js').LayoutMeta} [layout]
  * @returns {(CardData | null)[][]}
  */
-function emptyGrid() {
-  return Array.from({ length: 4 }, () => Array(5).fill(null));
+function emptyGrid(layout) {
+  const rows = layout?.rows ?? 4;
+  const cols = layout?.cols ?? 5;
+  return Array.from({ length: rows }, () => Array(cols).fill(null));
 }
 
 /**
@@ -71,9 +77,9 @@ Deno.test("getOrthogonalNeighbors - corner seat has 2 neighbors", () => {
 });
 
 Deno.test("isAisleSeat - col 0 and col 4 are aisles in default layout", () => {
-  assertEquals(isAisleSeat(0, DefaultLayout), true);
-  assertEquals(isAisleSeat(4, DefaultLayout), true);
-  assertEquals(isAisleSeat(2, DefaultLayout), false);
+  assertEquals(isAisleSeat(0, 0, DefaultLayout), true);
+  assertEquals(isAisleSeat(0, 4, DefaultLayout), true);
+  assertEquals(isAisleSeat(0, 2, DefaultLayout), false);
 });
 
 // ── Primary Type: Standard ──────────────────────────────────────────
@@ -498,4 +504,175 @@ Deno.test("createDeck: no excluded combos (no Bespectacled/Short Lovebirds, no N
       throw new Error(`Excluded combo found: ${c.label}`);
     }
   }
+});
+
+// ══════════════════════════════════════════════════════════════════
+// Blackbox Layout Tests
+// ══════════════════════════════════════════════════════════════════
+
+Deno.test("Blackbox: 5 rows × 4 cols, center aisles at cols 1-2", () => {
+  assertEquals(BlackboxLayout.rows, 5);
+  assertEquals(BlackboxLayout.cols, 4);
+  assertEquals(isAisleSeat(1, 1, BlackboxLayout), true);
+  assertEquals(isAisleSeat(1, 2, BlackboxLayout), true);
+  assertEquals(isAisleSeat(1, 0, BlackboxLayout), false);
+  assertEquals(isAisleSeat(1, 3, BlackboxLayout), false);
+});
+
+Deno.test("Blackbox: Critic in center aisle scores ×3", () => {
+  const grid = emptyGrid(BlackboxLayout);
+  place(grid, 2, 1, PatronType.CRITIC); // aisle seat
+  const result = scorePlayer(grid, BlackboxLayout);
+  assertEquals(result.perSeat[2][1], 6); // 2 × 3
+});
+
+Deno.test("Blackbox: Critic on edge (col 0) scores base only", () => {
+  const grid = emptyGrid(BlackboxLayout);
+  place(grid, 2, 0, PatronType.CRITIC); // NOT an aisle
+  const result = scorePlayer(grid, BlackboxLayout);
+  assertEquals(result.perSeat[2][0], 2); // base only
+});
+
+Deno.test("Blackbox: back row is row 4", () => {
+  const grid = emptyGrid(BlackboxLayout);
+  place(grid, 4, 1, PatronType.LOVEBIRDS);
+  place(grid, 4, 2, PatronType.LOVEBIRDS);
+  const result = scorePlayer(grid, BlackboxLayout);
+  // Lovebirds in back row adjacent: (0+3) × 2 = 6
+  assertEquals(result.perSeat[4][1], 6);
+  assertEquals(result.perSeat[4][2], 6);
+});
+
+Deno.test("Blackbox: intimate venue — patron with 3+ neighbors gets +1 VP", () => {
+  const grid = emptyGrid(BlackboxLayout);
+  // Place a center patron surrounded on 3 sides
+  place(grid, 2, 1, PatronType.STANDARD); // center — has neighbors above, below, right
+  place(grid, 1, 1, PatronType.STANDARD); // above
+  place(grid, 3, 1, PatronType.STANDARD); // below
+  place(grid, 2, 2, PatronType.STANDARD); // right
+  const result = scorePlayer(grid, BlackboxLayout);
+  // Center patron: 3 base + 1 intimate venue = 4
+  assertEquals(result.perSeat[2][1], 4);
+  // Others have only 1 neighbor each → no bonus
+  assertEquals(result.perSeat[1][1], 3);
+  assertEquals(result.perSeat[3][1], 3);
+  assertEquals(result.perSeat[2][2], 3);
+});
+
+Deno.test("Blackbox: intimate venue — patron with exactly 2 neighbors gets no bonus", () => {
+  const grid = emptyGrid(BlackboxLayout);
+  place(grid, 2, 1, PatronType.STANDARD);
+  place(grid, 1, 1, PatronType.STANDARD);
+  place(grid, 3, 1, PatronType.STANDARD);
+  const result = scorePlayer(grid, BlackboxLayout);
+  assertEquals(result.perSeat[2][1], 3); // only 2 neighbors — no bonus
+});
+
+// ══════════════════════════════════════════════════════════════════
+// Royal Theatre Layout Tests
+// ══════════════════════════════════════════════════════════════════
+
+Deno.test("Royal Theatre: Royal Boxes at (0,0) and (0,4) are aisle seats", () => {
+  assertEquals(isAisleSeat(0, 0, RoyalTheatreLayout), true);
+  assertEquals(isAisleSeat(0, 4, RoyalTheatreLayout), true);
+  // Regular aisles still work
+  assertEquals(isAisleSeat(1, 0, RoyalTheatreLayout), true);
+  assertEquals(isAisleSeat(1, 2, RoyalTheatreLayout), false);
+});
+
+Deno.test("Royal Theatre: Critic in Royal Box scores ×3", () => {
+  const grid = emptyGrid(RoyalTheatreLayout);
+  place(grid, 0, 0, PatronType.CRITIC);
+  const result = scorePlayer(grid, RoyalTheatreLayout);
+  // Critic: 2 × 3 = 6, then +3 royal approval (highest scorer) = 9
+  assertEquals(result.perSeat[0][0], 9);
+});
+
+Deno.test("Royal Theatre: Bespectacled VIP in Royal Box scores huge", () => {
+  const grid = emptyGrid(RoyalTheatreLayout);
+  place(grid, 0, 0, PatronType.VIP, Trait.BESPECTACLED);
+  const result = scorePlayer(grid, RoyalTheatreLayout);
+  // VIP: 5 base + 3 row bonus = 8, Bespectacled: +2 = 10
+  // Royal approval: +3 (highest scorer) = 13
+  assertEquals(result.perSeat[0][0], 13);
+});
+
+Deno.test("Royal Theatre: royal approval goes to front-most on tie", () => {
+  const grid = emptyGrid(RoyalTheatreLayout);
+  place(grid, 0, 2, PatronType.STANDARD); // 3 VP, row 0
+  place(grid, 1, 2, PatronType.STANDARD); // 3 VP, row 1
+  const result = scorePlayer(grid, RoyalTheatreLayout);
+  // Both score 3 base. Tiebreak: front-most (row 0) gets +3
+  assertEquals(result.perSeat[0][2], 6); // 3 + 3 royal approval
+  assertEquals(result.perSeat[1][2], 3); // base only
+});
+
+Deno.test("Royal Theatre: royal approval goes to left-most on row tie", () => {
+  const grid = emptyGrid(RoyalTheatreLayout);
+  place(grid, 1, 1, PatronType.STANDARD); // 3 VP
+  place(grid, 1, 3, PatronType.STANDARD); // 3 VP
+  const result = scorePlayer(grid, RoyalTheatreLayout);
+  // Same row, tiebreak: left-most (col 1) gets +3
+  assertEquals(result.perSeat[1][1], 6);
+  assertEquals(result.perSeat[1][3], 3);
+});
+
+// ══════════════════════════════════════════════════════════════════
+// Promenade Layout Tests
+// ══════════════════════════════════════════════════════════════════
+
+Deno.test("Promenade: aisles alternate per row", () => {
+  // Row 0: cols 0, 4 are aisles
+  assertEquals(isAisleSeat(0, 0, PromenadeLayout), true);
+  assertEquals(isAisleSeat(0, 4, PromenadeLayout), true);
+  assertEquals(isAisleSeat(0, 2, PromenadeLayout), false);
+  // Row 1: col 2 is aisle
+  assertEquals(isAisleSeat(1, 2, PromenadeLayout), true);
+  assertEquals(isAisleSeat(1, 0, PromenadeLayout), false);
+  assertEquals(isAisleSeat(1, 4, PromenadeLayout), false);
+  // Row 2: cols 0, 4
+  assertEquals(isAisleSeat(2, 0, PromenadeLayout), true);
+  // Row 3: col 2
+  assertEquals(isAisleSeat(3, 2, PromenadeLayout), true);
+  assertEquals(isAisleSeat(3, 0, PromenadeLayout), false);
+});
+
+Deno.test("Promenade: Critic in row 1 col 2 (aisle) scores ×3", () => {
+  const grid = emptyGrid(PromenadeLayout);
+  place(grid, 1, 2, PatronType.CRITIC);
+  const result = scorePlayer(grid, PromenadeLayout);
+  assertEquals(result.perSeat[1][2], 6); // 2 × 3
+});
+
+Deno.test("Promenade: Critic in row 1 col 0 (not aisle) scores base", () => {
+  const grid = emptyGrid(PromenadeLayout);
+  place(grid, 1, 0, PatronType.CRITIC);
+  const result = scorePlayer(grid, PromenadeLayout);
+  assertEquals(result.perSeat[1][0], 2); // base only
+});
+
+Deno.test("Promenade: wandering critics — 3+ critics in aisles gives all critics +1", () => {
+  const grid = emptyGrid(PromenadeLayout);
+  place(grid, 0, 0, PatronType.CRITIC); // aisle (row 0, col 0)
+  place(grid, 1, 2, PatronType.CRITIC); // aisle (row 1, col 2)
+  place(grid, 2, 4, PatronType.CRITIC); // aisle (row 2, col 4)
+  place(grid, 3, 1, PatronType.CRITIC); // NOT aisle (row 3, col 1)
+  const result = scorePlayer(grid, PromenadeLayout);
+  // 3 critics in aisles → all 4 critics get +1 VP
+  assertEquals(result.perSeat[0][0], 7); // 2×3 aisle + 1 wandering = 7
+  assertEquals(result.perSeat[1][2], 7); // 2×3 aisle + 1 wandering = 7
+  assertEquals(result.perSeat[2][4], 7); // 2×3 aisle + 1 wandering = 7
+  assertEquals(result.perSeat[3][1], 3); // 2 base (no aisle) + 1 wandering = 3
+});
+
+Deno.test("Promenade: wandering critics — fewer than 3 in aisles gives no bonus", () => {
+  const grid = emptyGrid(PromenadeLayout);
+  place(grid, 0, 0, PatronType.CRITIC); // aisle
+  place(grid, 1, 2, PatronType.CRITIC); // aisle
+  place(grid, 3, 1, PatronType.CRITIC); // NOT aisle
+  const result = scorePlayer(grid, PromenadeLayout);
+  // Only 2 critics in aisles → no wandering bonus
+  assertEquals(result.perSeat[0][0], 6); // 2×3 aisle only
+  assertEquals(result.perSeat[1][2], 6);
+  assertEquals(result.perSeat[3][1], 2); // base only
 });

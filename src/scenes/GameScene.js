@@ -3,20 +3,21 @@ import Phaser from "phaser";
 import { Card } from "../objects/Card.js";
 import {
   createDeck,
-  DefaultLayout,
+  GrandEmpressLayout,
+  Layouts,
   PatronColors,
   TraitColors,
   PlayerColors,
   PlayerColorsHex,
   PlayerNames,
 } from "../types.js";
-import { scorePlayer } from "../scoring.js";
+import { scorePlayer, isAisleSeat } from "../scoring.js";
 import { s, px } from "../config.js";
 
-const ROWS = 4;
-const COLS = 5;
 const SEAT_SIZE = s(80);
-const SEAT_GAP = s(10);
+const SEAT_GAP = s(8);
+const AISLE_GAP = s(30);   // wider gap for aisle walkways
+const WALL_WIDTH = s(6);   // theater wall thickness
 
 /**
  * Concise scoring reminders shown when a card is selected.
@@ -48,6 +49,9 @@ export class GameScene extends Phaser.Scene {
 
     /** @type {import('../types.js').CardData[]} */
     this.deck = [];
+
+    /** @type {import('../types.js').LayoutMeta} */
+    this.layout = GrandEmpressLayout;
 
     /** @type {number} */
     this.playerCount = 2;
@@ -113,14 +117,21 @@ export class GameScene extends Phaser.Scene {
     /** @type {Phaser.GameObjects.Text[]} */
     this.seatLabels = [];
 
+    /** @type {number[]} center-x of each column (set in create) */
+    this.colX = [];
+
+    /** @type {number} top of the seat grid (set in create) */
+    this.gridStartY = 0;
+
     /** @type {Phaser.GameObjects.Text | null} */
     this.scoringTooltip = null;
   }
 
   /**
-   * @param {{ playerCount?: number }} data
+   * @param {{ playerCount?: number, layoutId?: string }} data
    */
   init(data) {
+    this.layout = (data.layoutId && Layouts[data.layoutId]) || GrandEmpressLayout;
     this.playerCount = data.playerCount || 2;
     this.currentPlayer = 0;
     this.round = 1;
@@ -130,12 +141,14 @@ export class GameScene extends Phaser.Scene {
     this.handCards = [];
     this.seatLabels = [];
 
+    const { rows, cols } = this.layout;
+
     // Initialize per-player state
     this.placedPatrons = [];
     this.playerHands = [];
     for (let p = 0; p < this.playerCount; p++) {
-      this.placedPatrons[p] = Array.from({ length: ROWS }, () =>
-        Array(COLS).fill(null)
+      this.placedPatrons[p] = Array.from({ length: rows }, () =>
+        Array(cols).fill(null)
       );
       // Deal starting hand: 1 card per player
       const startCard = this.deck.pop();
@@ -175,50 +188,189 @@ export class GameScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setDepth(1);
 
-    // ── Stage area ──────────────────────────────────────────────────
-    const gridWidth = COLS * (SEAT_SIZE + SEAT_GAP) - SEAT_GAP;
-    const gridStartX = (width - gridWidth) / 2;
-    const gridStartY = s(100);
+    // ── Compute aisle walkway positions ────────────────────────────
+    const ROWS = this.layout.rows;
+    const COLS = this.layout.cols;
+    const aisleCols = this.layout.aisleCols ?? [];
+    const hasPerRowAisles = !!this.layout.aisleColsByRow;
+
+    // Determine where walkway gaps go (edges and between seats).
+    // For per-row aisles (Promenade), we skip structural gaps and
+    // only use per-seat colour tints.
+    const leftAisle = !hasPerRowAisles && aisleCols.includes(0);
+    const rightAisle = !hasPerRowAisles && aisleCols.includes(COLS - 1);
+    /** @type {Set<number>} gaps between col c and col c+1 */
+    const centerAisleGaps = new Set();
+    if (!hasPerRowAisles) {
+      for (let c = 0; c < COLS - 1; c++) {
+        if (aisleCols.includes(c) && aisleCols.includes(c + 1)) {
+          centerAisleGaps.add(c);
+        }
+      }
+    }
+
+    // ── Compute column X positions with variable gaps ────────────
+    /** @type {number[]} center-x of each column */
+    const colX = [];
+    let cursor = 0;
+    if (leftAisle) cursor += AISLE_GAP;
+    for (let c = 0; c < COLS; c++) {
+      colX[c] = cursor + SEAT_SIZE / 2;
+      cursor += SEAT_SIZE;
+      if (c < COLS - 1) {
+        cursor += centerAisleGaps.has(c) ? AISLE_GAP : SEAT_GAP;
+      }
+    }
+    if (rightAisle) cursor += AISLE_GAP;
+    const totalGridW = cursor;
+
+    const gridHeight = ROWS * (SEAT_SIZE + SEAT_GAP) - SEAT_GAP;
+    const gridStartX = (width - totalGridW) / 2;
+    const gridStartY = s(110);
+
+    // Offset colX so they’re relative to gridStartX
+    for (let c = 0; c < COLS; c++) colX[c] += gridStartX;
+
+    // ── Theater floor background ─────────────────────────────────
+    const floorLeft = gridStartX;
+    const floorRight = gridStartX + totalGridW;
+    const floorTop = gridStartY - s(4);
+    const floorBottom = gridStartY + gridHeight + s(4);
+    const floorW = floorRight - floorLeft;
+    const floorH = floorBottom - floorTop;
 
     this.add
-      .rectangle(width / 2, gridStartY - s(25), gridWidth + s(40), s(20), 0x8b4513)
+      .rectangle(
+        floorLeft + floorW / 2,
+        floorTop + floorH / 2,
+        floorW,
+        floorH,
+        0x12122a
+      )
+      .setStrokeStyle(s(1), 0x2a2a4e, 0.5);
+
+    // ── Walls (solid lines on non-aisle edges) ──────────────────
+    if (!leftAisle) {
+      this.add
+        .rectangle(floorLeft, floorTop + floorH / 2, WALL_WIDTH, floorH, 0x4a3a2a)
+        .setOrigin(0.5, 0.5);
+    }
+    if (!rightAisle) {
+      this.add
+        .rectangle(floorRight, floorTop + floorH / 2, WALL_WIDTH, floorH, 0x4a3a2a)
+        .setOrigin(0.5, 0.5);
+    }
+
+    // ── Aisle walkway strips ──────────────────────────────────────
+    const aisleColor = 0x1e1e32;
+    const aisleStripH = floorH;
+
+    // Left aisle walkway
+    if (leftAisle) {
+      const aisleX = gridStartX + AISLE_GAP / 2;
+      this.add
+        .rectangle(aisleX, floorTop + floorH / 2, AISLE_GAP - s(4), aisleStripH, aisleColor)
+        .setAlpha(0.6);
+      for (let dy = 0; dy < floorH; dy += s(16)) {
+        this.add
+          .rectangle(aisleX, floorTop + dy + s(4), s(2), s(8), 0x444466)
+          .setAlpha(0.4);
+      }
+    }
+
+    // Right aisle walkway
+    if (rightAisle) {
+      const aisleX = floorRight - AISLE_GAP / 2;
+      this.add
+        .rectangle(aisleX, floorTop + floorH / 2, AISLE_GAP - s(4), aisleStripH, aisleColor)
+        .setAlpha(0.6);
+      for (let dy = 0; dy < floorH; dy += s(16)) {
+        this.add
+          .rectangle(aisleX, floorTop + dy + s(4), s(2), s(8), 0x444466)
+          .setAlpha(0.4);
+      }
+    }
+
+    // Center aisle walkways
+    for (const gapAfterCol of centerAisleGaps) {
+      const leftEdge = colX[gapAfterCol] + SEAT_SIZE / 2;
+      const rightEdge = colX[gapAfterCol + 1] - SEAT_SIZE / 2;
+      const aisleX = (leftEdge + rightEdge) / 2;
+      const aisleW = rightEdge - leftEdge;
+      this.add
+        .rectangle(aisleX, floorTop + floorH / 2, aisleW - s(4), aisleStripH, aisleColor)
+        .setAlpha(0.6);
+      for (let dy = 0; dy < floorH; dy += s(16)) {
+        this.add
+          .rectangle(aisleX, floorTop + dy + s(4), s(2), s(8), 0x444466)
+          .setAlpha(0.4);
+      }
+    }
+
+    // ── Stage platform ───────────────────────────────────────────
+    const stageH = s(22);
+    const stageY = floorTop - stageH / 2; // sits right above the floor
+    this.add
+      .rectangle(floorLeft + floorW / 2, stageY, floorW, stageH, 0x8b4513)
       .setStrokeStyle(s(1), 0xdaa520);
 
     this.add
-      .text(width / 2, gridStartY - s(25), "🎬 STAGE", {
-        fontSize: px(12),
+      .text(floorLeft + floorW / 2, stageY, "STAGE", {
+        fontSize: px(11),
         color: "#ffd700",
-        fontFamily: "Arial",
+        fontFamily: "Georgia, serif",
+        fontStyle: "bold",
       })
       .setOrigin(0.5);
 
-    // ── Row labels ──────────────────────────────────────────────────
-    const rowLabels = ["Row A (Front)", "Row B", "Row C", "Row D (Back)"];
+    // ── Row labels (dynamic based on layout) ────────────────────────
+    const rowLabels = Array.from({ length: ROWS }, (_, i) => {
+      const letter = String.fromCharCode(65 + i); // A, B, C, ...
+      if (i === 0) return `${letter} ◂ Front`;
+      if (i === ROWS - 1) return `${letter} ◂ Back`;
+      return `${letter}`;
+    });
+
+    // Store colX for use in renderTheater
+    this.colX = colX;
+    this.gridStartY = gridStartY;
 
     // ── Build theater grid ──────────────────────────────────────────
     for (let row = 0; row < ROWS; row++) {
       this.seatGrid[row] = [];
+      const y = gridStartY + row * (SEAT_SIZE + SEAT_GAP) + SEAT_SIZE / 2;
 
       this.add
         .text(
-          gridStartX - s(10),
-          gridStartY + row * (SEAT_SIZE + SEAT_GAP) + SEAT_SIZE / 2,
+          gridStartX - s(6),
+          y,
           rowLabels[row],
-          { fontSize: px(11), color: "#888899", fontFamily: "Arial" }
+          { fontSize: px(11), color: "#666688", fontFamily: "Arial" }
         )
         .setOrigin(1, 0.5);
 
       for (let col = 0; col < COLS; col++) {
-        const x = gridStartX + col * (SEAT_SIZE + SEAT_GAP) + SEAT_SIZE / 2;
-        const y = gridStartY + row * (SEAT_SIZE + SEAT_GAP) + SEAT_SIZE / 2;
+        const x = colX[col];
+        const isAisle = isAisleSeat(row, col, this.layout);
+        const isRoyalBox = this.layout.royalBoxes?.some(
+          (b) => b.row === row && b.col === col
+        );
+
+        // Visual styling per seat type
+        const emptyFill = isRoyalBox ? 0x2a2040 : isAisle ? 0x1e1e38 : 0x1a1a3e;
+        const emptyStroke = isRoyalBox ? 0xdaa520 : isAisle ? 0x6a6a3e : 0x3a3a5e;
+        const strokeWidth = isRoyalBox ? s(3) : s(2);
 
         const seat = this.add
-          .rectangle(x, y, SEAT_SIZE, SEAT_SIZE, 0x1a1a3e)
-          .setStrokeStyle(s(2), 0x3a3a5e)
+          .rectangle(x, y, SEAT_SIZE, SEAT_SIZE, emptyFill)
+          .setStrokeStyle(strokeWidth, emptyStroke)
           .setInteractive({ useHandCursor: true });
 
         seat.setData("row", row);
         seat.setData("col", col);
+        seat.setData("emptyFill", emptyFill);
+        seat.setData("emptyStroke", emptyStroke);
+        seat.setData("strokeWidth", strokeWidth);
 
         seat.on("pointerover", () => {
           if (
@@ -233,8 +385,8 @@ export class GameScene extends Phaser.Scene {
 
         seat.on("pointerout", () => {
           if (!this.placedPatrons[this.currentPlayer][row][col]) {
-            seat.setFillStyle(0x1a1a3e);
-            seat.setStrokeStyle(s(2), 0x3a3a5e);
+            seat.setFillStyle(emptyFill);
+            seat.setStrokeStyle(strokeWidth, emptyStroke);
           }
         });
 
@@ -243,6 +395,16 @@ export class GameScene extends Phaser.Scene {
             this.placeSeatCard(row, col, seat);
           }
         });
+
+        // Royal Box label
+        if (isRoyalBox) {
+          const boxLabel = this.add
+            .text(x, y + SEAT_SIZE / 2 + s(4), "👑", {
+              fontSize: px(10),
+            })
+            .setOrigin(0.5, 0);
+          this.seatLabels.push(boxLabel);
+        }
 
         this.seatGrid[row][col] = seat;
       }
@@ -356,6 +518,26 @@ export class GameScene extends Phaser.Scene {
       .setOrigin(0.5);
     container.add(roundInfo);
 
+    // House rule reminder
+    if (this.layout.houseRuleDescription) {
+      const houseRule = this.add
+        .text(
+          width / 2,
+          height / 2 + s(70),
+          `${this.layout.emoji} ${this.layout.houseRuleDescription}`,
+          {
+            fontSize: px(13),
+            fontFamily: "Arial",
+            color: "#f5c518",
+            fontStyle: "italic",
+            wordWrap: { width: s(400) },
+            align: "center",
+          }
+        )
+        .setOrigin(0.5);
+      container.add(houseRule);
+    }
+
     // Ready button
     const readyBtn = this.add
       .text(width / 2, height / 2 + s(120), "👆 I'm Ready", {
@@ -440,6 +622,8 @@ export class GameScene extends Phaser.Scene {
 
   renderTheater() {
     const grid = this.placedPatrons[this.currentPlayer];
+    const ROWS = this.layout.rows;
+    const COLS = this.layout.cols;
 
     // Clear old seat labels
     for (const lbl of this.seatLabels) {
@@ -472,8 +656,25 @@ export class GameScene extends Phaser.Scene {
 
           this.seatLabels.push(emoji, label);
         } else {
-          seat.setFillStyle(0x1a1a3e);
-          seat.setStrokeStyle(2, 0x3a3a5e);
+          // Restore empty-state appearance from seat data
+          const emptyFill = seat.getData("emptyFill") ?? 0x1a1a3e;
+          const emptyStroke = seat.getData("emptyStroke") ?? 0x3a3a5e;
+          const sw = seat.getData("strokeWidth") ?? s(2);
+          seat.setFillStyle(emptyFill);
+          seat.setStrokeStyle(sw, emptyStroke);
+
+          // Re-add Royal Box label for empty seats
+          const isRoyalBox = this.layout.royalBoxes?.some(
+            (b) => b.row === row && b.col === col
+          );
+          if (isRoyalBox) {
+            const boxLabel = this.add
+              .text(seat.x, seat.y + SEAT_SIZE / 2 + s(4), "👑", {
+                fontSize: px(10),
+              })
+              .setOrigin(0.5, 0);
+            this.seatLabels.push(boxLabel);
+          }
         }
       }
     }
@@ -766,7 +967,7 @@ export class GameScene extends Phaser.Scene {
       const text = this.scoreTexts[p];
       if (!text) continue;
 
-      const { total } = scorePlayer(this.placedPatrons[p], DefaultLayout);
+      const { total } = scorePlayer(this.placedPatrons[p], this.layout);
       const name = PlayerNames[p];
 
       if (showAll || p === this.currentPlayer) {
@@ -793,7 +994,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (this.bannerText) {
-      this.bannerText.setText(`🎭 ${name}'s Theater`);
+      this.bannerText.setText(`${this.layout.emoji} ${name} — ${this.layout.name}`);
       this.bannerText.setColor(color);
     }
 
@@ -840,7 +1041,7 @@ export class GameScene extends Phaser.Scene {
     /** @type {import('../scoring.js').PlayerScore[]} */
     const playerScores = [];
     for (let p = 0; p < this.playerCount; p++) {
-      const result = scorePlayer(this.placedPatrons[p], DefaultLayout);
+      const result = scorePlayer(this.placedPatrons[p], this.layout);
       scores.push(result.total);
       playerScores.push(result);
     }
@@ -868,10 +1069,12 @@ export class GameScene extends Phaser.Scene {
     // Compute max seat size that fits
     const cellW = (availW - (gridCols - 1) * cellGapX) / gridCols;
     const cellH = (availH - (gridRows - 1) * cellGapY) / gridRows;
+    const ROWS = this.layout.rows;
+    const COLS = this.layout.cols;
     const maxSeatFromW = (cellW - (COLS - 1) * s(3)) / COLS;
     const maxSeatFromH = (cellH - labelH - (ROWS - 1) * s(3)) / ROWS;
     const miniSeatSize = Math.min(Math.floor(Math.min(maxSeatFromW, maxSeatFromH)), s(50));
-    const miniGap = s(3);
+    const miniGap = s(5);
 
     const miniGridW = COLS * (miniSeatSize + miniGap) - miniGap;
     const miniGridH = ROWS * (miniSeatSize + miniGap) - miniGap;

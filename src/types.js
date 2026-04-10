@@ -209,7 +209,7 @@ export const PatronScoring = {
     base: 0,
     adjacentMatchBonus: 3, // VP if adjacent to another Lovebirds
     backRowMultiplier: 2,
-    backRows: [3], // last row
+    // backRows is determined by the layout, not hardcoded here
   },
   [PatronType.KID]: {
     base: 0, // uncapped
@@ -263,24 +263,124 @@ Object.freeze(TraitScoring);
 // ── Layout ─────────────────────────────────────────────────────────
 
 /**
- * Default layout metadata for the current 4×5 theater.
- * Future layouts will provide their own metadata objects.
+ * Layout metadata for a theater.
+ * Defines the physical grid, aisle positions, and optional house rule.
  *
  * @typedef {Object} LayoutMeta
+ * @property {string} id - Unique layout identifier
+ * @property {string} name - Display name (e.g. "The Grand Empress")
+ * @property {string} emoji - Theater emoji for UI
+ * @property {string} description - Short description for selection screen
  * @property {number} rows - Number of rows
- * @property {number} cols - Number of columns
- * @property {number[]} aisleCols - Column indices that count as aisle seats
+ * @property {number} cols - Number of columns (max width)
+ * @property {number[]} aisleCols - Default aisle columns (used when aisleColsByRow is not set)
+ * @property {number[][]} [aisleColsByRow] - Per-row aisle columns (e.g. Promenade)
  * @property {number[]} backRows - Row indices that count as "back" of theater
+ * @property {number[]} [frontRows] - Row indices that count as "front" (default: [0, 1])
+ * @property {{row: number, col: number}[]} [royalBoxes] - Seats that count as both aisle AND front row
+ * @property {string|null} [houseRule] - House rule ID for scoring (null = none)
+ * @property {string} [houseRuleDescription] - Human-readable house rule text for UI
  */
 
 /** @type {LayoutMeta} */
-export const DefaultLayout = {
+export const GrandEmpressLayout = {
+  id: "grand-empress",
+  name: "The Grand Empress",
+  emoji: "🏛️",
+  description: "Classic wide theater. Plentiful aisle seats. No house rule.",
   rows: 4,
   cols: 5,
-  aisleCols: [0, 4], // leftmost and rightmost seats
+  aisleCols: [0, 4],
   backRows: [3],
+  houseRule: null,
+  houseRuleDescription: "The Classics — No special demand. Vanilla scoring.",
 };
-Object.freeze(DefaultLayout);
+Object.freeze(GrandEmpressLayout);
+
+/** @type {LayoutMeta} */
+export const BlackboxLayout = {
+  id: "blackbox",
+  name: "The Blackbox",
+  emoji: "🎭",
+  description: "Deep & narrow. Center aisles only. Dense packing rewarded.",
+  rows: 5,
+  cols: 4,
+  aisleCols: [1, 2],
+  backRows: [4],
+  houseRule: "intimate-venue",
+  houseRuleDescription:
+    "Intimate Venue — Each patron adjacent to 3+ others gets +1 VP.",
+};
+Object.freeze(BlackboxLayout);
+
+/** @type {LayoutMeta} */
+export const RoyalTheatreLayout = {
+  id: "royal-theatre",
+  name: "The Royal Theatre",
+  emoji: "👑",
+  description: "Royal Boxes in the front corners. Best patron gets +3 VP.",
+  rows: 4,
+  cols: 5,
+  aisleCols: [0, 4],
+  backRows: [3],
+  royalBoxes: [
+    { row: 0, col: 0 },
+    { row: 0, col: 4 },
+  ],
+  houseRule: "royal-approval",
+  houseRuleDescription:
+    "Royal Approval — Your highest-scoring patron gets +3 VP.",
+};
+Object.freeze(RoyalTheatreLayout);
+
+/** @type {LayoutMeta} */
+export const PromenadeLayout = {
+  id: "promenade",
+  name: "The Promenade",
+  emoji: "🚶",
+  description: "Staggered aisles every row. Critics spread out.",
+  rows: 4,
+  cols: 5,
+  aisleCols: [], // not used — aisleColsByRow takes precedence
+  aisleColsByRow: [
+    [0, 4], // Row 0
+    [2],    // Row 1
+    [0, 4], // Row 2
+    [2],    // Row 3
+  ],
+  backRows: [3],
+  houseRule: "wandering-critics",
+  houseRuleDescription:
+    "Wandering Critics — +1 VP per Critic if you have 3+ Critics in aisle seats.",
+};
+Object.freeze(PromenadeLayout);
+
+/**
+ * All available theater layouts, keyed by ID.
+ * @type {Record<string, LayoutMeta>}
+ */
+export const Layouts = {
+  [GrandEmpressLayout.id]: GrandEmpressLayout,
+  [BlackboxLayout.id]: BlackboxLayout,
+  [RoyalTheatreLayout.id]: RoyalTheatreLayout,
+  [PromenadeLayout.id]: PromenadeLayout,
+};
+Object.freeze(Layouts);
+
+/**
+ * Ordered list of layout IDs for UI display.
+ * @type {string[]}
+ */
+export const LayoutOrder = [
+  GrandEmpressLayout.id,
+  BlackboxLayout.id,
+  RoyalTheatreLayout.id,
+  PromenadeLayout.id,
+];
+Object.freeze(LayoutOrder);
+
+/** Backward-compatible alias. */
+export const DefaultLayout = GrandEmpressLayout;
 
 // ── Deck Builder ───────────────────────────────────────────────────
 

@@ -1,7 +1,7 @@
-# Theater Card Game — Game Design Document
+# Theater Card Game - Game Design Document
 
-> A tableau-building card game for 2–4 players where rival ushers compete to
-> seat patrons in their personal theaters for maximum enjoyment—and maximum
+> A tableau-building card game for 2-4 players where rival ushers compete to
+> seat patrons in their personal theaters for maximum enjoyment-and maximum
 > victory points.
 
 ---
@@ -12,35 +12,39 @@
 2. [Components](#components)
 3. [Setup](#setup)
 4. [Turn Structure](#turn-structure)
-5. [Patron Cards](#patron-cards)
+5. [The Lobby](#the-lobby)
+6. [Patron Cards](#patron-cards)
    - [Primary Types](#primary-types-6)
    - [Secondary Traits](#secondary-traits-4)
    - [Trait Assignment Rules](#trait-assignment-rules)
-6. [Deck Composition](#deck-composition)
-7. [Scoring Reference](#scoring-reference)
+7. [Deck Composition](#deck-composition)
+8. [Scoring Reference](#scoring-reference)
    - [Primary Type Scoring](#primary-type-scoring)
    - [Trait Scoring](#trait-scoring)
    - [Cross-Type Modifiers](#cross-type-modifiers)
-8. [Interesting Trait Combos](#interesting-trait-combos)
-9. [Gifting & the Manager's Attention Token](#gifting--the-managers-attention-token)
-10. [Theater Layouts](#theater-layouts)
-11. [Play Cards](#play-cards)
-12. [End of Game](#end-of-game)
-13. [Design Principles](#design-principles)
+9. [Interesting Trait Combos](#interesting-trait-combos)
+10. [Gifting & the Manager's Attention Token](#gifting--the-managers-attention-token)
+11. [Theater Cards](#theater-cards)
+12. [Play Cards](#play-cards)
+13. [Season Deck](#season-deck)
+14. [End of Game](#end-of-game)
+15. [Design Principles](#design-principles)
 
 ---
 
 ## Overview
 
-Each player is a theater usher with their own **4×5 theater grid** (20 seats).
-On each turn you draw a patron card and place it in your theater—or "gift" a
-disruptive card to an opponent's theater. The game ends when the 56-card patron
-deck is exhausted. Each player then tallies victory points (VP) based on how
-well their patrons are seated.
+Each player is a theater usher with their own theater grid (layout varies by
+Theater card). On each turn you draw a patron card from the deck or take one
+from the **Lobby** (a shared face-up market), then place it in your theater-or
+"gift" a disruptive card to an opponent's theater. The game ends when the
+56-card patron deck is exhausted. Each player then tallies victory points (VP)
+based on how well their patrons are seated.
 
-**Player count:** 2–4 players
-**Turns per player:** 14 (56 cards ÷ 4 players)
-**Empty seats at game end:** 6 per player (strategic dead space)
+**Player count:** 2-4 players
+**Game setup:** Draw 1 Theater card + 1 Play card from the Season Deck.
+The Theater defines your grid layout and house rule; the Play defines the
+session's scoring twist and any extra cards shuffled into the patron deck.
 
 ---
 
@@ -48,33 +52,77 @@ well their patrons are seated.
 
 | Component                 | Quantity | Description                                    |
 | ------------------------- | -------- | ---------------------------------------------- |
-| Theater boards            | 4        | Individual 4×5 grids (one per player)          |
+| Theater boards            | 4        | Individual grids (layout defined by Theater card) |
 | Patron deck               | 56 cards | 6 primary types, 4 secondary traits            |
+| Season deck               | varies   | Theater cards, Play cards, Role cards, Demand cards, Understudy cards |
 | Player markers            | 4 sets   | Colored tokens to identify each player's board |
 | Manager's Attention token | 1        | Anti-targeting token (see [Gifting](#gifting--the-managers-attention-token)) |
-| Play cards                | 4+       | Session-modifying rule cards                   |
 
 ---
 
 ## Setup
 
-1. Each player takes a theater board and a set of colored player markers.
-2. Shuffle the 56-card patron deck and place it face-down in the center.
-3. Draw one **Play card** at random and apply its setup instructions (if any).
-   The Play card's rules are in effect for the entire session.
-4. Place the **Manager's Attention** token to one side—it enters play when the
+1. **Draw a Theater card** from the Season Deck. All players use the same
+   theater layout. Apply any setup instructions on the card.
+2. **Draw a Play card** from the Season Deck. Read its rules aloud. If the Play
+   adds extra cards to the patron deck (e.g., Understudy cards, Role cards),
+   find them in the Season Deck and follow the Play's setup instructions.
+3. Each player takes a theater board and configures it to match the Theater
+   card's layout.
+4. Shuffle the 56-card patron deck (plus any extra cards from the Play) and
+   place it face-down in the center.
+5. **Set up the Lobby:** Draw 3 cards from the patron deck and place them
+   face-up in a row beside the deck.
+6. Place the **Manager's Attention** token to one side-it enters play when the
    first gift occurs.
-5. The first player draws a card and play begins clockwise.
+7. The first player takes their turn and play proceeds clockwise.
 
 ---
 
 ## Turn Structure
 
-1. **Draw** — Draw the top card from the patron deck.
-2. **Place or Gift** — Either:
+1. **Draw** - Either:
+   - Draw the **top card** from the patron deck (blind), or
+   - Take **one card** from the Lobby (known).
+2. **Place or Gift** - Either:
    - **Place** the card into any empty seat in *your* theater, or
    - **Gift** the card to an opponent's theater (see [Gifting](#gifting--the-managers-attention-token)).
-3. Play passes clockwise.
+3. **Refill the Lobby** - If you took from the Lobby, refill it to 3 cards from
+   the top of the patron deck. *(If the deck is empty, the Lobby simply
+   shrinks.)*
+4. Play passes clockwise.
+
+---
+
+## The Lobby
+
+The Lobby is a shared face-up market of 3 patron cards, available to all
+players. It is a **universal mechanic** present in every game regardless of
+Theater or Play card.
+
+### Why the Lobby Exists
+
+Without the Lobby, each turn is a blind draw followed by an often-obvious
+placement. The Lobby adds:
+
+- **Visible information** - Everyone can see what's available. You know what
+  your opponents might want.
+- **Racing** - "I need that Lovebirds before Carol takes it." Taking a card
+  from the Lobby denies it to others.
+- **Risk vs. reward** - Take a known card from the Lobby, or gamble on a blind
+  draw that might be better (or worse)?
+- **Strategic denial** - Sometimes you take a card from the Lobby not because
+  you want it, but because an opponent needs it.
+
+### Lobby Rules
+
+1. The Lobby always starts with 3 face-up cards (dealt during setup).
+2. On your turn, you may take one Lobby card instead of drawing from the deck.
+3. After taking from the Lobby, immediately refill to 3 from the deck.
+4. Cards taken from the Lobby follow the same Place or Gift rules as drawn
+   cards.
+5. If the patron deck is empty, the Lobby cannot refill. Players may still take
+   from whatever remains in the Lobby.
 
 ---
 
@@ -89,7 +137,7 @@ optional trait adds a modifier on top.
 | Type        | Emoji | Base VP | Core Mechanic                                           |
 | ----------- | ----- | ------- | ------------------------------------------------------- |
 | **Standard**  | 🧑    | 3       | Reliable points anywhere. No special conditions.        |
-| **VIP**       | ⭐    | 5       | +3 VP in front 2 rows. −3 per adjacent Kid or Noisy-trait patron. |
+| **VIP**       | ⭐    | 5       | +3 VP in front 2 rows. -3 per adjacent Kid or Noisy-trait patron. |
 | **Lovebirds** | 💕    | 0       | +3 VP if adjacent to another Lovebirds. ×2 in back row. |
 | **Kid**       | 👦    | 0       | 0 VP unless capped; then 2 VP.                          |
 | **Teacher**   | 👩‍🏫   | 1       | +1 VP per adjacent capped Kid.                          |
@@ -99,18 +147,18 @@ optional trait adds a modifier on top.
 
 | Trait            | Emoji | Effect                                                  |
 | ---------------- | ----- | ------------------------------------------------------- |
-| **Tall**         | 🦒    | Patron directly behind gets −2 VP.                      |
-| **Short**        | 🧒    | +2 VP if no one is directly in front. −3 VP if a Tall-trait patron is directly in front. |
+| **Tall**         | 🦒    | Patron directly behind gets -2 VP.                      |
+| **Short**        | 🧒    | +2 VP if no one is directly in front. -3 VP if a Tall-trait patron is directly in front. |
 | **Bespectacled** | 🤓    | +2 VP if seated in the front 3 rows.                    |
-| **Noisy**        | 📢    | Each orthogonally adjacent patron gets −1 VP (all types, not just Standard). |
+| **Noisy**        | 📢    | Each orthogonally adjacent patron gets -1 VP (all types, not just Standard). |
 
 ### Trait Assignment Rules
 
 - Each card has exactly **1 primary type** and **0 or 1 trait**.
 - **Excluded combinations** (for thematic and balance reasons):
-  - No **Bespectacled Lovebirds** — Lovebirds want the back row; Bespectacled rewards front rows. Contradictory incentives would create a dead card.
-  - No **Short Lovebirds** — Short rewards front-row placement (no one in front); Lovebirds want the back. Same conflict.
-  - No **Noisy VIP** — VIPs already penalize *themselves* for adjacent Noisy-trait patrons. A self-penalizing combo would be confusing and incoherent.
+  - No **Bespectacled Lovebirds** - Lovebirds want the back row; Bespectacled rewards front rows. Contradictory incentives would create a dead card.
+  - No **Short Lovebirds** - Short rewards front-row placement (no one in front); Lovebirds want the back. Same conflict.
+  - No **Noisy VIP** - VIPs already penalize *themselves* for adjacent Noisy-trait patrons. A self-penalizing combo would be confusing and incoherent.
 
 ---
 
@@ -121,20 +169,20 @@ optional trait adds a modifier on top.
 | Primary Type | Clean | Tall | Short | Bespectacled | Noisy | **Total** |
 | ------------ | :---: | :--: | :---: | :----------: | :---: | :-------: |
 | Standard     | 13    | 2    | 2     | 2            | 2     | **21**    |
-| VIP          | 3     | —    | —     | 1            | —     | **4**     |
-| Lovebirds    | 8     | 1    | —     | —            | 1     | **10**    |
-| Kid          | 5     | 1    | 1     | —            | 1     | **8**     |
-| Teacher      | 3     | 1    | 1     | 1            | —     | **6**     |
-| Critic       | 3     | 1    | 2     | 1            | —     | **7**     |
+| VIP          | 3     | -    | -     | 1            | -     | **4**     |
+| Lovebirds    | 8     | 1    | -     | -            | 1     | **10**    |
+| Kid          | 5     | 1    | 1     | -            | 1     | **8**     |
+| Teacher      | 3     | 1    | 1     | 1            | -     | **6**     |
+| Critic       | 3     | 1    | 2     | 1            | -     | **7**     |
 | **Totals**   | **35**| **6**| **6** | **5**        | **4** | **56**    |
 
 **Design rationale:**
-- **Standard (21)** — Most common; reliable filler that keeps hands playable.
-- **Lovebirds (10)** — Enough density for pairs to be a viable strategy.
-- **Kid (8) vs Teacher (6)** — Fewer Teachers than Kids creates tension around capping.
-- **VIP (4)** — Rare, high-value prize cards. Seeing one is an event.
-- **Critic (7)** — Competes for scarce aisle seats. Extra Short Critics reward corner aisle placement.
-- **Trait distribution (21/56 ≈ 37.5%)** — Roughly one in three cards has a trait, keeping combos interesting without overwhelming the primary scoring.
+- **Standard (21)** - Most common; reliable filler that keeps hands playable.
+- **Lovebirds (10)** - Enough density for pairs to be a viable strategy.
+- **Kid (8) vs Teacher (6)** - Fewer Teachers than Kids creates tension around capping.
+- **VIP (4)** - Rare, high-value prize cards. Seeing one is an event.
+- **Critic (7)** - Competes for scarce aisle seats. Extra Short Critics reward corner aisle placement.
+- **Trait distribution (21/56 ≈ 37.5%)** - Roughly one in three cards has a trait, keeping combos interesting without overwhelming the primary scoring.
 
 ---
 
@@ -150,8 +198,8 @@ Scoring is computed in two phases, then cross-type modifiers are applied.
 #### VIP
 - **5 VP** base.
 - **+3 VP** if seated in **row 0 or 1** (front 2 rows).
-- **−3 VP** for each orthogonally adjacent **Kid**.
-- **−3 VP** for each orthogonally adjacent patron with the **Noisy** trait.
+- **-3 VP** for each orthogonally adjacent **Kid**.
+- **-3 VP** for each orthogonally adjacent patron with the **Noisy** trait.
 
 #### Lovebirds
 - **0 VP** base.
@@ -160,7 +208,7 @@ Scoring is computed in two phases, then cross-type modifiers are applied.
 
 #### Kid
 - **0 VP** if uncapped.
-- **2 VP** if **capped** — the Kid belongs to a contiguous horizontal group of
+- **2 VP** if **capped** - the Kid belongs to a contiguous horizontal group of
   Kids that has a **Teacher** at both the left and right ends.
 
 #### Teacher
@@ -176,20 +224,20 @@ Scoring is computed in two phases, then cross-type modifiers are applied.
 Traits modify the card's VP *on top of* primary type scoring.
 
 #### Tall 🦒
-- The patron seated **directly behind** (one row back, same column) receives **−2 VP**.
+- The patron seated **directly behind** (one row back, same column) receives **-2 VP**.
 - The Tall patron itself has no self-modifier.
 
 #### Short 🧒
 - **+2 VP** if the seat directly in front is **empty** (or the patron is in row 0).
-- **−3 VP** if the seat directly in front contains a **Tall-trait** patron.
-- *(If a non-Short patron is behind a Tall patron, the standard Tall behind-penalty of −2 VP applies instead.)*
+- **-3 VP** if the seat directly in front contains a **Tall-trait** patron.
+- *(If a non-Short patron is behind a Tall patron, the standard Tall behind-penalty of -2 VP applies instead.)*
 
 #### Bespectacled 🤓
 - **+2 VP** if seated in the **front 3 rows** (rows 0, 1, or 2).
 
 #### Noisy 📢
-- Each **orthogonally adjacent patron** (any type) receives **−1 VP**.
-- This affects *all* patron types—not only Standard.
+- Each **orthogonally adjacent patron** (any type) receives **-1 VP**.
+- This affects *all* patron types-not only Standard.
 
 ### Cross-Type Modifiers
 
@@ -197,9 +245,9 @@ These apply to **any** patron regardless of their own type:
 
 1. **Tall-behind penalty:** If the seat directly in front contains a Tall-trait
    patron and this patron is *not* Short (Short has its own penalty), this
-   patron receives **−2 VP**.
+   patron receives **-2 VP**.
 2. **Noisy adjacency penalty:** For each orthogonally adjacent Noisy-trait
-   patron, this patron receives **−1 VP**.
+   patron, this patron receives **-1 VP**.
 
 ---
 
@@ -209,13 +257,13 @@ The trait system creates cards with layered strategic identities:
 
 | Combo                  | Why It's Interesting                                                                                   |
 | ---------------------- | ------------------------------------------------------------------------------------------------------ |
-| **Bespectacled VIP**   | Front-row double bonus. The rarest prize card in the deck—only 1 exists. Dream placement: front row, away from Kids. |
+| **Bespectacled VIP**   | Front-row double bonus. The rarest prize card in the deck-only 1 exists. Dream placement: front row, away from Kids. |
 | **Tall Kid**           | Blocks the patron behind *and* is a liability if uncapped. Excellent gift card for opponents.          |
 | **Noisy Lovebirds**    | Big points in the back row when paired, but hurts all neighbors. Place carefully at the edge.          |
 | **Bespectacled Teacher** | Front-row trait bonus while also needing to cap Kids. Creates tension between optimal row and duty.  |
 | **Short Critic**       | Dream placement: front-row corner aisle seat. +2 (Short empty front) on top of 2×3 (Critic aisle) = 8 VP from one card. |
 | **Noisy Kid**          | Pure disruption. Worth 0 VP uncapped *and* hurts neighbors. The ultimate gift card.                   |
-| **Tall Lovebirds**     | Wants the back row for ×2 scoring but blocks whoever sits behind. In row 3 (back), no one is behind—safe spot. |
+| **Tall Lovebirds**     | Wants the back row for ×2 scoring but blocks whoever sits behind. In row 3 (back), no one is behind-safe spot. |
 | **Short Kid**          | Front-row bonus if uncapped feels wasted; capping in the front row means Teachers compete with VIPs for premium seats. |
 
 ---
@@ -226,7 +274,7 @@ The trait system creates cards with layered strategic identities:
 
 When you draw a card, you may **place it in an opponent's theater** instead of
 your own. This turns disruptive cards (Tall, Noisy, uncapped Kids) into
-strategic weapons—but the recipient gains partial control by choosing *where*
+strategic weapons-but the recipient gains partial control by choosing *where*
 in their grid the card goes.
 
 **Design philosophy:** Gifts are a *hindrance*, not a devastating blow. They
@@ -242,7 +290,7 @@ To prevent repeated targeting of one player:
 2. **No player may gift a card to the player holding the token.**
 3. The token moves only when a different opponent receives a gift.
 
-**Example (4-player game — Alice, Bob, Carol, Dave):**
+**Example (4-player game - Alice, Bob, Carol, Dave):**
 - Alice gifts a Tall Kid to Bob → token goes to Bob.
 - Carol draws a Noisy Patron. She *cannot* target Bob. She gifts it to Dave →
   token moves to Dave.
@@ -250,80 +298,367 @@ To prevent repeated targeting of one player:
 
 ---
 
-## Theater Layouts
+## Theater Cards
 
-Each game uses one of several theater board layouts. All are 4×5 grids (20
-seats) but differ in aisle placement, special seats, and row structure. The
-chosen layout combines with a Play card to create a unique session.
+Each game uses one Theater card drawn from the Season Deck. The Theater defines
+the **grid layout** (seat positions, aisle locations, special seats) and a
+**house rule** unique to that venue. All players use the same Theater.
 
-### Layout A: The Grand Empress *(Default)*
-- **Structure:** Wide theater with two side aisles (columns 0 and 4). No center aisle.
-- **Strategic feel:** Plentiful aisle seats make the Critic a strong pick. Wide
-  rows are effective for horizontal Kid groups.
+The house rule is a passive effect or audience demand baked into the venue-it
+changes what "good placement" means and creates tension with the standard
+scoring rules.
 
-### Layout B: The Blackbox
-- **Structure:** Deep, narrow theater with a single center aisle. The back
-  "row" has only 2 seats.
-- **Strategic feel:** Aisle seats are rare and contested. The tiny back row
-  makes Lovebirds placement a challenge. Tall patrons are extra impactful in
-  the long, narrow shape.
+### 🎭 The Grand Empress *(Default)*
 
-### Layout C: The Royal Theatre
-- **Structure:** Standard shape with two **Royal Box** seats that count as
-  *both* an aisle seat and a front-row seat for scoring.
-- **Strategic feel:** The Royal Boxes are the most valuable seats on the board.
-  A VIP or Critic in a Royal Box scores massive points.
+```
+  Col 0  1  2  3  4
+Row 0: [A][ ][ ][ ][A]    A = Aisle seat
+Row 1: [A][ ][ ][ ][A]    20 seats total
+Row 2: [A][ ][ ][ ][A]    8 aisle seats
+Row 3: [A][ ][ ][ ][A]
+```
 
-### Layout D: The Amphitheater
-- **Structure:** Curved, tiered rows—6 seats in front, then 5, 4, 3, and 2 in
-  the back. No aisles.
-- **Strategic feel:** No aisle seats makes the Critic much weaker. Tiered rows
-  create interesting Tall/Short line-of-sight puzzles. The tiny back rows are
-  high-risk, high-reward for Lovebirds.
+**House Rule: "The Classics"** - No special demand. Vanilla scoring. This is
+the learning theater.
+
+**Strategic feel:** Generous aisles make Critics strong. Wide rows are great for
+Kid-Teacher chains. The baseline experience.
+
+---
+
+### 🎭 The Blackbox
+
+```
+  Col 0  1  2  3
+Row 0: [ ][ ][ ][ ]       20 seats total
+Row 1: [ ][A][A][ ]       4 aisle seats (center only)
+Row 2: [ ][A][A][ ]       4 columns, 5 rows deep
+Row 3: [ ][ ][ ][ ]
+Row 4: [ ][ ][ ][ ]
+```
+
+**House Rule: “Intimate Venue”** — Each patron adjacent to 3+ other patrons
+(orthogonally surrounded) gets +1 VP.
+
+**Strategic feel:** Narrow and deep with 5 rows.
+Aisle seats are center-only, making Critic placement unintuitive. 5 rows deep
+means Tall chains are devastating. The dense packing bonus creates tension: you
+*want* neighbors for +1 VP, but Noisy patrons punish exactly that.
+
+---
+
+### 🎭 The Royal Theatre
+
+```
+  Col 0  1  2  3  4
+Row 0: [B][ ][ ][ ][B]    B = Royal Box (counts as aisle + front row)
+Row 1: [A][ ][ ][ ][A]    20 seats, 8 aisle seats, 2 Royal Boxes
+Row 2: [A][ ][ ][ ][A]
+Row 3: [A][ ][ ][ ][A]
+```
+
+**House Rule: "Royal Approval"** - The single highest-scoring patron in your
+theater gets +3 VP. Tiebreaker: front-most, then left-most.
+
+**Strategic feel:** The Royal Boxes are the most contested seats-a Bespectacled
+VIP in a Box scores 5+3+2+3 = 13 VP. "Royal Approval" also incentivizes
+building one mega-patron *anywhere*. Do you put your best card in the Box, or
+does the Box itself make the card your best?
+
+---
+
+### 🎭 The Amphitheater
+
+```
+     Col 0  1  2  3  4  5
+Row 0: [ ][ ][ ][ ][ ][ ]    Tiered: 6-5-4-3 = 18 seats
+Row 1:   [ ][ ][ ][ ][ ]     NO aisle seats at all
+Row 2:     [ ][ ][ ][ ]      Rows narrow toward the back
+Row 3:       [ ][ ][ ]
+```
+
+**House Rule: "The Panorama"** - +2 VP bonus for each completely filled row.
+
+**Strategic feel:** Zero aisles means Critics are nearly dead (base 2 VP only).
+Shrinking rows create natural scarcity in the back-only 3 back-row seats for
+Lovebirds. "The Panorama" bonus makes you want to fill rows completely, but
+row 0 has 6 seats and you only place 14 cards total. Filling the big front row
+means neglecting the easy-to-complete back rows.
+
+---
+
+### 🎭 The Cabaret
+
+```
+  Col 0  1     2  3     4  5
+Row 0: [ ][ ]   [ ][ ]   [ ][ ]    "Tables" of 2×2
+Row 1: [ ][ ]   [ ][ ]   [ ][ ]    with gaps between them
+                                     18 seats, 3 tables per row-pair
+Row 2: [ ][ ]   [ ][ ]   [ ][ ]
+Row 3: [ ][ ]   [ ][ ]   [ ][ ]
+```
+
+**House Rule: "Full Tables"** - +3 VP for each 2×2 table where all 4 seats are
+occupied.
+
+**Strategic feel:** Gaps between tables break adjacency-a Noisy patron only
+hurts tablemates, not the next table over. Lovebirds want to share a table. But
+filling a full table for +3 VP means you might place a mediocre card just to
+complete it. Kids can only chain within a table (max 2 wide), making
+Teacher-Kid capping harder.
+
+---
+
+### 🎭 The Balcony
+
+```
+  Col 0  1  2  3  4
+Row 0: [A][ ][ ][ ][A]    Balcony (elevated, separate)
+       ─────────────────   Gap: no adjacency between row 0 and row 1
+Row 1: [A][ ][ ][ ][A]    Main floor
+Row 2: [A][ ][ ][ ][A]
+Row 3: [A][ ][ ][ ][A]
+```
+
+**House Rule: "Bird's Eye View"** - Patrons in the balcony (row 0) are NOT
+adjacent to row 1. Balcony patrons with the Tall trait don't penalize anyone.
+Short patrons in the balcony always get their +2 VP (no one in front).
+
+**Strategic feel:** The balcony is a safe haven for problem cards-Tall patrons,
+Noisy patrons, misfits. But it's also "front row" for VIP/Bespectacled scoring.
+Do you waste premium front-row real estate on damage control, or pack it with
+your best scorers and deal with Tall/Noisy problems below?
+
+---
+
+### 🎭 The Promenade
+
+```
+  Col 0  1  2  3  4
+Row 0: [A][ ][ ][ ][A]    Staggered aisles:
+Row 1: [ ][ ][A][ ][ ]    different columns each row
+Row 2: [A][ ][ ][ ][A]    20 seats, 8 aisle seats
+Row 3: [ ][ ][A][ ][ ]
+```
+
+**House Rule: "Wandering Critics"** - Critics score their ×3 bonus in any aisle
+seat (as normal), but aisle seats change every row. +1 VP per Critic if you have
+3+ Critics in aisle seats.
+
+**Strategic feel:** Every row has different aisle columns, so "aisle strategy"
+isn't a single column anymore. Tall patrons in aisles block different positions
+than expected. The stagger means you can't just fill column 0 with Critics.
+Forces spread-out thinking.
 
 ---
 
 ## Play Cards
 
-At the start of each session, draw one Play card at random. Its rules apply to
-all players for the entire game. Play cards fall into three categories:
+Each game uses one Play card drawn from the Season Deck. The Play defines a
+**scoring twist** or **rule modification** for the session, and optionally adds
+**extra cards** from the Season Deck into the patron deck at setup.
 
-### Rule Changes
+### 🎬 The Casting Call
 
-**"Opening Night Gala"**
-> All VIP patrons are worth an additional +3 VP. All Standard Patrons are now
-> considered Bespectacled Patrons and score accordingly.
+**Rule:** At setup, deal one **Role card** to each player at random. Each Role
+gives a unique ability for the entire game. Role cards are played face-up-
+everyone knows everyone's advantage.
 
-### Board Modifications
+**Extra cards:** 6 Role cards (deal one per player, return unused to the Season
+Deck):
 
-**"Fire Safety Inspection"**
-> **Setup:** Place a "Velvet Rope" token on each aisle seat of your theater.
-> These seats cannot be used.
-> **Effect:** At the start of the final round, remove all Velvet Rope tokens.
-> Aisle seats open up for a frantic endgame rush.
+| Role | Ability |
+|------|---------|
+| **The Veteran** | Once per game, put your drawn card on the bottom of the deck and draw again. |
+| **The Architect** | Once per game, after placing a patron, swap two adjacent patrons in your theater. |
+| **The Collector** | End-game: +1 VP per unique primary type in your theater (max +6). |
+| **The Director** | Once per game, look at the top 3 cards before drawing. Take one, return two in any order. |
+| **The Understudy** | Once per game, place a drawn card face-down. It scores as a Standard (3 VP) regardless of what it is. |
+| **The Patron Saint** | End-game: your 3 lowest-scoring patrons each get +1 VP. |
 
-**"Structural Survey"**
-> **Setup:** Place two "Obstructed View" tokens on the seats marked with a star
-> icon on your layout board. These seats are permanently unusable.
-> **Effect:** Creates dead spots that players must build around all game.
+**Why it's interesting:** Three "once per game" roles (Veteran, Architect,
+Director) create timing tension-when do you spend your ability? Three passive
+roles (Collector, Understudy, Patron Saint) are simpler but still warp
+strategy. Face-up roles mean opponents can plan around your ability. 6 roles
+for max 4 players means you never see all roles in one game.
 
-### Hybrid (Rule Change + Board Modification)
+---
 
-**"Sold-Out Show"**
-> **Setup:** Place two Standard Patron cards from the box (not the deck) in the
-> two center-most seats of your middle row.
-> **Effect:** Your theater starts partially filled—two fewer seats to work with,
-> but the pre-placed Standards still score.
+### 🎬 The Understudy
+
+**Rule:** Normal scoring.
+
+**Extra cards:** Shuffle 3 **Understudy patron cards** into the patron deck
+(59 cards total). Understudies have no primary type and no trait. At end-game,
+each Understudy scores as whatever primary type would earn the most VP in its
+current seat. (It does NOT gain a trait.)
+
+**Why it's interesting:** Every Understudy placement is a puzzle. An aisle seat
+makes it a Critic (6 VP). A front-row seat away from Kids makes it a VIP
+(8 VP). Next to another Lovebirds in the back row makes it Lovebirds (6 VP).
+But it resolves at *end-game*, so the best seat depends on what you place
+around it later. Rewards long-term planning and flexible positioning.
+
+---
+
+### 🎬 The Dress Rehearsal
+
+**Rule:** **Draft-and-pass.** Each turn, draw 2 cards from the deck. Place one
+(in your theater or gift it). The other goes face-up into the next player's
+(clockwise) **offer pile**. On your turn, before drawing, you may take a card
+from your offer pile instead of drawing 2.
+
+- The Lobby is still available: you may take from the Lobby instead of drawing
+  2 or taking from your offer pile.
+- Your offer pile is visible to all players.
+- If you take from your offer pile, you place that single card normally (no
+  second card, no pass).
+
+**Extra cards:** None.
+
+**Why it's interesting:** Every draw is a split decision-and you're feeding your
+neighbor. "Do I keep the VIP and pass them the Lovebirds they clearly need, or
+keep the Lovebirds defensively and pass them the VIP?" The offer pile also
+interacts with the Lobby: sometimes the Lobby has what you need, so you skip
+your offer pile-but that card stays there, growing your neighbor's options.
+
+---
+
+### 🎬 Sold-Out Show
+
+**Rule:** At setup, each player draws 2 patron cards from the deck and places
+them face-up in any seats in their theater. These pre-placed patrons score
+normally.
+
+**Extra cards:** None.
+
+**Why it's interesting:** You start with constraints AND information. Those 2
+pre-placed cards define your early strategy, but now 8 cards (in a 4-player
+game) are out of the deck and visible to everyone. Changes the math on what's
+left.
+
+---
+
+### 🎬 The Matinee
+
+**Rule:** **Intermission.** After round 7 (half the deck is drawn), pause and
+score rows 0 and 1 only. Those points are banked. At end-game, score the full
+theater (including rows 0-1 again). Front-row patrons effectively score
+*twice*.
+
+**Extra cards:** None.
+
+**Why it's interesting:** Massively inflates front-row value. VIPs and
+Bespectacled patrons become even more premium. But if you rush to fill the front
+rows by round 7, you might place suboptimal cards just for the double-score. Do
+you stack the front for intermission points or build the back row for a stronger
+end-game?
+
+---
+
+### 🎬 The Avant-Garde
+
+**Rule:** At end-game, each **empty seat** that is orthogonally adjacent to at
+least 2 occupied seats scores +2 VP. Empty seats are no longer dead space-
+they're "breathing room."
+
+**Extra cards:** None.
+
+**Why it's interesting:** Completely inverts the default "fill as many seats as
+possible" instinct. Now you're intentionally leaving gaps. A checkerboard
+pattern might outscore a packed theater. Noisy patrons become less punishing
+because you want gaps anyway. In the Cabaret (Full Tables house rule), this
+creates a direct contradiction-fill tables or leave breathing room?
+
+---
+
+### 🎬 The Mystery
+
+**Rule:** At setup, shuffle the 10 Demand cards and deal 3 face-down. Reveal
+one after round 4, one after round 8, and one after round 12. Demands are
+end-game bonus VP conditions visible to all players once revealed.
+
+**Extra cards:** 10 **Demand cards** in the Season Deck:
+
+| Demand | Bonus |
+|--------|-------|
+| *"Standing Ovation"* | +5 VP if your back row is completely filled. |
+| *"No Children Allowed"* | +4 VP if you have 0 Kids in your theater. |
+| *"The Ensemble"* | +3 VP if you have 4+ different primary types in your theater. |
+| *"Quiet Please"* | +4 VP if you have 0 Noisy-trait patrons in your theater. |
+| *"Critic's Choice"* | +3 VP if you have 3+ Critics in your theater. |
+| *"Packed House"* | +1 VP per occupied seat (max +14). |
+| *"Front Row Royalty"* | +5 VP if every seat in row 0 is occupied. |
+| *"The Odd Couple"* | +4 VP if you have at least one VIP orthogonally adjacent to a Kid. |
+| *"Lovebirds' Nest"* | +4 VP if you have 3+ Lovebirds in the back row. |
+| *"Teacher's Pet"* | +3 VP if all Kids in your theater are capped. |
+
+**Why it's interesting:** The staged reveal forces adaptation. You build for 4
+rounds blind, then a demand reveals that might reward or punish what you've
+already built. By round 8 you have two demands to juggle. The third comes too
+late to react to fully-it's a gamble. Demands also interact with the Lobby:
+when "Critic's Choice" is revealed, suddenly every Critic in the Lobby becomes
+hotly contested.
+
+---
+
+### 🎬 The Double Feature
+
+**Rule:** The game is played in two halves. After round 7, each player gets a
+**second theater board** (same layout as their first). For the remaining 7
+rounds, you place into either theater. At end-game, score both theaters
+separately; your final score is the **lower** of the two.
+
+**Extra cards:** None.
+
+**Why it's interesting:** You can't just stack one theater. If you dump all good
+cards into Theater A and neglect Theater B, your low score from B is what
+counts. Forces balanced play. Gifting becomes more agonizing-which of their two
+theaters do you target?
+
+---
+
+## Season Deck
+
+The Season Deck is a separate deck of cards used during setup to configure each
+game session. It contains all Theater cards, Play cards, and any extra cards
+referenced by specific Plays.
+
+### Season Deck Composition
+
+| Card Type | Count | Used By |
+|-----------|-------|---------|
+| Theater cards | 7 | Setup: draw 1 per game |
+| Play cards | 7 | Setup: draw 1 per game |
+| Role cards | 6 | The Casting Call play |
+| Demand cards | 10 | The Mystery play |
+| Understudy patron cards | 3 | The Understudy play |
+| **Total** | **33** | |
+
+### Notable Theater × Play Combos
+
+| Combo | Why It's Spicy |
+|-------|---------------|
+| **Amphitheater + The Avant-Garde** | "Fill rows for +2 VP" vs. "leave gaps for +2 VP." Direct contradiction forces hard choices every turn. |
+| **Cabaret + The Mystery** | Table layout fragments adjacency; demand cards might require cross-table planning. |
+| **Blackbox + The Understudy** | Only 16 seats, almost full. Understudies in a cramped space with tons of adjacency-their flex value is huge. |
+| **Balcony + The Matinee** | Balcony IS row 0, scores twice at intermission. But it's disconnected from row 1. Stack it or protect it? |
+| **Promenade + The Dress Rehearsal** | Staggered aisles + draft-and-pass. You can see what your neighbor needs AND deny them the right aisle-seat card. |
+| **Royal Theatre + The Casting Call** | The Collector role loves the Royal Boxes (diverse types for +6 VP). The Architect can swap a patron INTO a Box mid-game. |
+| **Grand Empress + The Mystery** | Vanilla layout lets you focus purely on demand adaptation. Good for learning The Mystery without layout complexity. |
 
 ---
 
 ## End of Game
 
-1. The game ends immediately when the last card is drawn from the patron deck.
+1. The game ends immediately when the last card is drawn from the patron deck
+   (and the Lobby is empty, if applicable).
 2. Each player scores their theater grid:
    - Phase 1: Primary type scoring for every occupied seat.
    - Phase 2: Trait scoring for every card with a trait.
    - Phase 3: Cross-type modifiers (Tall-behind, Noisy adjacency).
+   - Phase 4: Theater house rule bonuses (if any).
+   - Phase 5: Play card bonuses (Demand cards, Role card passives, etc.).
 3. The player with the **highest total VP** wins.
 4. **Tiebreaker:** The player with the most occupied seats wins. If still tied,
    the player with the fewest gifted cards in their theater wins.
@@ -338,14 +673,22 @@ expansions:
 1. **Hindrance, not harm.** Gifted cards are a nuisance, not a knockout punch.
    They create new puzzles, not hopeless situations.
 2. **Layered decisions.** The primary/trait split means every card has a
-   dual identity. A "Tall Kid" isn't just a Kid—it's a blocking liability
+   dual identity. A "Tall Kid" isn't just a Kid-it's a blocking liability
    *and* a capping puzzle.
 3. **Scarcity creates tension.** Fewer Teachers than Kids, only 4 VIPs, limited
-   aisle seats—constraints force meaningful trade-offs.
-4. **Modular replayability.** Layouts × Play cards = exponential variety. Each
-   combination shifts the meta without changing the core rules.
-5. **Constructive core.** The game feels like building something—your theater
-   is a personal puzzle you're proud of—with just enough interaction to keep
+   aisle seats-constraints force meaningful trade-offs.
+4. **Modular replayability.** Theaters × Plays = exponential variety. Each
+   combination shifts the meta without changing the core rules. 7 theaters ×
+   7 plays = 49 unique session configurations.
+5. **Constructive core.** The game feels like building something-your theater
+   is a personal puzzle you're proud of-with just enough interaction to keep
    everyone engaged.
-6. **Expansion-ready.** The system is designed for growth: new layouts, new Play
-   cards, and potentially a shared-theater competitive/cooperative mode.
+6. **Cards, not components.** New mechanics are delivered through cards (Season
+   Deck), not tokens or boards. This keeps production simple and expansion
+   easy.
+7. **Universal Lobby.** The shared face-up market is always in play, ensuring
+   every game has visible information, racing, and denial-regardless of
+   Theater or Play card.
+8. **Expansion-ready.** The Season Deck is designed for growth: new Theaters,
+   new Plays, new Role cards, new Demand cards. Each addition multiplies
+   variety without touching the core patron deck.

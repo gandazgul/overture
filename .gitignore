@@ -4,3 +4,6 @@ dist/
 .vera/
 
 .coverage/
+.playwright-cli/
+
+PLAN.md

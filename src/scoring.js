@@ -53,13 +53,24 @@ export function getOrthogonalNeighbors(row, col, rows, cols) {
 }
 
 /**
- * Check if a column is an aisle seat according to layout metadata.
+ * Check if a seat is an aisle seat according to layout metadata.
+ * Supports per-row aisles (e.g. Promenade) and Royal Boxes.
  *
+ * @param {number} row
  * @param {number} col
  * @param {LayoutMeta} layout
  * @returns {boolean}
  */
-export function isAisleSeat(col, layout) {
+export function isAisleSeat(row, col, layout) {
+  // Royal Boxes always count as aisle seats
+  if (layout.royalBoxes?.some((b) => b.row === row && b.col === col)) {
+    return true;
+  }
+  // Per-row aisles (e.g. Promenade)
+  if (layout.aisleColsByRow) {
+    return layout.aisleColsByRow[row]?.includes(col) ?? false;
+  }
+  // Default: column-based
   return layout.aisleCols.includes(col);
 }
 
@@ -260,7 +271,7 @@ export function scoreSeat(grid, row, col, layout, cappedKids) {
     }
 
     case PatronType.CRITIC: {
-      if (isAisleSeat(col, layout) && scoring.aisleMultiplier) {
+      if (isAisleSeat(row, col, layout) && scoring.aisleMultiplier) {
         vp *= scoring.aisleMultiplier;
       }
       break;
@@ -328,6 +339,91 @@ export function scoreSeat(grid, row, col, layout, cappedKids) {
 }
 
 /**
+ * Apply house rule scoring bonuses.
+ * Called after per-seat scoring is complete. Mutates perSeat in-place.
+ *
+ * @param {(CardData | null)[][]} grid
+ * @param {LayoutMeta} layout
+ * @param {number[][]} perSeat - Per-seat VP scores (mutated)
+ * @returns {number} Additional VP from house rule
+ */
+function scoreHouseRule(grid, layout, perSeat) {
+  const { rows, cols } = layout;
+  let bonus = 0;
+
+  switch (layout.houseRule) {
+    // Blackbox: +1 VP per patron with 3+ orthogonal neighbors
+    case "intimate-venue": {
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          if (!grid[r][c]) continue;
+          const neighbors = getOrthogonalNeighbors(r, c, rows, cols);
+          let occupied = 0;
+          for (const n of neighbors) {
+            if (grid[n.row][n.col]) occupied++;
+          }
+          if (occupied >= 3) {
+            perSeat[r][c] += 1;
+            bonus += 1;
+          }
+        }
+      }
+      break;
+    }
+
+    // Royal Theatre: +3 VP to the single highest-scoring patron
+    // Tiebreak: front-most row, then left-most column
+    case "royal-approval": {
+      let bestR = -1;
+      let bestC = -1;
+      let bestVP = -Infinity;
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          if (!grid[r][c]) continue;
+          if (perSeat[r][c] > bestVP) {
+            bestVP = perSeat[r][c];
+            bestR = r;
+            bestC = c;
+          }
+        }
+      }
+      if (bestR >= 0) {
+        perSeat[bestR][bestC] += 3;
+        bonus += 3;
+      }
+      break;
+    }
+
+    // Promenade: +1 VP per Critic if you have 3+ Critics in aisle seats
+    case "wandering-critics": {
+      /** @type {{row: number, col: number}[]} */
+      const criticsInAisle = [];
+      /** @type {{row: number, col: number}[]} */
+      const allCritics = [];
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          if (grid[r][c]?.type === PatronType.CRITIC) {
+            allCritics.push({ row: r, col: c });
+            if (isAisleSeat(r, c, layout)) {
+              criticsInAisle.push({ row: r, col: c });
+            }
+          }
+        }
+      }
+      if (criticsInAisle.length >= 3) {
+        for (const pos of allCritics) {
+          perSeat[pos.row][pos.col] += 1;
+          bonus += 1;
+        }
+      }
+      break;
+    }
+  }
+
+  return bonus;
+}
+
+/**
  * Calculate total VP and per-seat breakdown for one player's theater grid.
  *
  * @param {(CardData | null)[][]} grid - The player's placedPatrons grid
@@ -351,6 +447,11 @@ export function scorePlayer(grid, layout = DefaultLayout) {
       perSeat[r][c] = vp;
       total += vp;
     }
+  }
+
+  // Phase 4: House rule scoring
+  if (layout.houseRule) {
+    total += scoreHouseRule(grid, layout, perSeat);
   }
 
   return { total, perSeat };
