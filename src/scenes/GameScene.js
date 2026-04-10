@@ -5,6 +5,7 @@ import {
   createDeck,
   DefaultLayout,
   PatronColors,
+  TraitColors,
   PlayerColors,
   PlayerColorsHex,
   PlayerNames,
@@ -22,16 +23,23 @@ const SEAT_GAP = s(10);
  * @type {Record<string, string>}
  */
 const SCORING_HINTS = {
-  "Standard": "Base 3 VP\n⚠ −2 VP if adjacent to Noisy",
-  "Bespectacled": "Base 2 VP\n+2 VP in rows A–C (front 3)",
+  "Standard": "Base 3 VP",
   "VIP": "Base 5 VP\n+3 VP in rows A–B (front 2)\n⚠ −3 VP per adjacent Kid or Noisy",
   "Lovebirds": "+3 VP per adjacent Lovebirds\n×2 VP in back row\n0 VP if alone",
-  "Kid": "⚠ 0 VP unless capped by Teacher\n+2 VP when Teacher is adjacent",
+  "Kid": "⚠ 0 VP unless capped by Teacher\n+2 VP when capped",
   "Teacher": "Base 1 VP\n+1 VP per adjacent capped Kid",
-  "Tall Person": "Base 1 VP\n⚠ Patron behind gets −2 VP",
-  "Short Person": "Base 2 VP\n+2 VP if no one in front\n⚠ −3 VP if Tall is in front",
   "Critic": "Base 2 VP\n×3 VP in an aisle seat (col 1 or 5)",
-  "Noisy": "0 VP\n⚠ Adjacent Standard patrons get −2 VP each",
+};
+
+/**
+ * Scoring hints for secondary traits.
+ * @type {Record<string, string>}
+ */
+const TRAIT_HINTS = {
+  "Tall": "⚠ Patron behind gets −2 VP",
+  "Short": "+2 VP if no one in front\n⚠ −3 VP if Tall in front",
+  "Bespectacled": "+2 VP in rows A–C (front 3)",
+  "Noisy": "⚠ Each adjacent patron gets −1 VP",
 };
 
 export class GameScene extends Phaser.Scene {
@@ -448,14 +456,14 @@ export class GameScene extends Phaser.Scene {
         if (cardData) {
           const color = PatronColors[cardData.type] || 0x607d8b;
           seat.setFillStyle(color);
-          seat.setStrokeStyle(2, 0xffffff, 0.8);
+          seat.setStrokeStyle(2, cardData.trait ? TraitColors[cardData.trait] || 0xffffff : 0xffffff, 0.8);
 
           const emoji = this.add
             .text(seat.x, seat.y - s(10), cardData.emoji, { fontSize: px(22) })
             .setOrigin(0.5);
 
           const label = this.add
-            .text(seat.x, seat.y + s(18), cardData.type, {
+            .text(seat.x, seat.y + s(18), cardData.label, {
               fontSize: px(9),
               color: "#ffffff",
               fontFamily: "Arial",
@@ -555,7 +563,11 @@ export class GameScene extends Phaser.Scene {
   showScoringTooltip(card) {
     this.hideScoringTooltip();
 
-    const hint = SCORING_HINTS[card.cardData.type] || "";
+    let hint = SCORING_HINTS[card.cardData.type] || "";
+    if (card.cardData.trait) {
+      const traitHint = TRAIT_HINTS[card.cardData.trait];
+      if (traitHint) hint = hint ? `${hint}\n${traitHint}` : traitHint;
+    }
     if (!hint) return;
 
     this.scoringTooltip = this.add
@@ -609,13 +621,13 @@ export class GameScene extends Phaser.Scene {
     // Update visual
     const color = PatronColors[cardData.type] || 0x607d8b;
     seat.setFillStyle(color);
-    seat.setStrokeStyle(2, 0xffffff, 0.8);
+    seat.setStrokeStyle(2, cardData.trait ? TraitColors[cardData.trait] || 0xffffff : 0xffffff, 0.8);
 
     const emoji = this.add
       .text(seat.x, seat.y - s(10), cardData.emoji, { fontSize: px(22) })
       .setOrigin(0.5);
     const label = this.add
-      .text(seat.x, seat.y + s(18), cardData.type, {
+      .text(seat.x, seat.y + s(18), cardData.label, {
         fontSize: px(9),
         color: "#ffffff",
         fontFamily: "Arial",

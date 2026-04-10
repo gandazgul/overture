@@ -11,44 +11,70 @@
  * ========================================================================
  */
 
+// ── Primary Patron Types ───────────────────────────────────────────
+
 /**
- * All patron types in the game, matching the GAME_DESIGN.md spec.
+ * Primary patron types — the identity of each card.
  * We use a frozen object as an "enum" pattern in JavaScript.
  *
  * @readonly
  * @enum {string}
  */
-export const PatronType = /** @type {Object} */ ({
+export const PatronType = /** @type {const} */ ({
   STANDARD: "Standard",
-  BESPECTACLED: "Bespectacled",
   VIP: "VIP",
   LOVEBIRDS: "Lovebirds",
   KID: "Kid",
   TEACHER: "Teacher",
-  TALL: "Tall Person",
-  SHORT: "Short Person",
   CRITIC: "Critic",
-  NOISY: "Noisy",
 });
 Object.freeze(PatronType);
 
+// ── Secondary Traits ───────────────────────────────────────────────
+
 /**
- * The color associated with each patron type (for card rendering).
+ * Secondary traits that can be mixed onto any primary patron type.
+ * A card has 0 or 1 trait. Traits modify scoring with additional
+ * bonuses or penalties on top of the primary type's scoring.
+ *
+ * @readonly
+ * @enum {string}
+ */
+export const Trait = /** @type {const} */ ({
+  TALL: "Tall",
+  SHORT: "Short",
+  BESPECTACLED: "Bespectacled",
+  NOISY: "Noisy",
+});
+Object.freeze(Trait);
+
+// ── Colors ─────────────────────────────────────────────────────────
+
+/**
+ * The color associated with each primary patron type (for card rendering).
  * @type {Record<string, number>}
  */
 export const PatronColors = {
   [PatronType.STANDARD]: 0x607d8b, // Blue-grey
-  [PatronType.BESPECTACLED]: 0x2196f3, // Blue
   [PatronType.VIP]: 0xffc107, // Gold
   [PatronType.LOVEBIRDS]: 0xe91e63, // Pink
   [PatronType.KID]: 0x4caf50, // Green
   [PatronType.TEACHER]: 0x8bc34a, // Light green
-  [PatronType.TALL]: 0x795548, // Brown
-  [PatronType.SHORT]: 0xff9800, // Orange
   [PatronType.CRITIC]: 0x9c27b0, // Purple
-  [PatronType.NOISY]: 0xf44336, // Red
 };
 Object.freeze(PatronColors);
+
+/**
+ * Optional tint overlays for traits — used to add a visual indicator.
+ * @type {Record<string, number>}
+ */
+export const TraitColors = {
+  [Trait.TALL]: 0x795548, // Brown
+  [Trait.SHORT]: 0xff9800, // Orange
+  [Trait.BESPECTACLED]: 0x2196f3, // Blue
+  [Trait.NOISY]: 0xf44336, // Red
+};
+Object.freeze(TraitColors);
 
 /**
  * Player colors and names for up to 4 players.
@@ -65,12 +91,15 @@ Object.freeze(PlayerColorsHex);
 export const PlayerNames = ["Player 1", "Player 2", "Player 3", "Player 4"];
 Object.freeze(PlayerNames);
 
+// ── Card Data ──────────────────────────────────────────────────────
+
 /**
  * Data for a single patron card.
  * @typedef {Object} CardData
- * @property {string} type - One of the PatronType values
- * @property {string} label - Display name
- * @property {string} emoji - Visual icon for the card
+ * @property {string} type - One of the PatronType values (primary identity)
+ * @property {string} [trait] - Optional secondary trait (one of Trait values)
+ * @property {string} label - Display name (e.g. "Tall Kid")
+ * @property {string} emoji - Visual icon(s) for the card
  * @property {string} description - Short tooltip text
  */
 
@@ -81,56 +110,68 @@ Object.freeze(PlayerNames);
  * @property {number} col - Column index (0 = left)
  */
 
+// ── Patron Info ────────────────────────────────────────────────────
+
 /**
- * Card definitions with emoji and descriptions for each patron type.
+ * Card definitions with emoji and descriptions for each primary patron type.
  * @type {Record<string, {emoji: string, description: string}>}
  */
 export const PatronInfo = {
   [PatronType.STANDARD]: {
     emoji: "🧑",
-    description: "A regular patron. Worth 1 VP anywhere.",
-  },
-  [PatronType.BESPECTACLED]: {
-    emoji: "🤓",
-    description: "Bonus VP in rows 1-3 (closer to stage).",
+    description: "A regular patron. Worth 3 VP anywhere.",
   },
   [PatronType.VIP]: {
     emoji: "⭐",
-    description: "High VP in rows 1-2. Penalty near Kids/Noisy.",
+    description: "High VP in front rows. Penalty near Kids or Noisy patrons.",
   },
   [PatronType.LOVEBIRDS]: {
     emoji: "💕",
-    description: "Score only if adjacent to another Lovebirds.",
+    description: "Score only if adjacent to another Lovebirds. ×2 in back row.",
   },
   [PatronType.KID]: {
     emoji: "👦",
-    description: "Negative VP unless capped by Teachers!",
+    description: "0 VP unless capped by Teachers on both ends!",
   },
   [PatronType.TEACHER]: {
     emoji: "👩‍🏫",
-    description: "Scores VP for each adjacent Kid capped.",
-  },
-  [PatronType.TALL]: {
-    emoji: "🦒",
-    description: "Giftable! Patron behind gets -2 VP.",
-  },
-  [PatronType.SHORT]: {
-    emoji: "🧒",
-    description: "Bonus if no one in front. Penalty behind Tall.",
+    description: "Scores VP for each adjacent capped Kid.",
   },
   [PatronType.CRITIC]: {
     emoji: "🎩",
     description: "Triple VP if in an aisle seat!",
   },
-  [PatronType.NOISY]: {
-    emoji: "📢",
-    description: "Giftable! Adjacent Standard Patrons get -2 VP.",
-  },
 };
 Object.freeze(PatronInfo);
 
 /**
- * Scoring parameters for each patron type.
+ * Info for secondary traits — emoji and descriptions.
+ * @type {Record<string, {emoji: string, description: string}>}
+ */
+export const TraitInfo = {
+  [Trait.TALL]: {
+    emoji: "🦒",
+    description: "Patron behind gets −2 VP.",
+  },
+  [Trait.SHORT]: {
+    emoji: "🧒",
+    description: "+2 VP if no one in front. −3 VP if Tall is in front.",
+  },
+  [Trait.BESPECTACLED]: {
+    emoji: "🤓",
+    description: "+2 VP in front 3 rows (closer to stage).",
+  },
+  [Trait.NOISY]: {
+    emoji: "📢",
+    description: "Each adjacent patron gets −1 VP.",
+  },
+};
+Object.freeze(TraitInfo);
+
+// ── Scoring Config ─────────────────────────────────────────────────
+
+/**
+ * Scoring parameters for each primary patron type.
  * Keeps all tuning knobs in one place for easy playtesting adjustments.
  *
  * @typedef {Object} ScoringParams
@@ -140,15 +181,12 @@ Object.freeze(PatronInfo);
  * @property {number} [aisleMultiplier] - Multiply total VP if seated in an aisle seat
  * @property {number} [adjacencyPenaltyPer] - VP penalty per adjacent patron of a triggering type
  * @property {string[]} [adjacencyPenaltyTypes] - Patron types that trigger the adjacency penalty
+ * @property {boolean} [adjacencyPenaltyNoisyTrait] - Also penalized by adjacent Noisy-trait patrons
  * @property {number} [cappedValue] - VP when this patron is "capped" (Kid-specific)
  * @property {number} [perCappedKidBonus] - VP bonus per adjacent capped Kid (Teacher-specific)
- * @property {number} [behindPenalty] - VP penalty applied to the patron directly behind this one
- * @property {number} [emptyFrontBonus] - VP bonus if no patron is directly in front
- * @property {number} [tallInFrontPenalty] - VP penalty if a Tall patron is directly in front
  * @property {number} [adjacentMatchBonus] - VP if orthogonally adjacent to same type (Lovebirds)
  * @property {number} [backRowMultiplier] - Multiply total VP if in the designated back row
  * @property {number[]} [backRows] - Row indices that count as "back" for multiplier
- * @property {number} [adjacentStandardPenalty] - VP penalty applied to each adjacent Standard patron
  */
 
 /**
@@ -159,17 +197,13 @@ export const PatronScoring = {
   [PatronType.STANDARD]: {
     base: 3,
   },
-  [PatronType.BESPECTACLED]: {
-    base: 2,
-    rowBonusValue: 2,
-    rowBonusRows: [0, 1, 2], // front 3 rows
-  },
   [PatronType.VIP]: {
     base: 5,
     rowBonusValue: 3,
     rowBonusRows: [0, 1], // front 2 rows
     adjacencyPenaltyPer: -3,
-    adjacencyPenaltyTypes: [PatronType.KID, PatronType.NOISY],
+    adjacencyPenaltyTypes: [PatronType.KID],
+    adjacencyPenaltyNoisyTrait: true, // also penalized by Noisy-trait neighbors
   },
   [PatronType.LOVEBIRDS]: {
     base: 0,
@@ -185,25 +219,48 @@ export const PatronScoring = {
     base: 1,
     perCappedKidBonus: 1,
   },
-  [PatronType.TALL]: {
-    base: 1,
-    behindPenalty: -2, // applied to the patron behind this one
-  },
-  [PatronType.SHORT]: {
-    base: 2,
-    emptyFrontBonus: 2,
-    tallInFrontPenalty: -3,
-  },
   [PatronType.CRITIC]: {
     base: 2,
     aisleMultiplier: 3,
   },
-  [PatronType.NOISY]: {
-    base: 0,
-    adjacentStandardPenalty: -2, // applied to each adjacent Standard
-  },
 };
 Object.freeze(PatronScoring);
+
+/**
+ * Scoring parameters for secondary traits.
+ *
+ * @typedef {Object} TraitScoringParams
+ * @property {number} [behindPenalty] - VP penalty applied to the patron directly behind
+ * @property {number} [emptyFrontBonus] - VP bonus if no patron is directly in front
+ * @property {number} [tallInFrontPenalty] - VP penalty if a Tall-trait patron is directly in front
+ * @property {number} [rowBonusValue] - Extra VP per qualifying row
+ * @property {number[]} [rowBonusRows] - Row indices that grant the bonus
+ * @property {number} [adjacentPenalty] - VP penalty applied to each adjacent patron
+ */
+
+/**
+ * Scoring configuration keyed by Trait.
+ * @type {Record<string, TraitScoringParams>}
+ */
+export const TraitScoring = {
+  [Trait.TALL]: {
+    behindPenalty: -2, // applied to the patron directly behind this one
+  },
+  [Trait.SHORT]: {
+    emptyFrontBonus: 2,
+    tallInFrontPenalty: -3,
+  },
+  [Trait.BESPECTACLED]: {
+    rowBonusValue: 2,
+    rowBonusRows: [0, 1, 2], // front 3 rows
+  },
+  [Trait.NOISY]: {
+    adjacentPenalty: -1, // applied to EACH adjacent patron (any type)
+  },
+};
+Object.freeze(TraitScoring);
+
+// ── Layout ─────────────────────────────────────────────────────────
 
 /**
  * Default layout metadata for the current 4×5 theater.
@@ -225,37 +282,77 @@ export const DefaultLayout = {
 };
 Object.freeze(DefaultLayout);
 
+// ── Deck Builder ───────────────────────────────────────────────────
+
 /**
- * Creates the full 56-card deck per GAME_DESIGN.md spec.
+ * Creates the full 56-card deck.
+ * 35 clean cards + 21 cards with traits.
+ *
+ * Trait breakdown: 6 Tall, 6 Short, 5 Bespectacled, 4 Noisy.
+ *
  * @returns {CardData[]}
  */
 export function createDeck() {
-  /** @type {Array<{type: string, count: number}>} */
+  /**
+   * Deck spec: each entry is [type, trait (or null), count].
+   * @type {Array<[string, string | null, number]>}
+   */
   const deckSpec = [
-    { type: PatronType.STANDARD, count: 8 },
-    { type: PatronType.BESPECTACLED, count: 8 },
-    { type: PatronType.VIP, count: 4 },
-    { type: PatronType.LOVEBIRDS, count: 8 },
-    { type: PatronType.KID, count: 8 },
-    { type: PatronType.TEACHER, count: 5 },
-    { type: PatronType.TALL, count: 4 },
-    { type: PatronType.SHORT, count: 3 },
-    { type: PatronType.CRITIC, count: 4 },
-    { type: PatronType.NOISY, count: 4 },
+    // Standard (21 total: 13 clean + 8 with traits)
+    [PatronType.STANDARD, null, 13],
+    [PatronType.STANDARD, Trait.TALL, 2],
+    [PatronType.STANDARD, Trait.SHORT, 2],
+    [PatronType.STANDARD, Trait.BESPECTACLED, 2],
+    [PatronType.STANDARD, Trait.NOISY, 2],
+
+    // VIP (4 total: 3 clean + 1 Bespectacled)
+    [PatronType.VIP, null, 3],
+    [PatronType.VIP, Trait.BESPECTACLED, 1],
+
+    // Lovebirds (10 total: 8 clean + 1 Tall + 1 Noisy)
+    [PatronType.LOVEBIRDS, null, 8],
+    [PatronType.LOVEBIRDS, Trait.TALL, 1],
+    [PatronType.LOVEBIRDS, Trait.NOISY, 1],
+
+    // Kid (8 total: 5 clean + 1 Tall + 1 Short + 1 Noisy)
+    [PatronType.KID, null, 5],
+    [PatronType.KID, Trait.TALL, 1],
+    [PatronType.KID, Trait.SHORT, 1],
+    [PatronType.KID, Trait.NOISY, 1],
+
+    // Teacher (6 total: 3 clean + 1 Tall + 1 Short + 1 Bespectacled)
+    [PatronType.TEACHER, null, 3],
+    [PatronType.TEACHER, Trait.TALL, 1],
+    [PatronType.TEACHER, Trait.SHORT, 1],
+    [PatronType.TEACHER, Trait.BESPECTACLED, 1],
+
+    // Critic (7 total: 3 clean + 1 Tall + 2 Short + 1 Bespectacled)
+    [PatronType.CRITIC, null, 3],
+    [PatronType.CRITIC, Trait.TALL, 1],
+    [PatronType.CRITIC, Trait.SHORT, 2],
+    [PatronType.CRITIC, Trait.BESPECTACLED, 1],
   ];
 
   /** @type {CardData[]} */
   const deck = [];
 
-  for (const { type, count } of deckSpec) {
-    const info = PatronInfo[type];
+  for (const [type, trait, count] of deckSpec) {
+    const typeInfo = PatronInfo[type];
+    const traitInfo = trait ? TraitInfo[trait] : null;
+
+    const label = trait ? `${trait} ${type}` : type;
+    const emoji = traitInfo
+      ? `${traitInfo.emoji}${typeInfo.emoji}`
+      : typeInfo.emoji;
+    const description = traitInfo
+      ? `${typeInfo.description} ${traitInfo.description}`
+      : typeInfo.description;
+
     for (let i = 0; i < count; i++) {
-      deck.push({
-        type,
-        label: type,
-        emoji: info.emoji,
-        description: info.description,
-      });
+      /** @type {CardData} */
+      const card = { type, label, emoji, description };
+      if (trait) card.trait = trait;
+      deck.push(card);
     }
   }
 

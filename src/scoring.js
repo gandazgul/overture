@@ -9,10 +9,20 @@
  *
  * The grid is a 2D array: grid[row][col] = CardData | null
  * Row 0 = front (closest to stage), last row = back.
+ *
+ * Scoring is two-phase:
+ *   1. Primary type scoring (Standard, VIP, Lovebirds, Kid, Teacher, Critic)
+ *   2. Trait scoring (Tall, Short, Bespectacled, Noisy)
  * ========================================================================
  */
 
-import { PatronType, PatronScoring, DefaultLayout } from "./types.js";
+import {
+  PatronType,
+  PatronScoring,
+  Trait,
+  TraitScoring,
+  DefaultLayout,
+} from "./types.js";
 
 /** @typedef {import('./types.js').CardData} CardData */
 /** @typedef {import('./types.js').LayoutMeta} LayoutMeta */
@@ -135,6 +145,7 @@ function buildCappedKidMap(grid, rows, cols) {
 
 /**
  * Score a single seat on the grid.
+ * Two-phase: primary type scoring, then trait scoring.
  *
  * @param {(CardData | null)[][]} grid
  * @param {number} row
@@ -153,29 +164,11 @@ export function scoreSeat(grid, row, col, layout, cappedKids) {
 
   let vp = scoring.base;
 
-  // ── Type-specific scoring ───────────────────────────────────────
+  // ── Phase 1: Primary type scoring ───────────────────────────────
 
   switch (card.type) {
     case PatronType.STANDARD: {
-      // Check if a Noisy patron is adjacent — each one applies a penalty
-      const neighbors = getOrthogonalNeighbors(row, col, rows, cols);
-      for (const n of neighbors) {
-        const neighbor = grid[n.row][n.col];
-        if (neighbor && neighbor.type === PatronType.NOISY) {
-          vp += PatronScoring[PatronType.NOISY].adjacentStandardPenalty ?? 0;
-        }
-      }
-      break;
-    }
-
-    case PatronType.BESPECTACLED: {
-      if (
-        scoring.rowBonusRows &&
-        scoring.rowBonusRows.includes(row) &&
-        scoring.rowBonusValue
-      ) {
-        vp += scoring.rowBonusValue;
-      }
+      // Standard has no special primary scoring (just base VP)
       break;
     }
 
@@ -188,7 +181,7 @@ export function scoreSeat(grid, row, col, layout, cappedKids) {
       ) {
         vp += scoring.rowBonusValue;
       }
-      // Adjacency penalty for Kid or Noisy neighbors
+      // Adjacency penalty for Kid neighbors
       if (scoring.adjacencyPenaltyTypes && scoring.adjacencyPenaltyPer) {
         const neighbors = getOrthogonalNeighbors(row, col, rows, cols);
         for (const n of neighbors) {
@@ -197,6 +190,16 @@ export function scoreSeat(grid, row, col, layout, cappedKids) {
             neighbor &&
             scoring.adjacencyPenaltyTypes.includes(neighbor.type)
           ) {
+            vp += scoring.adjacencyPenaltyPer;
+          }
+        }
+      }
+      // VIP is also penalized by adjacent Noisy-trait patrons
+      if (scoring.adjacencyPenaltyNoisyTrait && scoring.adjacencyPenaltyPer) {
+        const neighbors = getOrthogonalNeighbors(row, col, rows, cols);
+        for (const n of neighbors) {
+          const neighbor = grid[n.row][n.col];
+          if (neighbor && neighbor.trait === Trait.NOISY) {
             vp += scoring.adjacencyPenaltyPer;
           }
         }
@@ -256,52 +259,68 @@ export function scoreSeat(grid, row, col, layout, cappedKids) {
       break;
     }
 
-    case PatronType.TALL: {
-      // Tall patron scores their base. The penalty is applied to the
-      // patron behind them (handled in that patron's scoring).
-      break;
-    }
-
-    case PatronType.SHORT: {
-      // Check the seat directly in front (row - 1, same col)
-      const frontRow = row - 1;
-      if (frontRow < 0 || !grid[frontRow][col]) {
-        // No one in front — bonus
-        vp += scoring.emptyFrontBonus ?? 0;
-      } else if (grid[frontRow][col]?.type === PatronType.TALL) {
-        // Tall in front — penalty
-        vp += scoring.tallInFrontPenalty ?? 0;
-      }
-      break;
-    }
-
     case PatronType.CRITIC: {
       if (isAisleSeat(col, layout) && scoring.aisleMultiplier) {
         vp *= scoring.aisleMultiplier;
       }
       break;
     }
+  }
 
-    case PatronType.NOISY: {
-      // Noisy patron scores their base (0). The penalty is applied
-      // to adjacent Standards (handled in Standard's scoring).
-      break;
+  // ── Phase 2: Trait scoring ──────────────────────────────────────
+
+  if (card.trait) {
+    const traitScoring = TraitScoring[card.trait];
+
+    if (traitScoring) {
+      // Bespectacled trait: row bonus
+      if (
+        traitScoring.rowBonusRows &&
+        traitScoring.rowBonusRows.includes(row) &&
+        traitScoring.rowBonusValue
+      ) {
+        vp += traitScoring.rowBonusValue;
+      }
+
+      // Short trait: check the seat directly in front (row - 1, same col)
+      if (card.trait === Trait.SHORT) {
+        const frontRow = row - 1;
+        if (frontRow < 0 || !grid[frontRow][col]) {
+          // No one in front — bonus
+          vp += traitScoring.emptyFrontBonus ?? 0;
+        } else if (grid[frontRow][col]?.trait === Trait.TALL) {
+          // Tall-trait patron in front — penalty
+          vp += traitScoring.tallInFrontPenalty ?? 0;
+        }
+      }
     }
   }
 
-  // ── Cross-type modifiers applied to ANY patron ──────────────────
+  // ── Cross-type modifiers (applied to ANY patron) ────────────────
 
-  // Tall person behind penalty: if the seat in front (row-1) has a Tall patron,
-  // this patron gets the behindPenalty (unless this patron is Short, which
-  // has its own tallInFrontPenalty already handled above).
-  if (card.type !== PatronType.SHORT) {
+  // Tall trait behind penalty: if the seat in front (row-1) has a Tall-trait
+  // patron, this patron gets the behindPenalty (unless this patron is Short,
+  // which has its own tallInFrontPenalty already handled above).
+  if (card.trait !== Trait.SHORT) {
     const frontRow = row - 1;
     if (
       frontRow >= 0 &&
       grid[frontRow][col] &&
-      grid[frontRow][col]?.type === PatronType.TALL
+      grid[frontRow][col]?.trait === Trait.TALL
     ) {
-      vp += PatronScoring[PatronType.TALL].behindPenalty ?? 0;
+      vp += TraitScoring[Trait.TALL].behindPenalty ?? 0;
+    }
+  }
+
+  // Noisy trait adjacency penalty: for each neighbor with the Noisy trait,
+  // this patron gets -1 VP.
+  {
+    const neighbors = getOrthogonalNeighbors(row, col, rows, cols);
+    for (const n of neighbors) {
+      const neighbor = grid[n.row][n.col];
+      if (neighbor && neighbor.trait === Trait.NOISY) {
+        vp += TraitScoring[Trait.NOISY].adjacentPenalty ?? 0;
+      }
     }
   }
 

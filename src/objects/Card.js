@@ -1,6 +1,6 @@
 // @ts-check
 import Phaser from "phaser";
-import { PatronColors } from "../types.js";
+import { PatronColors, TraitColors } from "../types.js";
 import { s, px } from "../config.js";
 
 /**
@@ -32,6 +32,9 @@ export class Card extends Phaser.GameObjects.Container {
   /** @type {Phaser.GameObjects.Rectangle} */
   background;
 
+  /** @type {number} */
+  strokeColor;
+
   /** @type {boolean} */
   isSelected = false;
 
@@ -56,10 +59,13 @@ export class Card extends Phaser.GameObjects.Container {
     // Colors are hex numbers (0xRRGGBB), not CSS strings.
 
     const color = PatronColors[cardData.type] || 0x607d8b;
+    this.strokeColor = cardData.trait
+      ? TraitColors[cardData.trait] || 0xffffff
+      : 0xffffff;
 
     this.background = scene.add
       .rectangle(0, 0, Card.WIDTH, Card.HEIGHT, color)
-      .setStrokeStyle(s(2), 0xffffff, 0.5);
+      .setStrokeStyle(s(2), this.strokeColor, 0.7);
 
     // Emoji icon
     const emoji = scene.add
@@ -149,7 +155,7 @@ export class Card extends Phaser.GameObjects.Container {
       this.background.setStrokeStyle(s(3), 0xf5c518, 1);
       this.setScale(1.15);
     } else {
-      this.background.setStrokeStyle(s(2), 0xffffff, 0.5);
+      this.background.setStrokeStyle(s(2), this.strokeColor, 0.7);
       this.setScale(1.0);
     }
   }
