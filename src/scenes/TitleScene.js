@@ -14,6 +14,10 @@ export class TitleScene extends Phaser.Scene {
     this.selectedPlayerCount = 2;
   }
 
+  preload() {
+    this.load.image('ui_logo', 'assets/ui_logo.png');
+  }
+
   create() {
     // Hydrate settings from localStorage into the Phaser registry
     loadSettings(this.registry);
@@ -31,13 +35,18 @@ export class TitleScene extends Phaser.Scene {
     const { width, height } = this.scale;
 
     // Title
-    this.add
-      .text(width / 2, height / 4, "🎭 Theater Ushers", {
-        fontSize: px(52),
-        fontFamily: "Georgia, serif",
-        color: "#f5c518",
-      })
-      .setOrigin(0.5);
+    if (this.textures.exists('ui_logo')) {
+      const titleLogo = this.add.image(width / 2, height / 4, 'ui_logo');
+      titleLogo.setDisplaySize(s(480), s(270)); // 16:9 ratio
+    } else {
+      this.add
+        .text(width / 2, height / 4, "🎭 Theater Ushers", {
+          fontSize: px(52),
+          fontFamily: "Georgia, serif",
+          color: "#f5c518",
+        })
+        .setOrigin(0.5);
+    }
 
     // Subtitle
     this.add
@@ -165,7 +174,7 @@ export class TitleScene extends Phaser.Scene {
     this.children.removeAll(true);
     this.tweens.killAll();
 
-    const { width, height } = this.scale;
+    const { width } = this.scale;
 
     // Title
     this.add

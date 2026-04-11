@@ -133,6 +133,38 @@ export class GameScene extends Phaser.Scene {
     this.scoringTooltip = null;
   }
 
+  preload() {
+    this.load.image('patron_standard', 'assets/patron_standard.png');
+    this.load.image('patron_vip', 'assets/patron_vip.png');
+    this.load.image('patron_lovebirds', 'assets/patron_lovebirds.png');
+    this.load.image('patron_kid', 'assets/patron_kid.png');
+    this.load.image('patron_teacher', 'assets/patron_teacher.png');
+    this.load.image('patron_critic', 'assets/patron_critic.png');
+
+    this.load.image('badge_tall', 'assets/badge_tall.png');
+    this.load.image('badge_short', 'assets/badge_short.png');
+    this.load.image('badge_bespectacled', 'assets/badge_bespectacled.png');
+    this.load.image('badge_noisy', 'assets/badge_noisy.png');
+
+    this.load.image('bg_grand-empress', 'assets/bg_grand_empress.png');
+    this.load.image('bg_blackbox', 'assets/bg_blackbox.png');
+    this.load.image('bg_royal-theatre', 'assets/bg_royal_theatre.png');
+    this.load.image('bg_amphitheater', 'assets/bg_amphitheater.png');
+    this.load.image('bg_cabaret', 'assets/bg_cabaret.png');
+    this.load.image('bg_balcony', 'assets/bg_balcony.png');
+    this.load.image('bg_promenade', 'assets/bg_promenade.png');
+
+    this.load.image('card_back', 'assets/card_back.png');
+    this.load.image('manager_token', 'assets/manager_token.png');
+    
+    this.load.image('ui_stage', 'assets/ui_stage.png');
+    this.load.image('ui_logo', 'assets/ui_logo.png');
+    this.load.image('usher_blue', 'assets/usher_blue.png');
+    this.load.image('usher_red', 'assets/usher_red.png');
+    this.load.image('usher_green', 'assets/usher_green.png');
+    this.load.image('usher_orange', 'assets/usher_orange.png');
+  }
+
   /**
    * @param {{ playerCount?: number, layoutId?: string }} data
    */
@@ -187,12 +219,24 @@ export class GameScene extends Phaser.Scene {
 
     this.bannerText = this.add
       .text(width / 2, s(28), "", {
-        fontSize: px(22),
+        fontSize: px(18),
         fontFamily: "Georgia, serif",
         color: "#ffffff",
       })
       .setOrigin(0.5)
       .setDepth(1);
+
+    this.topBannerAvatar = this.add.image(width / 2 - s(200), s(28), 'usher_blue')
+      .setOrigin(0.5)
+      .setDisplaySize(s(44), s(44))
+      .setDepth(1)
+      .setVisible(false);
+
+    // Apply circular mask to the avatar
+    this.bannerMask = this.make.graphics();
+    this.bannerMask.fillStyle(0xffffff);
+    this.bannerMask.fillCircle(width / 2 - s(200), s(28), s(22));
+    this.topBannerAvatar.setMask(this.bannerMask.createGeometryMask());
 
     // ── Compute aisle walkway positions ────────────────────────────
     const ROWS = this.layout.rows;
@@ -313,15 +357,22 @@ export class GameScene extends Phaser.Scene {
     const floorW = floorRight - floorLeft;
     const floorH = floorBottom - floorTop;
 
-    this.add
-      .rectangle(
-        floorLeft + floorW / 2,
-        floorTop + floorH / 2,
-        floorW,
-        floorH,
-        0x12122a
-      )
-      .setStrokeStyle(s(1), 0x2a2a4e, 0.5);
+    const bgKey = `bg_${this.layout.id}`;
+    if (this.textures.exists(bgKey)) {
+      // Draw the background image with slight aesthetic bleed
+      const bgImg = this.add.image(floorLeft + floorW / 2, floorTop + floorH / 2, bgKey);
+      bgImg.setDisplaySize(floorW + s(60), floorH + s(60));
+    } else {
+      this.add
+        .rectangle(
+          floorLeft + floorW / 2,
+          floorTop + floorH / 2,
+          floorW,
+          floorH,
+          0x12122a
+        )
+        .setStrokeStyle(s(1), 0x2a2a4e, 0.5);
+    }
 
     // ── Walls (solid lines on non-aisle edges) ──────────────────
     if (!leftAisle) {
@@ -395,20 +446,27 @@ export class GameScene extends Phaser.Scene {
     }
 
     // ── Stage platform ───────────────────────────────────────────
-    const stageH = s(22);
+    // ── Stage platform ───────────────────────────────────────────
+    const stageH = s(28); // slightly taller to fit detailed footlights
     const stageY = floorTop - stageH / 2; // sits right above the floor
-    this.add
-      .rectangle(floorLeft + floorW / 2, stageY, floorW, stageH, 0x8b4513)
-      .setStrokeStyle(s(1), 0xdaa520);
+    
+    if (this.textures.exists('ui_stage')) {
+      const stageImg = this.add.image(floorLeft + floorW / 2, stageY, 'ui_stage');
+      stageImg.setDisplaySize(floorW + s(10), stageH);
+    } else {
+      this.add
+        .rectangle(floorLeft + floorW / 2, stageY, floorW, stageH, 0x8b4513)
+        .setStrokeStyle(s(1), 0xdaa520);
 
-    this.add
-      .text(floorLeft + floorW / 2, stageY, "STAGE", {
-        fontSize: px(11),
-        color: "#ffd700",
-        fontFamily: "Georgia, serif",
-        fontStyle: "bold",
-      })
-      .setOrigin(0.5);
+      this.add
+        .text(floorLeft + floorW / 2, stageY, "STAGE", {
+          fontSize: px(11),
+          color: "#ffd700",
+          fontFamily: "Georgia, serif",
+          fontStyle: "bold",
+        })
+        .setOrigin(0.5);
+    }
 
     // ── Row labels (dynamic based on layout) ────────────────────────
     const rowLabels = Array.from({ length: ROWS }, (_, i) => {
@@ -594,14 +652,37 @@ export class GameScene extends Phaser.Scene {
       .setOrigin(0.5, 0);
     container.add(accent);
 
-    // Player emoji/icon
-    const icons = ["🔵", "🔴", "🟢", "🟠"];
-    const icon = this.add
-      .text(width / 2, height / 2 - s(100), icons[this.currentPlayer], {
-        fontSize: px(64),
-      })
-      .setOrigin(0.5);
-    container.add(icon);
+    // Player usher avatar
+    const usherKeys = ['usher_blue', 'usher_red', 'usher_green', 'usher_orange'];
+    const usherKey = usherKeys[this.currentPlayer];
+    
+    // Shift avatar origin up to avoid text
+    const avatarY = height / 2 - s(130); 
+    const avatarRadius = s(68);
+
+    if (this.textures.exists(usherKey)) {
+      const usherIcon = this.add.image(width / 2, avatarY, usherKey);
+      usherIcon.setDisplaySize(avatarRadius * 2, avatarRadius * 2);
+      
+      // Create a solid circular Graphics mask
+      const maskShape = this.make.graphics();
+      maskShape.fillStyle(0xffffff);
+      maskShape.fillCircle(width / 2, avatarY, avatarRadius);
+      usherIcon.setMask(maskShape.createGeometryMask());
+      
+      const ring = this.add.circle(width / 2, avatarY, avatarRadius, 0x000000, 0)
+        .setStrokeStyle(s(4), colorHex, 1);
+        
+      container.add([usherIcon, ring]);
+    } else {
+      const icons = ["🔵", "🔴", "🟢", "🟠"];
+      const icon = this.add
+        .text(width / 2, avatarY, icons[this.currentPlayer], {
+          fontSize: px(64),
+        })
+        .setOrigin(0.5);
+      container.add(icon);
+    }
 
     // "Pass to Player X"
     const title = this.add
@@ -748,23 +829,24 @@ export class GameScene extends Phaser.Scene {
 
         const cardData = grid[row][col];
         if (cardData) {
-          const color = PatronColors[cardData.type] || 0x607d8b;
-          seat.setFillStyle(color);
-          seat.setStrokeStyle(2, cardData.trait ? TraitColors[cardData.trait] || 0xffffff : 0xffffff, 0.8);
+          // Make the seat rectangle transparent so the image takes over
+          seat.setFillStyle(0x000000, 0);
+          seat.setStrokeStyle(s(2), cardData.trait ? TraitColors[cardData.trait] || 0xffffff : 0x4a4a6a, 0.8);
 
-          const emoji = this.add
-            .text(seat.x, seat.y - s(10), cardData.emoji, { fontSize: px(22) })
-            .setOrigin(0.5);
+          // Base patron image
+          const baseImgKey = `patron_${cardData.type.toLowerCase()}`;
+          const baseImg = this.add.image(seat.x, seat.y, baseImgKey);
+          baseImg.setDisplaySize(SEAT_SIZE, SEAT_SIZE);
+          this.seatLabels.push(baseImg);
 
-          const label = this.add
-            .text(seat.x, seat.y + s(18), cardData.label, {
-              fontSize: px(9),
-              color: "#ffffff",
-              fontFamily: "Arial",
-            })
-            .setOrigin(0.5);
-
-          this.seatLabels.push(emoji, label);
+          // Trait badge
+          if (cardData.trait) {
+            const badgeKey = `badge_${cardData.trait.toLowerCase()}`;
+            // Position badge in top-right corner of the seat
+            const badge = this.add.image(seat.x + SEAT_SIZE / 2 - s(12), seat.y - SEAT_SIZE / 2 + s(12), badgeKey);
+            badge.setDisplaySize(s(24), s(24));
+            this.seatLabels.push(badge);
+          }
         } else {
           // Restore empty-state appearance from seat data
           const emptyFill = seat.getData("emptyFill") ?? 0x1a1a3e;
@@ -930,25 +1012,28 @@ export class GameScene extends Phaser.Scene {
     this.placedPatrons[this.currentPlayer][row][col] = cardData;
 
     // Update visual
-    const color = PatronColors[cardData.type] || 0x607d8b;
-    seat.setFillStyle(color);
-    seat.setStrokeStyle(2, cardData.trait ? TraitColors[cardData.trait] || 0xffffff : 0xffffff, 0.8);
+    seat.setFillStyle(0x000000, 0);
+    seat.setStrokeStyle(s(2), cardData.trait ? TraitColors[cardData.trait] || 0xffffff : 0x4a4a6a, 0.8);
 
-    const emoji = this.add
-      .text(seat.x, seat.y - s(10), cardData.emoji, { fontSize: px(22) })
-      .setOrigin(0.5);
-    const label = this.add
-      .text(seat.x, seat.y + s(18), cardData.label, {
-        fontSize: px(9),
-        color: "#ffffff",
-        fontFamily: "Arial",
-      })
-      .setOrigin(0.5);
-    this.seatLabels.push(emoji, label);
+    const baseImgKey = `patron_${cardData.type.toLowerCase()}`;
+    const baseImg = this.add.image(seat.x, seat.y, baseImgKey);
+    baseImg.setDisplaySize(SEAT_SIZE, SEAT_SIZE);
+    this.seatLabels.push(baseImg);
+
+    const childrenForAnim = [seat, baseImg];
+
+    // Trait badge
+    if (cardData.trait) {
+      const badgeKey = `badge_${cardData.trait.toLowerCase()}`;
+      const badge = this.add.image(seat.x + SEAT_SIZE / 2 - s(12), seat.y - SEAT_SIZE / 2 + s(12), badgeKey);
+      badge.setDisplaySize(s(24), s(24));
+      this.seatLabels.push(badge);
+      childrenForAnim.push(badge);
+    }
 
     // Placement animation
     this.tweens.add({
-      targets: seat,
+      targets: childrenForAnim,
       scaleX: 1.1,
       scaleY: 1.1,
       duration: 100,
@@ -1106,6 +1191,24 @@ export class GameScene extends Phaser.Scene {
     if (this.bannerText) {
       this.bannerText.setText(`${this.layout.emoji} ${name} — ${this.layout.name}`);
       this.bannerText.setColor(color);
+      
+      if (this.topBannerAvatar) {
+        const usherKeys = ['usher_blue', 'usher_red', 'usher_green', 'usher_orange'];
+        const usherKey = usherKeys[this.currentPlayer];
+        if (this.textures.exists(usherKey)) {
+           this.topBannerAvatar.setTexture(usherKey).setVisible(true);
+           // Calculate dynamic width of text to position avatar right next to it
+           const textWidth = this.bannerText.width;
+           const newX = this.bannerText.x - textWidth / 2 - s(30);
+           this.topBannerAvatar.setX(newX);
+           
+           if (this.bannerMask) {
+             this.bannerMask.clear();
+             this.bannerMask.fillStyle(0xffffff);
+             this.bannerMask.fillCircle(newX, s(28), s(22));
+           }
+        }
+      }
     }
 
     if (this.turnText) {

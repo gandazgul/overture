@@ -1,6 +1,6 @@
 // @ts-check
 import Phaser from "phaser";
-import { PatronColors, TraitColors } from "../types.js";
+import { TraitColors } from "../types.js";
 import { s, px } from "../config.js";
 
 /**
@@ -58,32 +58,41 @@ export class Card extends Phaser.GameObjects.Container {
     // The position (0, 0) is relative to the Container's origin.
     // Colors are hex numbers (0xRRGGBB), not CSS strings.
 
-    const color = PatronColors[cardData.type] || 0x607d8b;
     this.strokeColor = cardData.trait
       ? TraitColors[cardData.trait] || 0xffffff
-      : 0xffffff;
+      : 0x4a4a6a;
 
+    // Use black fill since the image will cover it, but keep it for the stroke outline when selected
     this.background = scene.add
-      .rectangle(0, 0, Card.WIDTH, Card.HEIGHT, color)
+      .rectangle(0, 0, Card.WIDTH, Card.HEIGHT, 0x000000)
       .setStrokeStyle(s(2), this.strokeColor, 0.7);
 
-    // Emoji icon
-    const emoji = scene.add
-      .text(0, s(-15), cardData.emoji, {
-        fontSize: px(28),
-      })
-      .setOrigin(0.5);
+    // Base patron image
+    const baseImage = scene.add.image(0, 0, `patron_${cardData.type.toLowerCase()}`);
+    baseImage.setDisplaySize(Card.WIDTH, Card.HEIGHT);
 
-    // Patron type label
+    const children = [this.background, baseImage];
+
+    // Trait badge
+    if (cardData.trait) {
+      const badge = scene.add.image(Card.WIDTH / 2 - s(18), -Card.HEIGHT / 2 + s(18), `badge_${cardData.trait.toLowerCase()}`);
+      badge.setDisplaySize(s(28), s(28));
+      children.push(badge);
+    }
+
+    // Patron type label (moved to bottom with a semi-transparent backing for readability)
+    const labelBg = scene.add.rectangle(0, Card.HEIGHT / 2 - s(12), Card.WIDTH, s(24), 0x000000, 0.7);
     const label = scene.add
-      .text(0, s(25), cardData.label, {
+      .text(0, Card.HEIGHT / 2 - s(12), cardData.label, {
         fontSize: px(11),
-        fontFamily: "Arial",
+        fontFamily: "Georgia, serif",
         color: "#ffffff",
+        fontStyle: "bold",
         align: "center",
-        wordWrap: { width: Card.WIDTH - s(10) },
+        wordWrap: { width: Card.WIDTH - s(4) },
       })
       .setOrigin(0.5);
+    children.push(labelBg, label);
 
     // ====================================================================
     // PHASER CONCEPT: Adding Children to a Container
@@ -92,7 +101,7 @@ export class Card extends Phaser.GameObjects.Container {
     // Children are positioned relative to the container's (x, y).
     // The rendering order follows the array order (first = behind).
 
-    this.add([this.background, emoji, label]);
+    this.add(children);
 
     // ====================================================================
     // PHASER CONCEPT: Hit Area & Interactive Size
