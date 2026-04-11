@@ -278,6 +278,10 @@ Object.freeze(TraitScoring);
  * @property {number[]} backRows - Row indices that count as "back" of theater
  * @property {number[]} [frontRows] - Row indices that count as "front" (default: [0, 1])
  * @property {{row: number, col: number}[]} [royalBoxes] - Seats that count as both aisle AND front row
+ * @property {boolean[][]} [seatMask] - 2D array: true = seat exists, false = no seat. If absent, all seats exist.
+ * @property {number[][]} [adjacencyBreaks] - Pairs [rowA, rowB] where adjacency between rows is severed (e.g. Balcony)
+ * @property {{row: number, col: number}[][]} [tableGroups] - Groups of seat positions forming "tables" (Cabaret)
+ * @property {boolean} [staggered] - If true, each row is offset by half a seat width (brick-pattern stagger)
  * @property {string|null} [houseRule] - House rule ID for scoring (null = none)
  * @property {string} [houseRuleDescription] - Human-readable house rule text for UI
  */
@@ -355,6 +359,107 @@ export const PromenadeLayout = {
 };
 Object.freeze(PromenadeLayout);
 
+// ── Batch 2: Non-rectangular layouts ────────────────────────────────
+
+/**
+ * Helper: build a seatMask for centered tiered rows.
+ * @param {number[]} seatsPerRow - e.g. [6, 5, 4, 3]
+ * @param {number} maxCols - total columns in the grid
+ * @returns {boolean[][]}
+ */
+function buildTieredMask(seatsPerRow, maxCols) {
+  return seatsPerRow.map((count) => {
+    const offset = Math.floor((maxCols - count) / 2);
+    return Array.from({ length: maxCols }, (_, c) => c >= offset && c < offset + count);
+  });
+}
+
+/** @type {LayoutMeta} */
+export const AmphitheaterLayout = {
+  id: "amphitheater",
+  name: "The Amphitheater",
+  emoji: "🏛",
+  description: "Tiered rows narrow toward the back. No aisles. Fill rows for bonus VP.",
+  rows: 4,
+  cols: 6,
+  aisleCols: [],
+  backRows: [3],
+  seatMask: [
+    //       col: 0     1     2     3     4     5
+    /* Row 0 */ [true,  true,  true,  true,  true,  true],   // 6 seats
+    /* Row 1 */ [false, true,  true,  true,  true,  true],   // 5 seats (offset 1)
+    /* Row 2 */ [false, true,  true,  true,  true,  false],  // 4 seats (centered)
+    /* Row 3 */ [false, false, true,  true,  true,  false],  // 3 seats (centered)
+  ],
+  staggered: true,
+  houseRule: "panorama",
+  houseRuleDescription:
+    "The Panorama — +2 VP for each completely filled row.",
+};
+Object.freeze(AmphitheaterLayout);
+
+/**
+ * Helper: build a seatMask with gap columns (for Cabaret tables).
+ * @param {number} rows
+ * @param {number} cols
+ * @param {number[]} gapCols - column indices that are gaps (no seats)
+ * @returns {boolean[][]}
+ */
+function buildGappedMask(rows, cols, gapCols) {
+  const gapSet = new Set(gapCols);
+  return Array.from({ length: rows }, () =>
+    Array.from({ length: cols }, (_, c) => !gapSet.has(c))
+  );
+}
+
+/** @type {LayoutMeta} */
+export const CabaretLayout = {
+  id: "cabaret",
+  name: "The Cabaret",
+  emoji: "🍸",
+  description: "Intimate tables of 4. Fill a table for +3 VP.",
+  rows: 4,
+  cols: 8,
+  aisleCols: [],
+  backRows: [3],
+  adjacencyBreaks: [[1, 2]], // Horizontal gap between row-pairs (top 3 tables / bottom 3 tables)
+  seatMask: buildGappedMask(4, 8, [2, 5]),
+  // Cols: [0,1]  gap  [3,4]  gap  [6,7]
+  // 3 tables per row-pair (rows 0-1, rows 2-3)
+  // Each table = 2×2 block
+  tableGroups: [
+    // Row 0-1 tables
+    [{ row: 0, col: 0 }, { row: 0, col: 1 }, { row: 1, col: 0 }, { row: 1, col: 1 }],
+    [{ row: 0, col: 3 }, { row: 0, col: 4 }, { row: 1, col: 3 }, { row: 1, col: 4 }],
+    [{ row: 0, col: 6 }, { row: 0, col: 7 }, { row: 1, col: 6 }, { row: 1, col: 7 }],
+    // Row 2-3 tables
+    [{ row: 2, col: 0 }, { row: 2, col: 1 }, { row: 3, col: 0 }, { row: 3, col: 1 }],
+    [{ row: 2, col: 3 }, { row: 2, col: 4 }, { row: 3, col: 3 }, { row: 3, col: 4 }],
+    [{ row: 2, col: 6 }, { row: 2, col: 7 }, { row: 3, col: 6 }, { row: 3, col: 7 }],
+  ],
+  houseRule: "full-tables",
+  houseRuleDescription:
+    "Full Tables — +3 VP for each 2×2 table where all 4 seats are occupied.",
+};
+Object.freeze(CabaretLayout);
+
+/** @type {LayoutMeta} */
+export const BalconyLayout = {
+  id: "balcony",
+  name: "The Balcony",
+  emoji: "🌃",
+  description: "Elevated balcony (row A) disconnected from the main floor. Safe haven.",
+  rows: 4,
+  cols: 5,
+  aisleCols: [0, 4],
+  backRows: [3],
+  adjacencyBreaks: [[0, 1]], // Row 0 (balcony) is NOT adjacent to row 1
+  houseRule: "birds-eye-view",
+  houseRuleDescription:
+    "Bird's Eye View — Tall in balcony doesn't penalize. Short in balcony always gets +2 VP.",
+};
+Object.freeze(BalconyLayout);
+
 /**
  * All available theater layouts, keyed by ID.
  * @type {Record<string, LayoutMeta>}
@@ -364,6 +469,9 @@ export const Layouts = {
   [BlackboxLayout.id]: BlackboxLayout,
   [RoyalTheatreLayout.id]: RoyalTheatreLayout,
   [PromenadeLayout.id]: PromenadeLayout,
+  [AmphitheaterLayout.id]: AmphitheaterLayout,
+  [CabaretLayout.id]: CabaretLayout,
+  [BalconyLayout.id]: BalconyLayout,
 };
 Object.freeze(Layouts);
 
@@ -376,6 +484,9 @@ export const LayoutOrder = [
   BlackboxLayout.id,
   RoyalTheatreLayout.id,
   PromenadeLayout.id,
+  AmphitheaterLayout.id,
+  CabaretLayout.id,
+  BalconyLayout.id,
 ];
 Object.freeze(LayoutOrder);
 

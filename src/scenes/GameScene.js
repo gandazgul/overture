@@ -11,7 +11,7 @@ import {
   PlayerColorsHex,
   PlayerNames,
 } from "../types.js";
-import { scorePlayer, isAisleSeat } from "../scoring.js";
+import { scorePlayer, isAisleSeat, seatExists } from "../scoring.js";
 import { s, px } from "../config.js";
 
 const SEAT_SIZE = s(80);
@@ -120,6 +120,12 @@ export class GameScene extends Phaser.Scene {
     /** @type {number[]} center-x of each column (set in create) */
     this.colX = [];
 
+    /** @type {number[]} per-row X offset for staggered layouts (set in create) */
+    this.staggerRowOffsets = [];
+
+    /** @type {number[]} center-y of each row (set in create) */
+    this.rowY = [];
+
     /** @type {number} top of the seat grid (set in create) */
     this.gridStartY = 0;
 
@@ -209,33 +215,101 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
+    // Detect seatMask gap columns (Cabaret: cols where no row has a seat)
+    /** @type {Set<number>} columns that are entirely empty (gap columns) */
+    const gapCols = new Set();
+    if (this.layout.seatMask) {
+      for (let c = 0; c < COLS; c++) {
+        if (this.layout.seatMask.every((row) => !row[c])) {
+          gapCols.add(c);
+        }
+      }
+    }
+
+    // Detect adjacency breaks for visual row gaps (Balcony)
+    /** @type {Set<number>} row indices after which there's a visual break */
+    const rowBreaksAfter = new Set();
+    if (this.layout.adjacencyBreaks) {
+      for (const [a, b] of this.layout.adjacencyBreaks) {
+        rowBreaksAfter.add(Math.min(a, b));
+      }
+    }
+
     // ── Compute column X positions with variable gaps ────────────
+    const GAP_COL_WIDTH = AISLE_GAP; // gap columns rendered as aisles (Cabaret tables)
+    const ROW_BREAK_GAP = s(20); // extra gap for adjacency breaks
     /** @type {number[]} center-x of each column */
     const colX = [];
     let cursor = 0;
     if (leftAisle) cursor += AISLE_GAP;
     for (let c = 0; c < COLS; c++) {
-      colX[c] = cursor + SEAT_SIZE / 2;
-      cursor += SEAT_SIZE;
+      if (gapCols.has(c)) {
+        // Gap column: skip it (just add gap space)
+        colX[c] = cursor + GAP_COL_WIDTH / 2; // position for reference
+        cursor += GAP_COL_WIDTH;
+      } else {
+        colX[c] = cursor + SEAT_SIZE / 2;
+        cursor += SEAT_SIZE;
+      }
       if (c < COLS - 1) {
-        cursor += centerAisleGaps.has(c) ? AISLE_GAP : SEAT_GAP;
+        if (centerAisleGaps.has(c)) {
+          cursor += AISLE_GAP;
+        } else if (!gapCols.has(c) && !gapCols.has(c + 1)) {
+          cursor += SEAT_GAP;
+        }
       }
     }
     if (rightAisle) cursor += AISLE_GAP;
     const totalGridW = cursor;
 
-    const gridHeight = ROWS * (SEAT_SIZE + SEAT_GAP) - SEAT_GAP;
-    const gridStartX = (width - totalGridW) / 2;
+    // ── Compute row Y positions with adjacency break gaps ───────
+    /** @type {number[]} center-y of each row */
+    const rowY = [];
+    let yCursor = 0;
+    for (let r = 0; r < ROWS; r++) {
+      rowY[r] = yCursor + SEAT_SIZE / 2;
+      yCursor += SEAT_SIZE;
+      if (r < ROWS - 1) {
+        yCursor += rowBreaksAfter.has(r) ? SEAT_GAP + ROW_BREAK_GAP : SEAT_GAP;
+      }
+    }
+    const totalGridH = yCursor;
+
     const gridStartY = s(110);
 
-    // Offset colX so they’re relative to gridStartX
+    // ── Compute per-row stagger offsets (brick-pattern pyramid) ──
+    /** @type {number[]} per-row X shift for staggered layouts */
+    const staggerRowOffsets = [];
+    const halfSeat = (SEAT_SIZE + SEAT_GAP) / 2;
+    if (this.layout.staggered && this.layout.seatMask) {
+      // Find row 0's first valid column as the reference point
+      let row0FirstCol = 0;
+      while (row0FirstCol < COLS && !this.layout.seatMask[0][row0FirstCol]) row0FirstCol++;
+      for (let r = 0; r < ROWS; r++) {
+        let firstCol = 0;
+        while (firstCol < COLS && !this.layout.seatMask[r][firstCol]) firstCol++;
+        // Each row should be centered: r * halfSeat inset from row 0
+        // The seatMask already skips columns, adding an inherent offset
+        // Correction = desired centering offset − inherent grid offset
+        const desiredOffset = r * halfSeat;
+        const inherentOffset = (firstCol - row0FirstCol) * (SEAT_SIZE + SEAT_GAP);
+        staggerRowOffsets[r] = desiredOffset - inherentOffset;
+      }
+    } else {
+      for (let r = 0; r < ROWS; r++) staggerRowOffsets[r] = 0;
+    }
+
+    const gridStartX = (width - totalGridW) / 2;
+
+    // Offset colX and rowY so they're relative to gridStartX/gridStartY
     for (let c = 0; c < COLS; c++) colX[c] += gridStartX;
+    for (let r = 0; r < ROWS; r++) rowY[r] += gridStartY;
 
     // ── Theater floor background ─────────────────────────────────
     const floorLeft = gridStartX;
     const floorRight = gridStartX + totalGridW;
     const floorTop = gridStartY - s(4);
-    const floorBottom = gridStartY + gridHeight + s(4);
+    const floorBottom = gridStartY + totalGridH + s(4);
     const floorW = floorRight - floorLeft;
     const floorH = floorBottom - floorTop;
 
@@ -307,6 +381,19 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
+    // Gap-column aisle walkways (Cabaret table gaps)
+    for (const gc of gapCols) {
+      const aisleX = colX[gc];
+      this.add
+        .rectangle(aisleX, floorTop + floorH / 2, GAP_COL_WIDTH - s(4), aisleStripH, aisleColor)
+        .setAlpha(0.6);
+      for (let dy = 0; dy < floorH; dy += s(16)) {
+        this.add
+          .rectangle(aisleX, floorTop + dy + s(4), s(2), s(8), 0x444466)
+          .setAlpha(0.4);
+      }
+    }
+
     // ── Stage platform ───────────────────────────────────────────
     const stageH = s(22);
     const stageY = floorTop - stageH / 2; // sits right above the floor
@@ -331,18 +418,35 @@ export class GameScene extends Phaser.Scene {
       return `${letter}`;
     });
 
-    // Store colX for use in renderTheater
+    // Store positions for use in renderTheater
     this.colX = colX;
+    this.staggerRowOffsets = staggerRowOffsets;
+    this.rowY = rowY;
     this.gridStartY = gridStartY;
+
+    // ── Draw balcony break line if applicable ───────────────────
+    for (const breakRow of rowBreaksAfter) {
+      const y1 = rowY[breakRow] + SEAT_SIZE / 2;
+      const y2 = rowY[breakRow + 1] - SEAT_SIZE / 2;
+      const midY = (y1 + y2) / 2;
+      // Dashed horizontal line
+      for (let dx = 0; dx < floorW; dx += s(12)) {
+        this.add
+          .rectangle(floorLeft + dx + s(3), midY, s(6), s(2), 0x555577)
+          .setAlpha(0.5);
+      }
+    }
 
     // ── Build theater grid ──────────────────────────────────────────
     for (let row = 0; row < ROWS; row++) {
       this.seatGrid[row] = [];
-      const y = gridStartY + row * (SEAT_SIZE + SEAT_GAP) + SEAT_SIZE / 2;
+      const y = rowY[row];
 
+      // Row label: shift right to match stagger offset
+      const rowStagger = staggerRowOffsets[row] || 0;
       this.add
         .text(
-          gridStartX - s(6),
+          gridStartX + rowStagger - s(6),
           y,
           rowLabels[row],
           { fontSize: px(11), color: "#666688", fontFamily: "Arial" }
@@ -350,7 +454,13 @@ export class GameScene extends Phaser.Scene {
         .setOrigin(1, 0.5);
 
       for (let col = 0; col < COLS; col++) {
-        const x = colX[col];
+        // Skip non-existent seats (seatMask or gap columns)
+        if (!seatExists(row, col, this.layout)) {
+          this.seatGrid[row][col] = null;
+          continue;
+        }
+
+        const x = colX[col] + rowStagger;
         const isAisle = isAisleSeat(row, col, this.layout);
         const isRoyalBox = this.layout.royalBoxes?.some(
           (b) => b.row === row && b.col === col
@@ -1152,6 +1262,8 @@ export class GameScene extends Phaser.Scene {
       // Mini grid
       for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
+          if (!seatExists(r, c, this.layout)) continue;
+
           const x = baseX + c * (miniSeatSize + miniGap) + miniSeatSize / 2;
           const y = gridTopY + r * (miniSeatSize + miniGap) + miniSeatSize / 2;
           const cardData = this.placedPatrons[p][r][c];

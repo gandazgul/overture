@@ -372,9 +372,9 @@ does the Box itself make the card your best?
 ```
      Col 0  1  2  3  4  5
 Row 0: [ ][ ][ ][ ][ ][ ]    Tiered: 6-5-4-3 = 18 seats
-Row 1:   [ ][ ][ ][ ][ ]     NO aisle seats at all
-Row 2:     [ ][ ][ ][ ]      Rows narrow toward the back
-Row 3:       [ ][ ][ ]
+Row 1:  [ ][ ][ ][ ][ ]      NO aisle seats at all
+Row 2:    [ ][ ][ ][ ]       Rows narrow toward the back
+Row 3:      [ ][ ][ ]
 ```
 
 **House Rule: "The Panorama"** - +2 VP bonus for each completely filled row.
@@ -390,10 +390,11 @@ means neglecting the easy-to-complete back rows.
 ### 🎭 The Cabaret
 
 ```
-  Col 0  1     2  3     4  5
+  Col   0  1     2  3     4  5
 Row 0: [ ][ ]   [ ][ ]   [ ][ ]    "Tables" of 2×2
 Row 1: [ ][ ]   [ ][ ]   [ ][ ]    with gaps between them
-                                     18 seats, 3 tables per row-pair
+                                     24 seats, 3 tables per row-pair
+         ─── horizontal gap ───
 Row 2: [ ][ ]   [ ][ ]   [ ][ ]
 Row 3: [ ][ ]   [ ][ ]   [ ][ ]
 ```
@@ -401,18 +402,25 @@ Row 3: [ ][ ]   [ ][ ]   [ ][ ]
 **House Rule: "Full Tables"** - +3 VP for each 2×2 table where all 4 seats are
 occupied.
 
+**Cabaret Capping Rule:** Kids cannot be capped by the normal horizontal chain
+rule (tables are only 2 seats wide). Instead, a Kid is **capped if any Teacher
+is seated at the same 2×2 table**. One Teacher can cap up to 3 Kids at their
+table.
+
 **Strategic feel:** Gaps between tables break adjacency-a Noisy patron only
-hurts tablemates, not the next table over. Lovebirds want to share a table. But
-filling a full table for +3 VP means you might place a mediocre card just to
-complete it. Kids can only chain within a table (max 2 wide), making
-Teacher-Kid capping harder.
+hurts tablemates, not the next table over. The horizontal gap between row-pairs
+further isolates the top 3 tables from the bottom 3. Lovebirds want to share a
+table. Filling a full table for +3 VP means you might place a mediocre card
+just to complete it. The table capping rule makes Teachers valuable-one Teacher
+can supervise an entire table of Kids-but you sacrifice seats that could hold
+higher-scoring patrons. Critics score only 2 VP base (no aisle seats exist).
 
 ---
 
 ### 🎭 The Balcony
 
 ```
-  Col 0  1  2  3  4
+  Col   0  1  2  3  4
 Row 0: [A][ ][ ][ ][A]    Balcony (elevated, separate)
        ─────────────────   Gap: no adjacency between row 0 and row 1
 Row 1: [A][ ][ ][ ][A]    Main floor

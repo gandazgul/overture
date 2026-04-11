@@ -34,21 +34,62 @@ import {
  */
 
 /**
+ * Check if a seat exists at the given position (respects seatMask).
+ *
+ * @param {number} row
+ * @param {number} col
+ * @param {LayoutMeta} layout
+ * @returns {boolean}
+ */
+export function seatExists(row, col, layout) {
+  if (row < 0 || row >= layout.rows || col < 0 || col >= layout.cols) return false;
+  if (layout.seatMask) return layout.seatMask[row][col];
+  return true;
+}
+
+/**
+ * Check if adjacency between two rows is broken (e.g. Balcony gap).
+ *
+ * @param {number} rowA
+ * @param {number} rowB
+ * @param {LayoutMeta} layout
+ * @returns {boolean}
+ */
+function isAdjacencyBroken(rowA, rowB, layout) {
+  if (!layout.adjacencyBreaks) return false;
+  return layout.adjacencyBreaks.some(
+    ([a, b]) => (a === rowA && b === rowB) || (a === rowB && b === rowA)
+  );
+}
+
+/**
  * Get orthogonal neighbors (up/down/left/right) for a given position.
+ * Respects seatMask (skips non-existent seats) and adjacencyBreaks.
  *
  * @param {number} row
  * @param {number} col
  * @param {number} rows
  * @param {number} cols
+ * @param {LayoutMeta} [layout] - Optional layout for seatMask/adjacencyBreaks
  * @returns {{row: number, col: number}[]}
  */
-export function getOrthogonalNeighbors(row, col, rows, cols) {
+export function getOrthogonalNeighbors(row, col, rows, cols, layout) {
   /** @type {{row: number, col: number}[]} */
   const neighbors = [];
-  if (row > 0) neighbors.push({ row: row - 1, col });
-  if (row < rows - 1) neighbors.push({ row: row + 1, col });
-  if (col > 0) neighbors.push({ row, col: col - 1 });
-  if (col < cols - 1) neighbors.push({ row, col: col + 1 });
+  const candidates = [
+    { row: row - 1, col },
+    { row: row + 1, col },
+    { row, col: col - 1 },
+    { row, col: col + 1 },
+  ];
+  for (const c of candidates) {
+    if (c.row < 0 || c.row >= rows || c.col < 0 || c.col >= cols) continue;
+    // Check adjacency breaks between rows
+    if (layout && c.row !== row && isAdjacencyBroken(row, c.row, layout)) continue;
+    // Check seatMask
+    if (layout && layout.seatMask && !layout.seatMask[c.row][c.col]) continue;
+    neighbors.push(c);
+  }
   return neighbors;
 }
 
@@ -137,11 +178,38 @@ export function findHorizontalKidGroups(rowData, cols) {
  * @param {number} cols
  * @returns {Set<number>[]} - cappedKids[row] is a Set of capped col indices
  */
-function buildCappedKidMap(grid, rows, cols) {
+/**
+ * @param {(CardData | null)[][]} grid
+ * @param {number} rows
+ * @param {number} cols
+ * @param {LayoutMeta} [layout]
+ */
+function buildCappedKidMap(grid, rows, cols, layout) {
   /** @type {Set<number>[]} */
   const cappedKids = [];
   for (let r = 0; r < rows; r++) {
     cappedKids[r] = new Set();
+  }
+
+  // Cabaret table-based capping: a Kid is capped if any Teacher sits at the same table
+  if (layout && layout.tableGroups) {
+    for (const table of layout.tableGroups) {
+      const hasTeacher = table.some(
+        (pos) => grid[pos.row]?.[pos.col]?.type === PatronType.TEACHER
+      );
+      if (hasTeacher) {
+        for (const pos of table) {
+          if (grid[pos.row]?.[pos.col]?.type === PatronType.KID) {
+            cappedKids[pos.row].add(pos.col);
+          }
+        }
+      }
+    }
+    return cappedKids;
+  }
+
+  // Default: horizontal chain capping (Teacher at both ends)
+  for (let r = 0; r < rows; r++) {
     const groups = findHorizontalKidGroups(grid[r], cols);
     for (const group of groups) {
       if (group.capped) {
@@ -194,7 +262,7 @@ export function scoreSeat(grid, row, col, layout, cappedKids) {
       }
       // Adjacency penalty for Kid neighbors
       if (scoring.adjacencyPenaltyTypes && scoring.adjacencyPenaltyPer) {
-        const neighbors = getOrthogonalNeighbors(row, col, rows, cols);
+        const neighbors = getOrthogonalNeighbors(row, col, rows, cols, layout);
         for (const n of neighbors) {
           const neighbor = grid[n.row][n.col];
           if (
@@ -207,7 +275,7 @@ export function scoreSeat(grid, row, col, layout, cappedKids) {
       }
       // VIP is also penalized by adjacent Noisy-trait patrons
       if (scoring.adjacencyPenaltyNoisyTrait && scoring.adjacencyPenaltyPer) {
-        const neighbors = getOrthogonalNeighbors(row, col, rows, cols);
+        const neighbors = getOrthogonalNeighbors(row, col, rows, cols, layout);
         for (const n of neighbors) {
           const neighbor = grid[n.row][n.col];
           if (neighbor && neighbor.trait === Trait.NOISY) {
@@ -220,7 +288,7 @@ export function scoreSeat(grid, row, col, layout, cappedKids) {
 
     case PatronType.LOVEBIRDS: {
       // Score only if adjacent to another Lovebirds
-      const neighbors = getOrthogonalNeighbors(row, col, rows, cols);
+      const neighbors = getOrthogonalNeighbors(row, col, rows, cols, layout);
       let hasAdjacentMatch = false;
       for (const n of neighbors) {
         const neighbor = grid[n.row][n.col];
@@ -255,7 +323,7 @@ export function scoreSeat(grid, row, col, layout, cappedKids) {
     case PatronType.TEACHER: {
       // Bonus per adjacent Kid that is capped
       if (scoring.perCappedKidBonus) {
-        const neighbors = getOrthogonalNeighbors(row, col, rows, cols);
+        const neighbors = getOrthogonalNeighbors(row, col, rows, cols, layout);
         for (const n of neighbors) {
           const neighbor = grid[n.row][n.col];
           if (
@@ -296,8 +364,11 @@ export function scoreSeat(grid, row, col, layout, cappedKids) {
       // Short trait: check the seat directly in front (row - 1, same col)
       if (card.trait === Trait.SHORT) {
         const frontRow = row - 1;
-        if (frontRow < 0 || !grid[frontRow][col]) {
-          // No one in front — bonus
+        const frontBlocked = frontRow < 0 ||
+          (layout && isAdjacencyBroken(row, frontRow, layout)) ||
+          (layout?.seatMask && !layout.seatMask[frontRow]?.[col]);
+        if (frontBlocked || !grid[frontRow]?.[col]) {
+          // No one in front (or adjacency broken) — bonus
           vp += traitScoring.emptyFrontBonus ?? 0;
         } else if (grid[frontRow][col]?.trait === Trait.TALL) {
           // Tall-trait patron in front — penalty
@@ -314,8 +385,11 @@ export function scoreSeat(grid, row, col, layout, cappedKids) {
   // which has its own tallInFrontPenalty already handled above).
   if (card.trait !== Trait.SHORT) {
     const frontRow = row - 1;
+    const frontAccessible = frontRow >= 0 &&
+      !(layout && isAdjacencyBroken(row, frontRow, layout)) &&
+      !(layout?.seatMask && !layout.seatMask[frontRow]?.[col]);
     if (
-      frontRow >= 0 &&
+      frontAccessible &&
       grid[frontRow][col] &&
       grid[frontRow][col]?.trait === Trait.TALL
     ) {
@@ -326,7 +400,7 @@ export function scoreSeat(grid, row, col, layout, cappedKids) {
   // Noisy trait adjacency penalty: for each neighbor with the Noisy trait,
   // this patron gets -1 VP.
   {
-    const neighbors = getOrthogonalNeighbors(row, col, rows, cols);
+    const neighbors = getOrthogonalNeighbors(row, col, rows, cols, layout);
     for (const n of neighbors) {
       const neighbor = grid[n.row][n.col];
       if (neighbor && neighbor.trait === Trait.NOISY) {
@@ -357,7 +431,7 @@ function scoreHouseRule(grid, layout, perSeat) {
       for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
           if (!grid[r][c]) continue;
-          const neighbors = getOrthogonalNeighbors(r, c, rows, cols);
+          const neighbors = getOrthogonalNeighbors(r, c, rows, cols, layout);
           let occupied = 0;
           for (const n of neighbors) {
             if (grid[n.row][n.col]) occupied++;
@@ -418,6 +492,55 @@ function scoreHouseRule(grid, layout, perSeat) {
       }
       break;
     }
+
+    // Amphitheater: +2 VP for each completely filled row (respects seatMask)
+    case "panorama": {
+      for (let r = 0; r < rows; r++) {
+        let rowComplete = true;
+        let hasSeat = false;
+        for (let c = 0; c < cols; c++) {
+          const exists = layout.seatMask ? layout.seatMask[r][c] : true;
+          if (exists) {
+            hasSeat = true;
+            if (!grid[r][c]) {
+              rowComplete = false;
+              break;
+            }
+          }
+        }
+        if (hasSeat && rowComplete) {
+          // Distribute +2 VP to the first occupied seat in the row
+          for (let c = 0; c < cols; c++) {
+            if (grid[r][c]) {
+              perSeat[r][c] += 2;
+              bonus += 2;
+              break;
+            }
+          }
+        }
+      }
+      break;
+    }
+
+    // Cabaret: +3 VP for each 2×2 table where all 4 seats are occupied
+    case "full-tables": {
+      if (layout.tableGroups) {
+        for (const table of layout.tableGroups) {
+          const full = table.every((pos) => grid[pos.row]?.[pos.col] != null);
+          if (full) {
+            // Award +3 VP to the top-left seat of the table
+            perSeat[table[0].row][table[0].col] += 3;
+            bonus += 3;
+          }
+        }
+      }
+      break;
+    }
+
+    // Balcony: Bird's Eye View is handled in scoreSeat via adjacencyBreaks.
+    // No additional end-game bonus needed.
+    case "birds-eye-view":
+      break;
   }
 
   return bonus;
@@ -434,7 +557,7 @@ export function scorePlayer(grid, layout = DefaultLayout) {
   const { rows, cols } = layout;
 
   // Precompute capped Kids for all rows
-  const cappedKids = buildCappedKidMap(grid, rows, cols);
+  const cappedKids = buildCappedKidMap(grid, rows, cols, layout);
 
   /** @type {number[][]} */
   const perSeat = [];
