@@ -36,24 +36,17 @@ export class TheaterSelectionScene extends Phaser.Scene {
     const logoY = s(90);
     if (this.textures.exists('ui_logo')) {
       const logo = this.add.image(width / 2, logoY, 'ui_logo');
-      logo.setDisplaySize(s(320), s(180)); // slightly smaller to leave room for grid
+      const logoRatio = 0.3643695015;
+      const logoWidth = 320;
+      logo.setDisplaySize(s(logoWidth), s(logoWidth * logoRatio));
     }
 
     // Subtitle
     this.add
-      .text(width / 2, logoY + s(55), "Choose Your Theater", {
+      .text(width / 2, logoY + s(75), "Choose Your Theater", {
         fontSize: px(26),
         fontFamily: "Georgia, serif",
-        color: "#aaaacc",
-      })
-      .setOrigin(0.5);
-
-    // Player count badge
-    this.add
-      .text(width / 2, logoY + s(85), `${this.selectedPlayerCount} Players`, {
-        fontSize: px(14),
-        fontFamily: "Arial",
-        color: "#888899",
+        color: "#ffd700",
       })
       .setOrigin(0.5);
 
@@ -318,7 +311,7 @@ export class TheaterSelectionScene extends Phaser.Scene {
       // Rule label
       const ruleLabelText = this.add
         .text(0, ruleY, "House Rule", {
-          fontSize: px(12),
+          fontSize: px(18),
           fontFamily: "Arial",
           color: "#f5c518",
           fontStyle: "bold",
@@ -337,7 +330,7 @@ export class TheaterSelectionScene extends Phaser.Scene {
 
       const ruleText = this.add
         .text(0, ruleBoxY, layout.houseRuleDescription, {
-          fontSize: px(13),
+          fontSize: px(16),
           fontFamily: "Georgia, serif",
           color: "#e0d0ff",
           wordWrap: { width: ruleBoxW - s(30) },
@@ -350,7 +343,7 @@ export class TheaterSelectionScene extends Phaser.Scene {
       // No house rule — show "No special rule"
       const noRuleText = this.add
         .text(0, ruleY + s(10), "No House Rule \u2014 Standard Scoring", {
-          fontSize: px(13),
+          fontSize: px(16),
           fontFamily: "Georgia, serif",
           color: "#888899",
           fontStyle: "italic",
@@ -360,7 +353,7 @@ export class TheaterSelectionScene extends Phaser.Scene {
     }
 
     // ── Player count ────────────────────────────────────────────────
-    const playerY = modalH / 2 - s(115);
+    const playerY = modalH / 2 - s(145);
     const playerBadge = this.add
       .text(0, playerY, `${this.selectedPlayerCount} Players`, {
         fontSize: px(14),
@@ -371,7 +364,7 @@ export class TheaterSelectionScene extends Phaser.Scene {
     modalContainer.add(playerBadge);
 
     // ── Buttons ─────────────────────────────────────────────────────
-    const btnY = modalH / 2 - s(50);
+    const btnY = modalH / 2 - s(70);
     const btnGap = s(30);
 
     // — "Close" button —
@@ -428,15 +421,17 @@ export class TheaterSelectionScene extends Phaser.Scene {
    * @returns {Phaser.GameObjects.Container}
    */
   _createModalButton(x, y, label, bgColor, textColor, parent) {
-    const btnW = s(160);
-    const btnH = s(44);
+    const buttonWidth = 180;
+    const buttonHeight = buttonWidth * 0.4704684318;
+    const btnW = s(buttonWidth);
+    const btnH = s(buttonHeight);
 
     const btnContainer = this.add.container(x, y);
 
     let bg;
     if (this.textures.exists('ui_button_frame')) {
       bg = this.add.image(0, 0, 'ui_button_frame');
-      bg.setDisplaySize(btnW, btnH + s(6));
+      bg.setDisplaySize(btnW, btnH);
     } else {
       bg = this.add.rectangle(0, 0, btnW, btnH, bgColor, 0.9);
       bg.setStrokeStyle(s(1), 0xf5c518, 0.5);
@@ -489,6 +484,7 @@ export class TheaterSelectionScene extends Phaser.Scene {
     });
 
     parent.add(btnContainer);
+
     return hitArea;
   }
 

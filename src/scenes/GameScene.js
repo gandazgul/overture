@@ -17,7 +17,6 @@ import { s, px } from "../config.js";
 const SEAT_SIZE = s(100);
 const SEAT_GAP = s(10);
 const AISLE_GAP = s(30);   // wider gap for aisle walkways
-const WALL_WIDTH = s(6);   // theater wall thickness
 
 /**
  * Concise scoring reminders shown when a card is selected.
@@ -305,7 +304,7 @@ export class GameScene extends Phaser.Scene {
 
     const floorW = totalGridW;
     const stageAscpectRatio = 222 / 978;
-    const stageRenderWidth = floorW + s(160);
+    const stageRenderWidth = floorW + s(115);
     const actualStageH = stageRenderWidth * stageAscpectRatio;
     const topBarBottom = s(10);
     const gridStartY = topBarBottom + actualStageH + s(10);
@@ -361,18 +360,6 @@ export class GameScene extends Phaser.Scene {
           0x12122a
         )
         .setStrokeStyle(s(1), 0x2a2a4e, 0.5);
-    }
-
-    // ── Walls (solid lines on non-aisle edges) ──────────────────
-    if (!leftAisle) {
-      this.add
-        .rectangle(floorLeft, floorTop + floorH / 2, WALL_WIDTH, floorH, 0x4a3a2a)
-        .setOrigin(0.5, 0.5);
-    }
-    if (!rightAisle) {
-      this.add
-        .rectangle(floorRight, floorTop + floorH / 2, WALL_WIDTH, floorH, 0x4a3a2a)
-        .setOrigin(0.5, 0.5);
     }
 
     // ── Aisle walkway strips ──────────────────────────────────────
@@ -449,11 +436,11 @@ export class GameScene extends Phaser.Scene {
 
     this.add
       .text(floorLeft + floorW / 2, stageY, this.layout.name, {
-        fontSize: px(26),
+        fontSize: px(36),
         color: "#ffd700",
         fontFamily: "Georgia, serif",
         fontStyle: "italic",
-        shadow: { blur: 4, color: '#000000', fill: true }
+        shadow: { blur: 8, color: '#000000', fill: true }
       })
       .setOrigin(0.5)
       .setDepth(3);
@@ -569,7 +556,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     // ── HUD Panel (Game Information) ────────────────────────────────
-    const hudW = s(280);
+    const hudW = s(260);
     const hudX = width - hudW - s(20);
     const hudY = gridStartY;
     this.uiContainer = this.add.container(hudX, hudY).setDepth(150);
@@ -796,11 +783,11 @@ export class GameScene extends Phaser.Scene {
           height / 2 + s(70),
           `${this.layout.houseRuleDescription}`,
           {
-            fontSize: px(13),
+            fontSize: px(16),
             fontFamily: "Arial",
             color: "#f5c518",
             fontStyle: "italic",
-            wordWrap: { width: s(400) },
+            wordWrap: { width: s(600) },
             align: "center",
           }
         )
@@ -809,9 +796,11 @@ export class GameScene extends Phaser.Scene {
     }
 
     // Ready button
-    const btnW = s(220);
-    const btnH = s(65);
-    const readyBtn = this.add.container(width / 2, height / 2 + s(120));
+    const buttonWidth = 220;
+    const buttonHeight = buttonWidth * 0.4704684318;
+    const btnW = s(buttonWidth);
+    const btnH = s(buttonHeight);
+    const readyBtn = this.add.container(width / 2, height / 2 + s(160));
 
     if (this.textures.exists('ui_button_frame')) {
       const bgImg = this.add.image(0, 0, 'ui_button_frame');
@@ -823,7 +812,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     const textLabel = this.add.text(0, 0, "I'm Ready", {
-      fontSize: px(24),
+      fontSize: px(20),
       fontFamily: "Georgia, serif",
       color: "#ffffff",
       fontStyle: "bold"
