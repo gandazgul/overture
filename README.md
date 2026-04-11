@@ -1,6 +1,11 @@
-# 🎭 Overture
+<p align="center">
+  <img src="./public/assets/ui_logo.png" alt="Overture" width="400" />
+</p>
 
 A digital card game where players act as theater ushers, seating patrons to maximize victory points and manage theater chaos.
+
+## The Goal
+Seat patrons strategically to earn victory points. Different patron types have special placement rules and synergies!
 
 ## 🚀 Play the Game
 
@@ -11,7 +16,40 @@ deno task dev
 # Open http://localhost:8080 in your browser
 ```
 
-## 🧰 Available Tasks
+1. **Start** — Click "Start Game" on the title screen
+2. **Select a Theater** — Click a theater board to select it, or hit Random Theater
+3. **Select** — Click a card from your hand (bottom of screen)
+4. **Place** — Click an empty seat in the theater grid to place that patron
+5. **Score** — The game ends when the deck runs out (56 cards, 14 turns)
+
+### Primary Patrons
+| Type | Strategy |
+|------|----------|
+| **Standard** | Worth 3 VP anywhere. |
+| **VIP** | 5 VP base; +3 VP in front rows. Penalty near Kids and Noisy patrons. |
+| **Lovebirds** | 0 VP base; +3 VP if adjacent to another Lovebird. **×2 VP** in back rows. |
+| **Kid** | 0 VP base; 2 VP only if capped by Teachers on both ends of a group. |
+| **Teacher** | 1 VP base; +1 VP for each adjacent capped Kid. |
+| **Critic** | 2 VP base; **×3 VP** if seated in an aisle seat. |
+
+### Secondary Traits
+Traits can be applied to any patron type, adding unique bonuses or penalties.
+
+| Trait | Effect |
+|-------|--------|
+| **Bespectacled** | +2 VP in front 3 rows (closer to the stage). |
+| **Tall** | Patron directly behind this seat gets −2 VP. |
+| **Short** | +2 VP if no one is in front; −3 VP if a **Tall** patron is in front. |
+| **Noisy** | Each adjacent patron (any type) gets −1 VP. |
+
+## 🛠️ Tech Stack
+
+- **Runtime**: [Deno](https://deno.land/) — Modern JavaScript runtime with built-in TypeScript support
+- **Bundler**: [Vite 5](https://vitejs.dev/) — Fast HMR and builds
+- **Language**: JavaScript with JSDoc — Type-safe JS without compilation
+- **Engine**: [Phaser 3](https://phaser.io/) — Popular 2D game framework
+
+### 🧰 Available Tasks
 
 All tasks are defined in `deno.json` and run via `deno task <name>`:
 
@@ -36,44 +74,6 @@ deno task check
 deno task lint
 deno task test
 ```
-
-## 📋 How to Play
-
-1. **Start** — Click "Start Game" on the title screen
-2. **Select** — Click a card from your hand (bottom of screen)
-3. **Place** — Click an empty seat in the theater grid to place that patron
-4. **Score** — The game ends when the deck runs out (scoring is simplified in this version)
-
-### The Goal
-Seat patrons strategically to earn victory points. Different patron types have special placement rules and synergies!
-
-### Primary Patrons
-| Type | Strategy |
-|------|----------|
-| **Standard** | Worth 3 VP anywhere. |
-| **VIP** | 5 VP base; +3 VP in front rows. Penalty near Kids and Noisy patrons. |
-| **Lovebirds** | 0 VP base; +3 VP if adjacent to another Lovebird. **×2 VP** in back rows. |
-| **Kid** | 0 VP base; 2 VP only if capped by Teachers on both ends of a group. |
-| **Teacher** | 1 VP base; +1 VP for each adjacent capped Kid. |
-| **Critic** | 2 VP base; **×3 VP** if seated in an aisle seat. |
-
-### Secondary Traits
-Traits can be applied to any patron type, adding unique bonuses or penalties.
-
-| Trait | Effect |
-|-------|--------|
-| **Bespectacled** | +2 VP in front 3 rows (closer to the stage). |
-| **Tall** | Patron directly behind this seat gets −2 VP. |
-| **Short** | +2 VP if no one is in front; −3 VP if a **Tall** patron is in front. |
-| **Noisy** | Each adjacent patron (any type) gets −1 VP. |
-
-
-## 🛠️ Tech Stack
-
-- **Runtime**: [Deno](https://deno.land/) — Modern JavaScript runtime with built-in TypeScript support
-- **Bundler**: [Vite 5](https://vitejs.dev/) — Fast HMR and builds
-- **Language**: JavaScript with JSDoc — Type-safe JS without compilation
-- **Engine**: [Phaser 3](https://phaser.io/) — Popular 2D game framework
 
 ## 🏗️ Project Structure
 
