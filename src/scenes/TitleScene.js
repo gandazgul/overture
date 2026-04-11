@@ -16,6 +16,7 @@ export class TitleScene extends Phaser.Scene {
 
   preload() {
     this.load.image('ui_logo', 'assets/ui_logo.png');
+    this.load.image('ui_button_frame', 'assets/ui_button_frame.png');
     // Preload all theater background images
     const layouts = LayoutOrder.map((id) => Layouts[id]);
     for (const layout of layouts) {
@@ -44,10 +45,12 @@ export class TitleScene extends Phaser.Scene {
     // Title
     if (this.textures.exists('ui_logo')) {
       const titleLogo = this.add.image(width / 2, height / 4, 'ui_logo');
-      titleLogo.setDisplaySize(s(480), s(270)); // 16:9 ratio
+      const logoRatio = 0.3643695015;
+      const logoWidth = 480;
+      titleLogo.setDisplaySize(s(logoWidth), s(logoWidth * logoRatio));
     } else {
       this.add
-        .text(width / 2, height / 4, "Theater Ushers", {
+        .text(width / 2, height / 4, "Overture", {
           fontSize: px(52),
           fontFamily: "Georgia, serif",
           color: "#f5c518",
@@ -57,16 +60,18 @@ export class TitleScene extends Phaser.Scene {
 
     // Subtitle
     this.add
-      .text(width / 2, height / 4 + s(70), "A Card Game of Seating Strategy", {
-        fontSize: px(20),
+      .text(width / 2, height / 4 + s(120), "A Card Game of Seating Strategy\nSeat patrons in your theater to earn the most victory points!", {
+        fontSize: px(18),
         fontFamily: "Georgia, serif",
         color: "#aaaacc",
+        align: "center",
+        lineSpacing: 5
       })
       .setOrigin(0.5);
 
     // "How many players?" label
     this.add
-      .text(width / 2, height / 2 - s(10), "How many players?", {
+      .text(width / 2, height / 2 - s(30), "How many players?", {
         fontSize: px(24),
         fontFamily: "Georgia, serif",
         color: "#ccccdd",
@@ -75,43 +80,64 @@ export class TitleScene extends Phaser.Scene {
 
     // Player count buttons
     const counts = [2, 3, 4];
-    const buttonWidth = s(160);
+    const buttonWidth = 180;
+    const buttonHeight = buttonWidth * 0.4704684318;
     const gap = s(30);
-    const totalWidth = counts.length * buttonWidth + (counts.length - 1) * gap;
-    const startX = (width - totalWidth) / 2 + buttonWidth / 2;
+    const totalWidth = counts.length * s(buttonWidth) + (counts.length - 1) * gap;
+    const startX = (width - totalWidth) / 2 + s(buttonWidth) / 2;
 
     for (let i = 0; i < counts.length; i++) {
       const n = counts[i];
-      const x = startX + i * (buttonWidth + gap);
-      const y = height / 2 + s(60);
+      const x = startX + i * (s(buttonWidth) + gap);
+      const y = height / 2 + s(buttonHeight / 2);
 
-      const btn = this.add
-        .text(x, y, `${n} Players`, {
-          fontSize: px(26),
+      const btnContainer = this.add.container(x, y);
+
+      if (this.textures.exists('ui_button_frame')) {
+        const bgImg = this.add.image(0, 0, 'ui_button_frame');
+        bgImg.setDisplaySize(s(buttonWidth), s(buttonHeight));
+        btnContainer.add(bgImg);
+      } else {
+        const fallbackBg = this.add.rectangle(0, 0, s(buttonWidth), s(buttonHeight), 0x4a2c7a);
+        btnContainer.add(fallbackBg);
+      }
+
+      const textLabel = this.add
+        .text(0, 0, `${n} Players`, {
+          fontSize: px(18),
           fontFamily: "Georgia, serif",
           color: "#ffffff",
-          backgroundColor: "#4a2c7a",
-          padding: { x: s(24), y: s(14) },
+          fontStyle: "bold"
         })
-        .setOrigin(0.5)
-        .setInteractive({ useHandCursor: true });
+        .setOrigin(0.5);
+      btnContainer.add(textLabel);
 
-      // Pulse
-      this.tweens.add({
-        targets: btn,
-        scaleX: 1.04,
-        scaleY: 1.04,
-        duration: 900,
-        yoyo: true,
-        repeat: -1,
-        ease: "Sine.easeInOut",
-        delay: i * 150,
+      const hitArea = this.add.rectangle(0, 0, buttonWidth, s(60), 0, 0)
+        .setInteractive({ useHandCursor: true });
+      btnContainer.add(hitArea);
+
+      hitArea.on("pointerover", () => {
+        textLabel.setStyle({ color: "#f5c518" });
+        this.tweens.add({
+          targets: btnContainer,
+          scaleX: 1.05,
+          scaleY: 1.05,
+          duration: 150,
+          ease: "Sine.easeOut",
+        });
+      });
+      hitArea.on("pointerout", () => {
+        textLabel.setStyle({ color: "#ffffff" });
+        this.tweens.add({
+          targets: btnContainer,
+          scaleX: 1,
+          scaleY: 1,
+          duration: 150,
+          ease: "Sine.easeOut",
+        });
       });
 
-      btn.on("pointerover", () => btn.setStyle({ color: "#f5c518" }));
-      btn.on("pointerout", () => btn.setStyle({ color: "#ffffff" }));
-
-      btn.on("pointerdown", () => {
+      hitArea.on("pointerdown", () => {
         this.selectedPlayerCount = n;
         this.showTheaterSelect();
       });
@@ -157,20 +183,7 @@ export class TitleScene extends Phaser.Scene {
       toggleText.setStyle({ color: next ? "#66bb6a" : "#888899" });
     });
 
-    // Flavor text
-    this.add
-      .text(
-        width / 2,
-        height - s(40),
-        "Seat patrons in your theater to earn the most victory points!\nHot-seat: pass the device between turns.",
-        {
-          fontSize: px(14),
-          fontFamily: "Georgia, serif",
-          color: "#666688",
-          align: "center",
-        }
-      )
-      .setOrigin(0.5);
+    // Flavor text removed per requested changes
   }
 
   // ══════════════════════════════════════════════════════════════════
@@ -525,18 +538,25 @@ export class TitleScene extends Phaser.Scene {
     const btnY = modalH / 2 - s(50);
     const btnGap = s(30);
 
-    // — "Select Another" button —
-    const selectAnotherBtn = this._createModalButton(
+    // — "Close" button —
+    const closeBtn = this._createModalButton(
       -btnGap - s(70),
       btnY,
-      "Select Another",
+      "Close",
       0x3a3a5e,
       "#ccccdd",
       modalContainer
     );
-    selectAnotherBtn.on("pointerdown", () => {
+    closeBtn.on("pointerdown", () => {
       this._dismissModal(dimOverlay, modalContainer);
     });
+
+    // — Keyboard Support (ESC) —
+    const escListener = () => {
+      this._dismissModal(dimOverlay, modalContainer);
+    };
+    this.input.keyboard.on("keydown-ESC", escListener);
+    dimOverlay.setData('escListener', escListener);
 
     // — "Let's Go!" button —
     const letsGoBtn = this._createModalButton(
@@ -554,16 +574,7 @@ export class TitleScene extends Phaser.Scene {
       });
     });
 
-    // Pulse the Let's Go button
-    this.tweens.add({
-      targets: letsGoBtn,
-      scaleX: 1.06,
-      scaleY: 1.06,
-      duration: 800,
-      yoyo: true,
-      repeat: -1,
-      ease: "Sine.easeInOut",
-    });
+    // removed letsGoBtn pulse
 
     // Store refs for cleanup
     /** @type {Phaser.GameObjects.Rectangle} */
@@ -588,8 +599,14 @@ export class TitleScene extends Phaser.Scene {
 
     const btnContainer = this.add.container(x, y);
 
-    const bg = this.add.rectangle(0, 0, btnW, btnH, bgColor, 0.9);
-    bg.setStrokeStyle(s(1), 0xf5c518, 0.5);
+    let bg;
+    if (this.textures.exists('ui_button_frame')) {
+      bg = this.add.image(0, 0, 'ui_button_frame');
+      bg.setDisplaySize(btnW, btnH + s(6));
+    } else {
+      bg = this.add.rectangle(0, 0, btnW, btnH, bgColor, 0.9);
+      bg.setStrokeStyle(s(1), 0xf5c518, 0.5);
+    }
     btnContainer.add(bg);
 
     const text = this.add
@@ -609,14 +626,32 @@ export class TitleScene extends Phaser.Scene {
 
     // Hover
     hitArea.on("pointerover", () => {
-      bg.fillAlpha = 1;
       text.setStyle({ color: "#ffffff" });
-      bg.setStrokeStyle(s(2), 0xf5c518, 0.8);
+      if (bg instanceof Phaser.GameObjects.Rectangle) {
+        bg.fillAlpha = 1;
+        bg.setStrokeStyle(s(2), 0xf5c518, 0.8);
+      }
+      this.tweens.add({
+        targets: btnContainer,
+        scaleX: 1.05,
+        scaleY: 1.05,
+        duration: 150,
+        ease: "Sine.easeOut",
+      });
     });
     hitArea.on("pointerout", () => {
-      bg.fillAlpha = 0.9;
       text.setStyle({ color: textColor });
-      bg.setStrokeStyle(s(1), 0xf5c518, 0.5);
+      if (bg instanceof Phaser.GameObjects.Rectangle) {
+        bg.fillAlpha = 0.9;
+        bg.setStrokeStyle(s(1), 0xf5c518, 0.5);
+      }
+      this.tweens.add({
+        targets: btnContainer,
+        scaleX: 1,
+        scaleY: 1,
+        duration: 150,
+        ease: "Sine.easeOut",
+      });
     });
 
     parent.add(btnContainer);
@@ -629,6 +664,11 @@ export class TitleScene extends Phaser.Scene {
    * @param {Phaser.GameObjects.Container} modalContainer
    */
   _dismissModal(dimOverlay, modalContainer) {
+    const escListener = dimOverlay.getData('escListener');
+    if (escListener) {
+      this.input.keyboard.off("keydown-ESC", escListener);
+    }
+
     this.tweens.add({
       targets: modalContainer,
       scaleX: 0.8,

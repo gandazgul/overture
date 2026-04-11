@@ -103,22 +103,8 @@ export class GameScene extends Phaser.Scene {
     this.deckText = null;
 
     /** @type {Phaser.GameObjects.Text | null} */
-    this.infoText = null;
 
-    /** @type {Phaser.GameObjects.Rectangle | null} */
-    this.topBanner = null;
 
-    /** @type {Phaser.GameObjects.Text | null} */
-    this.bannerText = null;
-
-    /** @type {Phaser.GameObjects.Text | null} */
-    this.bannerText = null;
-
-    /** @type {Phaser.GameObjects.Image | null} */
-    this.topBannerAvatar = null;
-
-    /** @type {Phaser.GameObjects.Graphics | null} */
-    this.bannerMask = null;
 
     /** @type {Phaser.GameObjects.Container | null} */
     this.uiContainer = null;
@@ -174,6 +160,7 @@ export class GameScene extends Phaser.Scene {
 
     this.load.image('ui_stage', 'assets/ui_stage.png');
     this.load.image('ui_logo', 'assets/ui_logo.png');
+    this.load.image('ui_button_frame', 'assets/ui_button_frame.png');
     this.load.image('usher_blue', 'assets/usher_blue.png');
     this.load.image('usher_red', 'assets/usher_red.png');
     this.load.image('usher_green', 'assets/usher_green.png');
@@ -234,37 +221,6 @@ export class GameScene extends Phaser.Scene {
       this.endGame();
     });
 
-    // ── Top banner (player color indicator) ─────────────────────────
-    this.topBanner = this.add
-      .rectangle(width / 2, 0, width, s(60), 0x0a0a1a)
-      .setOrigin(0.5, 0)
-      .setDepth(0);
-
-    this.topBannerTrim = this.add
-      .rectangle(width / 2, s(60), width, s(4), 0xd4af37)
-      .setOrigin(0.5, 0)
-      .setDepth(1);
-
-    this.bannerText = this.add
-      .text(width / 2, s(28), "", {
-        fontSize: px(18),
-        fontFamily: "Georgia, serif",
-        color: "#ffffff",
-      })
-      .setOrigin(0.5)
-      .setDepth(1);
-
-    this.topBannerAvatar = this.add.image(width / 2 - s(200), s(28), 'usher_blue')
-      .setOrigin(0.5)
-      .setDisplaySize(s(44), s(44))
-      .setDepth(1)
-      .setVisible(false);
-
-    // Apply circular mask to the avatar
-    this.bannerMask = this.make.graphics();
-    this.bannerMask.fillStyle(0xffffff);
-    this.bannerMask.fillCircle(width / 2 - s(200), s(28), s(22));
-    this.topBannerAvatar.setMask(this.bannerMask.createGeometryMask());
 
     // ── Compute aisle walkway positions ────────────────────────────
     const ROWS = this.layout.rows;
@@ -349,9 +305,9 @@ export class GameScene extends Phaser.Scene {
 
     const floorW = totalGridW;
     const stageAscpectRatio = 222 / 978;
-    const actualStageH = (floorW + s(10)) * stageAscpectRatio;
-    // Stage sits flush under top banner (banner height=60 + trim=4 = 64)
-    const topBarBottom = s(64);
+    const stageRenderWidth = floorW + s(160);
+    const actualStageH = stageRenderWidth * stageAscpectRatio;
+    const topBarBottom = s(10);
     const gridStartY = topBarBottom + actualStageH + s(10);
 
     // ── Compute per-row stagger offsets (brick-pattern pyramid) ──
@@ -479,27 +435,28 @@ export class GameScene extends Phaser.Scene {
     }
 
     // ── Stage platform ───────────────────────────────────────────
-    // Position flush below the top banner gold trim line
     const stageY = topBarBottom + actualStageH / 2;
 
     if (this.textures.exists('ui_stage')) {
       const stageImg = this.add.image(floorLeft + floorW / 2, stageY, 'ui_stage');
-      stageImg.setDisplaySize(floorW + s(40), actualStageH);
-      stageImg.setDepth(2); // Above banner background
+      stageImg.setDisplaySize(stageRenderWidth, actualStageH);
+      stageImg.setDepth(2);
     } else {
       this.add
         .rectangle(floorLeft + floorW / 2, stageY, floorW, actualStageH, 0x8b4513)
         .setStrokeStyle(s(1), 0xdaa520);
-
-      this.add
-        .text(floorLeft + floorW / 2, stageY, "STAGE", {
-          fontSize: px(11),
-          color: "#ffd700",
-          fontFamily: "Georgia, serif",
-          fontStyle: "bold",
-        })
-        .setOrigin(0.5);
     }
+
+    this.add
+      .text(floorLeft + floorW / 2, stageY, this.layout.name, {
+        fontSize: px(26),
+        color: "#ffd700",
+        fontFamily: "Georgia, serif",
+        fontStyle: "italic",
+        shadow: { blur: 4, color: '#000000', fill: true }
+      })
+      .setOrigin(0.5)
+      .setDepth(3);
 
     // Store positions for use in renderTheater
     this.colX = colX;
@@ -525,16 +482,21 @@ export class GameScene extends Phaser.Scene {
       this.seatGrid[row] = [];
       const y = rowY[row];
 
-      // Row label: shift right to match stagger offset
+      // Row label: position relative to the first valid seat in the row
       const rowStagger = staggerRowOffsets[row] || 0;
-      const labelContainer = this.add.container(gridStartX + rowStagger - s(25), y);
+      let firstValidCol = 0;
+      if (this.layout.seatMask) {
+        while (firstValidCol < COLS && !this.layout.seatMask[row][firstValidCol]) firstValidCol++;
+      }
+      const firstValidX = firstValidCol < COLS ? colX[firstValidCol] : colX[0];
+      const labelContainer = this.add.container(firstValidX + rowStagger - s(75), y);
       const circle = this.add.circle(0, 0, s(16), 0x1a1a2e).setStrokeStyle(s(2), 0xd4af37, 0.8);
 
       const text = this.add.text(0, 0, String.fromCharCode(65 + row), {
-          fontSize: px(16),
-          fontFamily: "Georgia, serif",
-          color: "#eedd99",
-          fontStyle: "bold"
+        fontSize: px(16),
+        fontFamily: "Georgia, serif",
+        color: "#eedd99",
+        fontStyle: "bold"
       }).setOrigin(0.5, 0.5);
 
       labelContainer.add([circle, text]);
@@ -609,7 +571,7 @@ export class GameScene extends Phaser.Scene {
     // ── HUD Panel (Game Information) ────────────────────────────────
     const hudW = s(280);
     const hudX = width - hudW - s(20);
-    const hudY = s(80);
+    const hudY = gridStartY;
     this.uiContainer = this.add.container(hudX, hudY).setDepth(150);
 
     // HUD Background
@@ -641,11 +603,11 @@ export class GameScene extends Phaser.Scene {
     // Draw a pile of card backs to represent the deck
     this.deckImages = [];
     for (let i = 0; i < 15; i++) {
-        const dImg = this.add.image(hudW / 2 - i * s(2), s(145) - i * s(2), 'card_back');
-        dImg.setDisplaySize(s(65), s(87));
-        dImg.setAngle(i % 3 === 0 ? -3 : i % 2 === 0 ? 3 : 0);
-        this.deckImages.push(dImg);
-        this.uiContainer.add(dImg);
+      const dImg = this.add.image(hudW / 2 - i * s(2), s(145) - i * s(2), 'card_back');
+      dImg.setDisplaySize(s(65), s(87));
+      dImg.setAngle(i % 3 === 0 ? -3 : i % 2 === 0 ? 3 : 0);
+      this.deckImages.push(dImg);
+      this.uiContainer.add(dImg);
     }
 
     // ── VP Scoreboard w/ Avatars ──────────────────────────────────
@@ -698,7 +660,21 @@ export class GameScene extends Phaser.Scene {
     this.localPlayerAvatar.setMask(this.localPlayerMask.createGeometryMask());
 
     this.localPlayerRing = this.add.circle(0, 0, s(70), 0x000000, 0).setStrokeStyle(s(6), PlayerColorsHex[0]);
-    this.localPlayerContainer.add([this.localPlayerAvatar, this.localPlayerRing]);
+
+    this.localPlayerNumberBg = this.add.circle(-s(50), -s(50), s(22), 0x0a0a1a, 1).setStrokeStyle(s(3), PlayerColorsHex[0]);
+    this.localPlayerNumberText = this.add.text(-s(50), -s(50), "1", {
+      fontSize: px(24),
+      fontFamily: "Georgia, serif",
+      color: "#ffffff",
+      fontStyle: "bold"
+    }).setOrigin(0.5);
+
+    this.localPlayerContainer.add([
+      this.localPlayerAvatar,
+      this.localPlayerRing,
+      this.localPlayerNumberBg,
+      this.localPlayerNumberText
+    ]);
 
     // Global deselect background click
     this.input.on('pointerdown', (/** @type {any} */ pointer, /** @type {any[]} */ gameObjects) => {
@@ -706,25 +682,18 @@ export class GameScene extends Phaser.Scene {
         this.selectedCard.setSelected(false);
         this.selectedCard = null;
         this.hideScoringTooltip();
-        if (this.infoText) this.infoText.setText("Select a card, then click a seat to place it.");
       }
     });
 
     // ── Logo ────────────────────────────────────────────────────────
     if (this.textures.exists('ui_logo')) {
-      const logo = this.add.image(s(30), s(30), 'ui_logo').setOrigin(0, 0);
-      const logoRatio = logo.height > 0 ? logo.height / logo.width : 0.5;
-      logo.setDisplaySize(s(220), s(220) * logoRatio);
+      // Centered at s(80) to perfectly align vertically with the player avatar
+      const logo = this.add.image(s(120), s(60), 'ui_logo');
+      const logoRatio = 0.3643695015;
+      const logoWidth = 220;
+      logo.setDisplaySize(s(logoWidth), s(logoWidth * logoRatio)); // Kept proportional to avoid clipping
       logo.setDepth(150);
     }
-
-    this.infoText = this.add
-      .text(width / 2, height - s(25), "", {
-        fontSize: px(14),
-        fontFamily: "Arial",
-        color: "#888899",
-      })
-      .setOrigin(0.5);
 
     // ── Start with pass screen for player 1 ─────────────────────────
     this.showPassScreen();
@@ -840,35 +809,57 @@ export class GameScene extends Phaser.Scene {
     }
 
     // Ready button
-    const readyBtn = this.add
-      .text(width / 2, height / 2 + s(120), "👆 I'm Ready", {
-        fontSize: px(28),
-        fontFamily: "Georgia, serif",
-        color: "#ffffff",
-        backgroundColor: "#4a2c7a",
-        padding: { x: s(30), y: s(15) },
-      })
-      .setOrigin(0.5)
+    const btnW = s(220);
+    const btnH = s(65);
+    const readyBtn = this.add.container(width / 2, height / 2 + s(120));
+
+    if (this.textures.exists('ui_button_frame')) {
+      const bgImg = this.add.image(0, 0, 'ui_button_frame');
+      bgImg.setDisplaySize(btnW, btnH);
+      readyBtn.add(bgImg);
+    } else {
+      const fallbackBg = this.add.rectangle(0, 0, btnW, btnH, 0x4a2c7a);
+      readyBtn.add(fallbackBg);
+    }
+
+    const textLabel = this.add.text(0, 0, "I'm Ready", {
+      fontSize: px(24),
+      fontFamily: "Georgia, serif",
+      color: "#ffffff",
+      fontStyle: "bold"
+    }).setOrigin(0.5);
+    readyBtn.add(textLabel);
+
+    const hitArea = this.add.rectangle(0, 0, btnW, btnH, 0, 0)
       .setInteractive({ useHandCursor: true });
+    readyBtn.add(hitArea);
 
-    readyBtn.on("pointerover", () => readyBtn.setStyle({ color: "#f5c518" }));
-    readyBtn.on("pointerout", () => readyBtn.setStyle({ color: "#ffffff" }));
+    hitArea.on("pointerover", () => {
+      textLabel.setStyle({ color: "#f5c518" });
+      this.tweens.add({
+        targets: readyBtn,
+        scaleX: 1.05,
+        scaleY: 1.05,
+        duration: 150,
+        ease: "Sine.easeOut",
+      });
+    });
 
-    readyBtn.on("pointerdown", () => {
+    hitArea.on("pointerout", () => {
+      textLabel.setStyle({ color: "#ffffff" });
+      this.tweens.add({
+        targets: readyBtn,
+        scaleX: 1,
+        scaleY: 1,
+        duration: 150,
+        ease: "Sine.easeOut",
+      });
+    });
+
+    hitArea.on("pointerdown", () => {
       container.destroy();
       this.passOverlay = null;
       this.startTurn();
-    });
-
-    // Gentle pulse on ready button
-    this.tweens.add({
-      targets: readyBtn,
-      scaleX: 1.05,
-      scaleY: 1.05,
-      duration: 800,
-      yoyo: true,
-      repeat: -1,
-      ease: "Sine.easeInOut",
     });
 
     container.add(readyBtn);
@@ -905,16 +896,6 @@ export class GameScene extends Phaser.Scene {
     this.updateUI();
     this.updateScoreboard();
     this.turnPhase = "play";
-
-    if (this.infoText) {
-      if (hand.length === 1) {
-        this.infoText.setText("Last round! Play your final card.");
-      } else {
-        this.infoText.setText(
-          "Select a card, then click a seat to place it."
-        );
-      }
-    }
   }
 
   // ══════════════════════════════════════════════════════════════════
@@ -1055,12 +1036,6 @@ export class GameScene extends Phaser.Scene {
     card.setSelected(true);
     this.selectedCard = card;
 
-    if (this.infoText) {
-      this.infoText.setText(
-        `Selected: ${card.cardData.emoji} ${card.cardData.type} — Click a seat to place it!`
-      );
-    }
-
     this.showScoringTooltip(card);
   }
 
@@ -1091,7 +1066,7 @@ export class GameScene extends Phaser.Scene {
 
     // 1) Fill the rounded rect body
     bubbleBg.fillStyle(0x1a1a2e, 0.95);
-    bubbleBg.fillRoundedRect(-bubbleW/2, -bubbleH, bubbleW, bubbleH, r);
+    bubbleBg.fillRoundedRect(-bubbleW / 2, -bubbleH, bubbleW, bubbleH, r);
 
     // 2) Fill the tail triangle (overlap into rect by 2px to hide seam)
     bubbleBg.beginPath();
@@ -1111,39 +1086,39 @@ export class GameScene extends Phaser.Scene {
     // Up the right side of the tail
     bubbleBg.lineTo(tailW, 0);
     // Continue along the bottom edge to the bottom-right corner
-    bubbleBg.lineTo(bubbleW/2 - r, 0);
+    bubbleBg.lineTo(bubbleW / 2 - r, 0);
     // Bottom-right corner arc
-    bubbleBg.arc(bubbleW/2 - r, -r, r, Math.PI * 0.5, 0, true);
+    bubbleBg.arc(bubbleW / 2 - r, -r, r, Math.PI * 0.5, 0, true);
     // Right edge up to top-right corner
-    bubbleBg.lineTo(bubbleW/2, -bubbleH + r);
+    bubbleBg.lineTo(bubbleW / 2, -bubbleH + r);
     // Top-right corner arc
-    bubbleBg.arc(bubbleW/2 - r, -bubbleH + r, r, 0, -Math.PI * 0.5, true);
+    bubbleBg.arc(bubbleW / 2 - r, -bubbleH + r, r, 0, -Math.PI * 0.5, true);
     // Top edge to top-left corner
-    bubbleBg.lineTo(-bubbleW/2 + r, -bubbleH);
+    bubbleBg.lineTo(-bubbleW / 2 + r, -bubbleH);
     // Top-left corner arc
-    bubbleBg.arc(-bubbleW/2 + r, -bubbleH + r, r, -Math.PI * 0.5, Math.PI, true);
+    bubbleBg.arc(-bubbleW / 2 + r, -bubbleH + r, r, -Math.PI * 0.5, Math.PI, true);
     // Left edge down to bottom-left corner
-    bubbleBg.lineTo(-bubbleW/2, -r);
+    bubbleBg.lineTo(-bubbleW / 2, -r);
     // Bottom-left corner arc
-    bubbleBg.arc(-bubbleW/2 + r, -r, r, Math.PI, Math.PI * 0.5, true);
+    bubbleBg.arc(-bubbleW / 2 + r, -r, r, Math.PI, Math.PI * 0.5, true);
     // Along bottom edge back to the tail
     bubbleBg.lineTo(-tailW, 0);
     bubbleBg.strokePath();
 
     const titleText = this.add.text(0, -bubbleH + s(18), card.cardData.label, {
-        fontSize: px(14),
-        fontFamily: "Georgia, serif",
-        color: "#d4af37",
-        fontStyle: "bold",
-        align: "center",
+      fontSize: px(14),
+      fontFamily: "Georgia, serif",
+      color: "#d4af37",
+      fontStyle: "bold",
+      align: "center",
     }).setOrigin(0.5, 0.5);
 
     const hintText = this.add.text(0, -bubbleH + s(48), hint, {
-        fontSize: px(11),
-        fontFamily: "Arial",
-        color: "#ffffff",
-        align: "center",
-        wordWrap: { width: bubbleW - s(16) },
+      fontSize: px(11),
+      fontFamily: "Arial",
+      color: "#ffffff",
+      align: "center",
+      wordWrap: { width: bubbleW - s(16) },
     }).setOrigin(0.5, 0.5);
 
     this.scoringTooltip.add([bubbleBg, titleText, hintText]);
@@ -1174,10 +1149,9 @@ export class GameScene extends Phaser.Scene {
    * @param {Phaser.GameObjects.Rectangle} seat
    */
   placeSeatCard(row, col, seat) {
-    if (!this.selectedCard || this.placedPatrons[this.currentPlayer][row][col]) {
-      if (this.placedPatrons[this.currentPlayer][row][col] && this.infoText) {
-        this.infoText.setText("That seat is taken! Choose another.");
-      }
+    if (!this.selectedCard) return;
+    // Seat already occupied
+    if (this.placedPatrons[this.currentPlayer][row][col]) {
       return;
     }
 
@@ -1244,9 +1218,6 @@ export class GameScene extends Phaser.Scene {
     // Check if 2-player discard is needed
     if (this.playerCount === 2 && this.playerHands[this.currentPlayer].length > 1) {
       this.turnPhase = "discard";
-      if (this.infoText) {
-        this.infoText.setText("Now discard a card — click one to remove it.");
-      }
       // Highlight remaining cards for discard
       for (const c of this.handCards) {
         c.background.setStrokeStyle(s(3), 0xff4444, 1);
@@ -1284,12 +1255,6 @@ export class GameScene extends Phaser.Scene {
       duration: 300,
       onComplete: () => card.destroy(),
     });
-
-    if (this.infoText) {
-      this.infoText.setText(
-        `Discarded ${card.cardData.emoji} ${card.cardData.type}`
-      );
-    }
 
     // Short delay then advance
     this.time.delayedCall(400, () => {
@@ -1368,29 +1333,6 @@ export class GameScene extends Phaser.Scene {
     const colorHex = PlayerColorsHex[this.currentPlayer];
     const name = PlayerNames[this.currentPlayer];
 
-    // Removed the dynamic player color alpha wash keeping luxury maroon/black styling
-    if (this.bannerText) {
-      this.bannerText.setText(`${name} — ${this.layout.name}`);
-      this.bannerText.setColor(color);
-
-      if (this.topBannerAvatar) {
-        const usherKeys = ['usher_blue', 'usher_red', 'usher_green', 'usher_orange'];
-        const usherKey = usherKeys[this.currentPlayer];
-        if (this.textures.exists(usherKey)) {
-           this.topBannerAvatar.setTexture(usherKey).setVisible(true);
-           // Calculate dynamic width of text to position avatar right next to it
-           const textWidth = this.bannerText.width;
-           const newX = this.bannerText.x - textWidth / 2 - s(30);
-           this.topBannerAvatar.setX(newX);
-
-           if (this.bannerMask) {
-             this.bannerMask.clear();
-             this.bannerMask.fillStyle(0xffffff);
-             this.bannerMask.fillCircle(newX, s(28), s(22));
-           }
-        }
-      }
-    }
 
     if (this.turnText) {
       this.turnText.setText(`Round ${this.round} / ${this.totalRounds}`);
@@ -1415,6 +1357,14 @@ export class GameScene extends Phaser.Scene {
       if (this.textures.exists(usherKey)) {
         this.localPlayerAvatar.setTexture(usherKey);
         this.localPlayerRing.setStrokeStyle(s(6), colorHex);
+
+        if (this.localPlayerNumberBg) {
+          this.localPlayerNumberBg.setStrokeStyle(s(3), colorHex);
+        }
+        if (this.localPlayerNumberText) {
+          this.localPlayerNumberText.setText((this.currentPlayer + 1).toString());
+          this.localPlayerNumberText.setColor(color);
+        }
       }
     }
   }
@@ -1430,10 +1380,6 @@ export class GameScene extends Phaser.Scene {
     this.clearHandVisuals();
 
     // Hide game UI elements
-    if (this.topBanner) this.topBanner.setVisible(false);
-    if (this.bannerText) this.bannerText.setVisible(false);
-    if (this.topBannerAvatar) this.topBannerAvatar.setVisible(false);
-    if (this.bannerMask) this.bannerMask.setVisible(false);
     if (this.turnText) this.turnText.setVisible(false);
     if (this.deckText) this.deckText.setVisible(false);
     if (this.uiContainer) this.uiContainer.setVisible(false);

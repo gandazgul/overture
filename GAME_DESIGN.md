@@ -1,4 +1,4 @@
-# Theater Card Game - Game Design Document
+# Overture - Game Design Document
 
 > A tableau-building card game for 2-4 players where rival ushers compete to
 > seat patrons in their personal theaters for maximum enjoyment-and maximum

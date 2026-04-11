@@ -1,4 +1,4 @@
-# 🎭 Theater Ushers
+# 🎭 Overture
 
 A digital card game where players act as theater ushers, seating patrons to maximize victory points and manage theater chaos.
 
@@ -71,7 +71,7 @@ Seat patrons strategically to earn victory points. Different patron types have s
 ## 🏗️ Project Structure
 
 ```
-theater-card-game/
+overture/
 ├── src/
 │   ├── main.js            # Game entry point & Phaser config
 │   ├── config.js          # Layout constants & responsive scaling

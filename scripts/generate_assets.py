@@ -122,7 +122,12 @@ ASSETS_TO_GENERATE = [
     },
     {
         "filename": "ui_logo.png",
-        "prompt": "A glowing 1920s Art Deco theater marquee sign serving as a game title logo reading 'Theater Card Game'. High quality vector illustration, solid dark background.",
+        "prompt": "A glowing 1920s Art Deco theater marquee sign serving as a game title logo reading 'Overture'. High quality vector illustration, elegant 1920s classic theater theme, solid dark background.",
+        "aspect_ratio": "16:9"
+    },
+    {
+        "filename": "ui_button_frame.png",
+        "prompt": "A stylish 2D UI game asset of an elegant 1920s Art Deco decorative border frame. The aspect ratio is very wide landscape, like a panoramic banner. The center of the border frame is a completely solid, empty, flat black wide rectangle with absolutely NO TEXT. High quality vector illustration, rich gold intricate geometric linework on the border, plain dark solid background.",
         "aspect_ratio": "16:9"
     },
     {

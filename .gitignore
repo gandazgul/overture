@@ -7,3 +7,8 @@ dist/
 .playwright-cli/
 
 PLAN.md
+
+.env
+
+.DS_Store
+Thumbs.db
