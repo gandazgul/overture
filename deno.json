@@ -8,6 +8,7 @@
     "dev": "deno run -A npm:vite@5",
     "build": "deno run -A npm:vite@5 build",
     "preview": "deno run -A npm:vite@5 preview",
+    "serve": "deno run -A server.js",
     "check": "deno check --doc src/**/*.js",
     "lint": "deno lint src/",
     "test": "deno test src/",

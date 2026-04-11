@@ -1,7 +1,7 @@
 // @ts-check
 import Phaser from "phaser";
 import { TraitColors } from "../types.js";
-import { s, px } from "../config.js";
+import { s } from "../config.js";
 
 /**
  * ========================================================================
@@ -38,8 +38,8 @@ export class Card extends Phaser.GameObjects.Container {
   /** @type {boolean} */
   isSelected = false;
 
-  static WIDTH = s(90);
-  static HEIGHT = s(120);
+  static WIDTH = s(105);
+  static HEIGHT = s(140);
 
   /**
    * @param {Phaser.Scene} scene - The scene this card belongs to
@@ -58,6 +58,8 @@ export class Card extends Phaser.GameObjects.Container {
     // The position (0, 0) is relative to the Container's origin.
     // Colors are hex numbers (0xRRGGBB), not CSS strings.
 
+    this.baseY = y;
+
     this.strokeColor = cardData.trait
       ? TraitColors[cardData.trait] || 0xffffff
       : 0x4a4a6a;
@@ -71,6 +73,7 @@ export class Card extends Phaser.GameObjects.Container {
     const baseImage = scene.add.image(0, 0, `patron_${cardData.type.toLowerCase()}`);
     baseImage.setDisplaySize(Card.WIDTH, Card.HEIGHT);
 
+    /** @type {Phaser.GameObjects.GameObject[]} */
     const children = [this.background, baseImage];
 
     // Trait badge
@@ -80,19 +83,7 @@ export class Card extends Phaser.GameObjects.Container {
       children.push(badge);
     }
 
-    // Patron type label (moved to bottom with a semi-transparent backing for readability)
-    const labelBg = scene.add.rectangle(0, Card.HEIGHT / 2 - s(12), Card.WIDTH, s(24), 0x000000, 0.7);
-    const label = scene.add
-      .text(0, Card.HEIGHT / 2 - s(12), cardData.label, {
-        fontSize: px(11),
-        fontFamily: "Georgia, serif",
-        color: "#ffffff",
-        fontStyle: "bold",
-        align: "center",
-        wordWrap: { width: Card.WIDTH - s(4) },
-      })
-      .setOrigin(0.5);
-    children.push(labelBg, label);
+    // Patron type label is now completely deferred to the Tooltip Speech Bubble!
 
     // ====================================================================
     // PHASER CONCEPT: Adding Children to a Container
@@ -113,8 +104,8 @@ export class Card extends Phaser.GameObjects.Container {
     this.setSize(Card.WIDTH, Card.HEIGHT);
     this.setInteractive(
       new Phaser.Geom.Rectangle(
-        -Card.WIDTH / 2,
-        -Card.HEIGHT / 2,
+        0,
+        0,
         Card.WIDTH,
         Card.HEIGHT
       ),
@@ -131,9 +122,10 @@ export class Card extends Phaser.GameObjects.Container {
       if (!this.isSelected) {
         scene.tweens.add({
           targets: this,
-          scaleX: 1.1,
-          scaleY: 1.1,
-          duration: 100,
+          scaleX: 1.08,
+          scaleY: 1.08,
+          y: this.baseY - s(20), // Pop up slightly
+          duration: 150,
           ease: "Back.easeOut",
         });
       }
@@ -145,7 +137,9 @@ export class Card extends Phaser.GameObjects.Container {
           targets: this,
           scaleX: 1.0,
           scaleY: 1.0,
-          duration: 100,
+          y: this.baseY,
+          duration: 150,
+          ease: "Sine.easeOut"
         });
       }
     });
@@ -162,10 +156,25 @@ export class Card extends Phaser.GameObjects.Container {
     this.isSelected = selected;
     if (selected) {
       this.background.setStrokeStyle(s(3), 0xf5c518, 1);
-      this.setScale(1.15);
+      this.scene.tweens.add({
+        targets: this,
+        scaleX: 1.6,
+        scaleY: 1.6,
+        y: this.baseY - s(120), // Pull significantly up into the screen
+        duration: 250,
+        ease: "Back.easeOut"
+      });
+      this.scene.children.bringToTop(this);
     } else {
       this.background.setStrokeStyle(s(2), this.strokeColor, 0.7);
-      this.setScale(1.0);
+      this.scene.tweens.add({
+        targets: this,
+        scaleX: 1.0,
+        scaleY: 1.0,
+        y: this.baseY,
+        duration: 200,
+        ease: "Sine.easeOut"
+      });
     }
   }
 }

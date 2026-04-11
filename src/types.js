@@ -291,6 +291,7 @@ export const GrandEmpressLayout = {
   id: "grand-empress",
   name: "The Grand Empress",
   emoji: "🏛️",
+  bgKey: "bg_grand_empress",
   description: "Classic wide theater. Plentiful aisle seats. No house rule.",
   rows: 4,
   cols: 5,
@@ -306,6 +307,7 @@ export const BlackboxLayout = {
   id: "blackbox",
   name: "The Blackbox",
   emoji: "🎭",
+  bgKey: "bg_blackbox",
   description: "Deep & narrow. Center aisles only. Dense packing rewarded.",
   rows: 5,
   cols: 4,
@@ -322,6 +324,7 @@ export const RoyalTheatreLayout = {
   id: "royal-theatre",
   name: "The Royal Theatre",
   emoji: "👑",
+  bgKey: "bg_royal_theatre",
   description: "Royal Boxes in the front corners. Best patron gets +3 VP.",
   rows: 4,
   cols: 5,
@@ -342,6 +345,7 @@ export const PromenadeLayout = {
   id: "promenade",
   name: "The Promenade",
   emoji: "🚶",
+  bgKey: "bg_promenade",
   description: "Staggered aisles every row. Critics spread out.",
   rows: 4,
   cols: 5,
@@ -361,24 +365,12 @@ Object.freeze(PromenadeLayout);
 
 // ── Batch 2: Non-rectangular layouts ────────────────────────────────
 
-/**
- * Helper: build a seatMask for centered tiered rows.
- * @param {number[]} seatsPerRow - e.g. [6, 5, 4, 3]
- * @param {number} maxCols - total columns in the grid
- * @returns {boolean[][]}
- */
-function buildTieredMask(seatsPerRow, maxCols) {
-  return seatsPerRow.map((count) => {
-    const offset = Math.floor((maxCols - count) / 2);
-    return Array.from({ length: maxCols }, (_, c) => c >= offset && c < offset + count);
-  });
-}
-
 /** @type {LayoutMeta} */
 export const AmphitheaterLayout = {
   id: "amphitheater",
   name: "The Amphitheater",
   emoji: "🏛",
+  bgKey: "bg_amphitheater",
   description: "Tiered rows narrow toward the back. No aisles. Fill rows for bonus VP.",
   rows: 4,
   cols: 6,
@@ -417,6 +409,7 @@ export const CabaretLayout = {
   id: "cabaret",
   name: "The Cabaret",
   emoji: "🍸",
+  bgKey: "bg_cabaret",
   description: "Intimate tables of 4. Fill a table for +3 VP.",
   rows: 4,
   cols: 8,
@@ -448,6 +441,7 @@ export const BalconyLayout = {
   id: "balcony",
   name: "The Balcony",
   emoji: "🌃",
+  bgKey: "bg_balcony",
   description: "Elevated balcony (row A) disconnected from the main floor. Safe haven.",
   rows: 4,
   cols: 5,

@@ -14,8 +14,8 @@ import {
 import { scorePlayer, isAisleSeat, seatExists } from "../scoring.js";
 import { s, px } from "../config.js";
 
-const SEAT_SIZE = s(80);
-const SEAT_GAP = s(8);
+const SEAT_SIZE = s(100);
+const SEAT_GAP = s(10);
 const AISLE_GAP = s(30);   // wider gap for aisle walkways
 const WALL_WIDTH = s(6);   // theater wall thickness
 
@@ -85,7 +85,7 @@ export class GameScene extends Phaser.Scene {
 
     /**
      * Current phase of a turn.
-     * @type {'pass-screen' | 'play' | 'discard' | 'ghost-discard'}
+     * @type {'pass-screen' | 'play' | 'discard' | 'ghost-discard' | 'game-over'}
      */
     this.turnPhase = "pass-screen";
 
@@ -111,10 +111,25 @@ export class GameScene extends Phaser.Scene {
     /** @type {Phaser.GameObjects.Text | null} */
     this.bannerText = null;
 
-    /** @type {Phaser.GameObjects.Text[]} */
-    this.scoreTexts = [];
+    /** @type {Phaser.GameObjects.Text | null} */
+    this.bannerText = null;
 
-    /** @type {Phaser.GameObjects.Text[]} */
+    /** @type {Phaser.GameObjects.Image | null} */
+    this.topBannerAvatar = null;
+
+    /** @type {Phaser.GameObjects.Graphics | null} */
+    this.bannerMask = null;
+
+    /** @type {Phaser.GameObjects.Container | null} */
+    this.uiContainer = null;
+
+    /** @type {Phaser.GameObjects.Container[]} */
+    this.scorePanels = [];
+
+    /** @type {Phaser.GameObjects.Image[]} */
+    this.deckImages = [];
+
+    /** @type {Phaser.GameObjects.GameObject[]} */
     this.seatLabels = [];
 
     /** @type {number[]} center-x of each column (set in create) */
@@ -129,7 +144,7 @@ export class GameScene extends Phaser.Scene {
     /** @type {number} top of the seat grid (set in create) */
     this.gridStartY = 0;
 
-    /** @type {Phaser.GameObjects.Text | null} */
+    /** @type {Phaser.GameObjects.Container | null} */
     this.scoringTooltip = null;
   }
 
@@ -156,7 +171,7 @@ export class GameScene extends Phaser.Scene {
 
     this.load.image('card_back', 'assets/card_back.png');
     this.load.image('manager_token', 'assets/manager_token.png');
-    
+
     this.load.image('ui_stage', 'assets/ui_stage.png');
     this.load.image('ui_logo', 'assets/ui_logo.png');
     this.load.image('usher_blue', 'assets/usher_blue.png');
@@ -205,17 +220,30 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.seatGrid = [];
-    this.scoreTexts = [];
+    this.scorePanels = [];
+    this.deckImages = [];
   }
 
   create() {
     const { width, height } = this.scale;
 
+    // ── DEV DEBUG SKIP ──────────────────────────────────────────────────
+    this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.D).on('down', () => {
+      console.log("DEBUG: Skipping to end screen");
+      this.turnPhase = "game-over";
+      this.endGame();
+    });
+
     // ── Top banner (player color indicator) ─────────────────────────
     this.topBanner = this.add
-      .rectangle(width / 2, 0, width, s(56), 0x000000)
+      .rectangle(width / 2, 0, width, s(60), 0x0a0a1a)
       .setOrigin(0.5, 0)
       .setDepth(0);
+
+    this.topBannerTrim = this.add
+      .rectangle(width / 2, s(60), width, s(4), 0xd4af37)
+      .setOrigin(0.5, 0)
+      .setDepth(1);
 
     this.bannerText = this.add
       .text(width / 2, s(28), "", {
@@ -319,7 +347,12 @@ export class GameScene extends Phaser.Scene {
     }
     const totalGridH = yCursor;
 
-    const gridStartY = s(110);
+    const floorW = totalGridW;
+    const stageAscpectRatio = 222 / 978;
+    const actualStageH = (floorW + s(10)) * stageAscpectRatio;
+    // Stage sits flush under top banner (banner height=60 + trim=4 = 64)
+    const topBarBottom = s(64);
+    const gridStartY = topBarBottom + actualStageH + s(10);
 
     // ── Compute per-row stagger offsets (brick-pattern pyramid) ──
     /** @type {number[]} per-row X shift for staggered layouts */
@@ -354,7 +387,7 @@ export class GameScene extends Phaser.Scene {
     const floorRight = gridStartX + totalGridW;
     const floorTop = gridStartY - s(4);
     const floorBottom = gridStartY + totalGridH + s(4);
-    const floorW = floorRight - floorLeft;
+    // floorW was declared earlier to compute aspect ratio
     const floorH = floorBottom - floorTop;
 
     const bgKey = `bg_${this.layout.id}`;
@@ -446,16 +479,16 @@ export class GameScene extends Phaser.Scene {
     }
 
     // ── Stage platform ───────────────────────────────────────────
-    // ── Stage platform ───────────────────────────────────────────
-    const stageH = s(28); // slightly taller to fit detailed footlights
-    const stageY = floorTop - stageH / 2; // sits right above the floor
-    
+    // Position flush below the top banner gold trim line
+    const stageY = topBarBottom + actualStageH / 2;
+
     if (this.textures.exists('ui_stage')) {
       const stageImg = this.add.image(floorLeft + floorW / 2, stageY, 'ui_stage');
-      stageImg.setDisplaySize(floorW + s(10), stageH);
+      stageImg.setDisplaySize(floorW + s(40), actualStageH);
+      stageImg.setDepth(2); // Above banner background
     } else {
       this.add
-        .rectangle(floorLeft + floorW / 2, stageY, floorW, stageH, 0x8b4513)
+        .rectangle(floorLeft + floorW / 2, stageY, floorW, actualStageH, 0x8b4513)
         .setStrokeStyle(s(1), 0xdaa520);
 
       this.add
@@ -467,14 +500,6 @@ export class GameScene extends Phaser.Scene {
         })
         .setOrigin(0.5);
     }
-
-    // ── Row labels (dynamic based on layout) ────────────────────────
-    const rowLabels = Array.from({ length: ROWS }, (_, i) => {
-      const letter = String.fromCharCode(65 + i); // A, B, C, ...
-      if (i === 0) return `${letter} ◂ Front`;
-      if (i === ROWS - 1) return `${letter} ◂ Back`;
-      return `${letter}`;
-    });
 
     // Store positions for use in renderTheater
     this.colX = colX;
@@ -502,14 +527,17 @@ export class GameScene extends Phaser.Scene {
 
       // Row label: shift right to match stagger offset
       const rowStagger = staggerRowOffsets[row] || 0;
-      this.add
-        .text(
-          gridStartX + rowStagger - s(6),
-          y,
-          rowLabels[row],
-          { fontSize: px(11), color: "#666688", fontFamily: "Arial" }
-        )
-        .setOrigin(1, 0.5);
+      const labelContainer = this.add.container(gridStartX + rowStagger - s(25), y);
+      const circle = this.add.circle(0, 0, s(16), 0x1a1a2e).setStrokeStyle(s(2), 0xd4af37, 0.8);
+
+      const text = this.add.text(0, 0, String.fromCharCode(65 + row), {
+          fontSize: px(16),
+          fontFamily: "Georgia, serif",
+          color: "#eedd99",
+          fontStyle: "bold"
+      }).setOrigin(0.5, 0.5);
+
+      labelContainer.add([circle, text]);
 
       for (let col = 0; col < COLS; col++) {
         // Skip non-existent seats (seatMask or gap columns)
@@ -578,34 +606,116 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
-    // ── UI text ─────────────────────────────────────────────────────
+    // ── HUD Panel (Game Information) ────────────────────────────────
+    const hudW = s(280);
+    const hudX = width - hudW - s(20);
+    const hudY = s(80);
+    this.uiContainer = this.add.container(hudX, hudY).setDepth(150);
+
+    // HUD Background
+    const hudBg = this.add.rectangle(0, 0, hudW, s(260 + this.playerCount * 48), 0x0f0f1c, 0.95)
+      .setOrigin(0, 0)
+      .setStrokeStyle(s(3), 0xd4af37);
+    this.uiContainer.add(hudBg);
+
     this.turnText = this.add
-      .text(width - s(30), s(70), "", {
-        fontSize: px(16),
-        fontFamily: "Arial",
-        color: "#888899",
+      .text(hudW / 2, s(20), "", {
+        fontSize: px(20),
+        fontFamily: "Georgia, serif",
+        color: "#d4af37",
+        fontStyle: "bold"
       })
-      .setOrigin(1, 0.5);
+      .setOrigin(0.5, 0);
+    this.uiContainer.add(this.turnText);
 
     this.deckText = this.add
-      .text(width - s(30), s(92), "", {
-        fontSize: px(14),
-        fontFamily: "Arial",
-        color: "#888899",
+      .text(hudW / 2, s(50), "", {
+        fontSize: px(15),
+        fontFamily: "Georgia, serif",
+        color: "#aaaacc",
       })
-      .setOrigin(1, 0.5);
+      .setOrigin(0.5, 0);
+    this.uiContainer.add(this.deckText);
 
-    // ── VP Scoreboard ───────────────────────────────────────────────
-    this.scoreTexts = [];
+    // ── Deck Visual ───────────────────────────────────────────────
+    // Draw a pile of card backs to represent the deck
+    this.deckImages = [];
+    for (let i = 0; i < 15; i++) {
+        const dImg = this.add.image(hudW / 2 - i * s(2), s(145) - i * s(2), 'card_back');
+        dImg.setDisplaySize(s(65), s(87));
+        dImg.setAngle(i % 3 === 0 ? -3 : i % 2 === 0 ? 3 : 0);
+        this.deckImages.push(dImg);
+        this.uiContainer.add(dImg);
+    }
+
+    // ── VP Scoreboard w/ Avatars ──────────────────────────────────
+    const scoreStartY = s(220);
+    this.scorePanels = [];
     for (let p = 0; p < this.playerCount; p++) {
-      const scoreText = this.add
-        .text(width - s(30), s(118) + p * s(22), "", {
-          fontSize: px(14),
-          fontFamily: "Arial",
+      const panel = this.add.container(s(15), scoreStartY + p * s(48));
+
+      const usherKeys = ['usher_blue', 'usher_red', 'usher_green', 'usher_orange'];
+      const usherKey = usherKeys[p];
+
+      if (this.textures.exists(usherKey)) {
+        const avatar = this.add.image(s(18), s(18), usherKey);
+        avatar.setDisplaySize(s(32), s(32));
+
+        const mask = this.make.graphics();
+        mask.fillStyle(0xffffff);
+        // Global position: hudX + panel.x + avatar.x, hudY + panel.y + avatar.y
+        mask.fillCircle(hudX + s(15) + s(18), hudY + scoreStartY + p * s(48) + s(18), s(16));
+        avatar.setMask(mask.createGeometryMask());
+
+        const ring = this.add.circle(s(18), s(18), s(16), 0x000000, 0).setStrokeStyle(s(2), PlayerColorsHex[p]);
+        panel.add([avatar, ring]);
+      }
+
+      const text = this.add
+        .text(s(46), s(18), "", {
+          fontSize: px(15),
+          fontFamily: "Georgia, serif",
           color: PlayerColors[p],
+          fontStyle: "bold"
         })
-        .setOrigin(1, 0.5);
-      this.scoreTexts.push(scoreText);
+        .setOrigin(0, 0.5);
+
+      // Store the text object directly on the container object for easy access
+      panel.setData('text', text);
+      panel.add(text);
+      this.uiContainer.add(panel);
+      this.scorePanels.push(panel);
+    }
+
+    // ── Active Player Large Avatar ──────────────────────────────────
+    this.localPlayerContainer = this.add.container(s(90), height - s(90)).setDepth(5);
+    this.localPlayerAvatar = this.add.image(0, 0, 'usher_blue');
+    this.localPlayerAvatar.setDisplaySize(s(140), s(140));
+
+    this.localPlayerMask = this.make.graphics();
+    this.localPlayerMask.fillStyle(0xffffff);
+    this.localPlayerMask.fillCircle(s(90), height - s(90), s(70));
+    this.localPlayerAvatar.setMask(this.localPlayerMask.createGeometryMask());
+
+    this.localPlayerRing = this.add.circle(0, 0, s(70), 0x000000, 0).setStrokeStyle(s(6), PlayerColorsHex[0]);
+    this.localPlayerContainer.add([this.localPlayerAvatar, this.localPlayerRing]);
+
+    // Global deselect background click
+    this.input.on('pointerdown', (/** @type {any} */ pointer, /** @type {any[]} */ gameObjects) => {
+      if (gameObjects.length === 0 && this.selectedCard) {
+        this.selectedCard.setSelected(false);
+        this.selectedCard = null;
+        this.hideScoringTooltip();
+        if (this.infoText) this.infoText.setText("Select a card, then click a seat to place it.");
+      }
+    });
+
+    // ── Logo ────────────────────────────────────────────────────────
+    if (this.textures.exists('ui_logo')) {
+      const logo = this.add.image(s(30), s(30), 'ui_logo').setOrigin(0, 0);
+      const logoRatio = logo.height > 0 ? logo.height / logo.width : 0.5;
+      logo.setDisplaySize(s(220), s(220) * logoRatio);
+      logo.setDepth(150);
     }
 
     this.infoText = this.add
@@ -655,24 +765,24 @@ export class GameScene extends Phaser.Scene {
     // Player usher avatar
     const usherKeys = ['usher_blue', 'usher_red', 'usher_green', 'usher_orange'];
     const usherKey = usherKeys[this.currentPlayer];
-    
+
     // Shift avatar origin up to avoid text
-    const avatarY = height / 2 - s(130); 
+    const avatarY = height / 2 - s(130);
     const avatarRadius = s(68);
 
     if (this.textures.exists(usherKey)) {
       const usherIcon = this.add.image(width / 2, avatarY, usherKey);
       usherIcon.setDisplaySize(avatarRadius * 2, avatarRadius * 2);
-      
+
       // Create a solid circular Graphics mask
       const maskShape = this.make.graphics();
       maskShape.fillStyle(0xffffff);
       maskShape.fillCircle(width / 2, avatarY, avatarRadius);
       usherIcon.setMask(maskShape.createGeometryMask());
-      
+
       const ring = this.add.circle(width / 2, avatarY, avatarRadius, 0x000000, 0)
         .setStrokeStyle(s(4), colorHex, 1);
-        
+
       container.add([usherIcon, ring]);
     } else {
       const icons = ["🔵", "🔴", "🟢", "🟠"];
@@ -715,7 +825,7 @@ export class GameScene extends Phaser.Scene {
         .text(
           width / 2,
           height / 2 + s(70),
-          `${this.layout.emoji} ${this.layout.houseRuleDescription}`,
+          `${this.layout.houseRuleDescription}`,
           {
             fontSize: px(13),
             fontFamily: "Arial",
@@ -833,18 +943,23 @@ export class GameScene extends Phaser.Scene {
           seat.setFillStyle(0x000000, 0);
           seat.setStrokeStyle(s(2), cardData.trait ? TraitColors[cardData.trait] || 0xffffff : 0x4a4a6a, 0.8);
 
-          // Base patron image
+          // Base patron image (Maintain aspect ratio, pin to bottom of seat)
           const baseImgKey = `patron_${cardData.type.toLowerCase()}`;
           const baseImg = this.add.image(seat.x, seat.y, baseImgKey);
-          baseImg.setDisplaySize(SEAT_SIZE, SEAT_SIZE);
+
+          const seatImgW = SEAT_SIZE * 0.9;
+          const seatImgH = seatImgW * (140 / 105); // Use Card aspect ratio
+          baseImg.setDisplaySize(seatImgW, seatImgH);
+          baseImg.setOrigin(0.5, 1);
+          baseImg.setPosition(seat.x, seat.y + SEAT_SIZE / 2 - s(4));
           this.seatLabels.push(baseImg);
 
           // Trait badge
           if (cardData.trait) {
             const badgeKey = `badge_${cardData.trait.toLowerCase()}`;
             // Position badge in top-right corner of the seat
-            const badge = this.add.image(seat.x + SEAT_SIZE / 2 - s(12), seat.y - SEAT_SIZE / 2 + s(12), badgeKey);
-            badge.setDisplaySize(s(24), s(24));
+            const badge = this.add.image(seat.x + SEAT_SIZE / 2 - s(6), seat.y - SEAT_SIZE / 2 + s(14), badgeKey);
+            badge.setDisplaySize(s(30), s(30));
             this.seatLabels.push(badge);
           }
         } else {
@@ -961,27 +1076,87 @@ export class GameScene extends Phaser.Scene {
       const traitHint = TRAIT_HINTS[card.cardData.trait];
       if (traitHint) hint = hint ? `${hint}\n${traitHint}` : traitHint;
     }
-    if (!hint) return;
+    if (!card.cardData.label && !hint) return;
 
-    this.scoringTooltip = this.add
-      .text(card.x, card.y - Card.HEIGHT / 2 - s(12), hint, {
+    // Explicit Speech Bubble Structure
+    this.scoringTooltip = this.add.container(card.x, card.baseY - s(220)).setDepth(200);
+
+    const bubbleW = s(220);
+    const bubbleH = s(80);
+
+    const bubbleBg = this.add.graphics();
+    const r = s(12);        // corner radius
+    const tailW = s(12);    // half-width of tail base
+    const tailH = s(16);    // tail height
+
+    // 1) Fill the rounded rect body
+    bubbleBg.fillStyle(0x1a1a2e, 0.95);
+    bubbleBg.fillRoundedRect(-bubbleW/2, -bubbleH, bubbleW, bubbleH, r);
+
+    // 2) Fill the tail triangle (overlap into rect by 2px to hide seam)
+    bubbleBg.beginPath();
+    bubbleBg.moveTo(-tailW, -s(1));
+    bubbleBg.lineTo(tailW, -s(1));
+    bubbleBg.lineTo(0, tailH);
+    bubbleBg.closePath();
+    bubbleBg.fillPath();
+
+    // 3) Stroke: one continuous path around the entire silhouette
+    bubbleBg.lineStyle(s(2), 0xd4af37, 1);
+    bubbleBg.beginPath();
+    // Start at bottom-left of rect, just before the tail gap
+    bubbleBg.moveTo(-tailW, 0);
+    // Down the left side of the tail
+    bubbleBg.lineTo(0, tailH);
+    // Up the right side of the tail
+    bubbleBg.lineTo(tailW, 0);
+    // Continue along the bottom edge to the bottom-right corner
+    bubbleBg.lineTo(bubbleW/2 - r, 0);
+    // Bottom-right corner arc
+    bubbleBg.arc(bubbleW/2 - r, -r, r, Math.PI * 0.5, 0, true);
+    // Right edge up to top-right corner
+    bubbleBg.lineTo(bubbleW/2, -bubbleH + r);
+    // Top-right corner arc
+    bubbleBg.arc(bubbleW/2 - r, -bubbleH + r, r, 0, -Math.PI * 0.5, true);
+    // Top edge to top-left corner
+    bubbleBg.lineTo(-bubbleW/2 + r, -bubbleH);
+    // Top-left corner arc
+    bubbleBg.arc(-bubbleW/2 + r, -bubbleH + r, r, -Math.PI * 0.5, Math.PI, true);
+    // Left edge down to bottom-left corner
+    bubbleBg.lineTo(-bubbleW/2, -r);
+    // Bottom-left corner arc
+    bubbleBg.arc(-bubbleW/2 + r, -r, r, Math.PI, Math.PI * 0.5, true);
+    // Along bottom edge back to the tail
+    bubbleBg.lineTo(-tailW, 0);
+    bubbleBg.strokePath();
+
+    const titleText = this.add.text(0, -bubbleH + s(18), card.cardData.label, {
+        fontSize: px(14),
+        fontFamily: "Georgia, serif",
+        color: "#d4af37",
+        fontStyle: "bold",
+        align: "center",
+    }).setOrigin(0.5, 0.5);
+
+    const hintText = this.add.text(0, -bubbleH + s(48), hint, {
         fontSize: px(11),
         fontFamily: "Arial",
         color: "#ffffff",
-        backgroundColor: "#1a1a2eee",
-        padding: { x: s(8), y: s(5) },
         align: "center",
-        wordWrap: { width: s(220) },
-      })
-      .setOrigin(0.5, 1)
-      .setDepth(100);
+        wordWrap: { width: bubbleW - s(16) },
+    }).setOrigin(0.5, 0.5);
 
-    // Fade in
+    this.scoringTooltip.add([bubbleBg, titleText, hintText]);
+
+    // Fade in and float up slightly
     this.scoringTooltip.setAlpha(0);
+    this.scoringTooltip.setY(card.baseY - s(200));
     this.tweens.add({
       targets: this.scoringTooltip,
       alpha: 1,
+      y: card.baseY - s(220),
       duration: 150,
+      ease: "Sine.easeOut"
     });
   }
 
@@ -1015,9 +1190,14 @@ export class GameScene extends Phaser.Scene {
     seat.setFillStyle(0x000000, 0);
     seat.setStrokeStyle(s(2), cardData.trait ? TraitColors[cardData.trait] || 0xffffff : 0x4a4a6a, 0.8);
 
+    // Base patron image (Maintain aspect ratio)
     const baseImgKey = `patron_${cardData.type.toLowerCase()}`;
     const baseImg = this.add.image(seat.x, seat.y, baseImgKey);
-    baseImg.setDisplaySize(SEAT_SIZE, SEAT_SIZE);
+    const seatImgW = SEAT_SIZE * 0.9;
+    const seatImgH = seatImgW * (140 / 105);
+    baseImg.setDisplaySize(seatImgW, seatImgH);
+    baseImg.setOrigin(0.5, 1);
+    baseImg.setPosition(seat.x, seat.y + SEAT_SIZE / 2 - s(4));
     this.seatLabels.push(baseImg);
 
     const childrenForAnim = [seat, baseImg];
@@ -1025,18 +1205,20 @@ export class GameScene extends Phaser.Scene {
     // Trait badge
     if (cardData.trait) {
       const badgeKey = `badge_${cardData.trait.toLowerCase()}`;
-      const badge = this.add.image(seat.x + SEAT_SIZE / 2 - s(12), seat.y - SEAT_SIZE / 2 + s(12), badgeKey);
-      badge.setDisplaySize(s(24), s(24));
+      const badge = this.add.image(seat.x + SEAT_SIZE / 2 - s(6), seat.y - SEAT_SIZE / 2 + s(14), badgeKey);
+      badge.setDisplaySize(s(30), s(30));
       this.seatLabels.push(badge);
       childrenForAnim.push(badge);
     }
 
-    // Placement animation
+    // Placement animation (Fade-in with a subtle pop instead of a huge scaling pop)
+    baseImg.setAlpha(0);
     this.tweens.add({
       targets: childrenForAnim,
-      scaleX: 1.1,
-      scaleY: 1.1,
-      duration: 100,
+      scaleX: 1.05,
+      scaleY: 1.05,
+      alpha: 1,
+      duration: 150,
       yoyo: true,
     });
 
@@ -1159,18 +1341,20 @@ export class GameScene extends Phaser.Scene {
     const showAll = this.registry.get("showAllScores") ?? true;
 
     for (let p = 0; p < this.playerCount; p++) {
-      const text = this.scoreTexts[p];
-      if (!text) continue;
+      const panel = this.scorePanels[p];
+      if (!panel) continue;
+
+      const text = panel.getData('text');
 
       const { total } = scorePlayer(this.placedPatrons[p], this.layout);
       const name = PlayerNames[p];
 
       if (showAll || p === this.currentPlayer) {
         text.setText(`${name}: ${total} VP`);
-        text.setAlpha(p === this.currentPlayer ? 1 : 0.6);
-        text.setVisible(true);
+        panel.setAlpha(p === this.currentPlayer ? 1 : 0.6);
+        panel.setVisible(true);
       } else {
-        text.setVisible(false);
+        panel.setVisible(false);
       }
     }
   }
@@ -1184,14 +1368,11 @@ export class GameScene extends Phaser.Scene {
     const colorHex = PlayerColorsHex[this.currentPlayer];
     const name = PlayerNames[this.currentPlayer];
 
-    if (this.topBanner) {
-      this.topBanner.setFillStyle(colorHex, 0.25);
-    }
-
+    // Removed the dynamic player color alpha wash keeping luxury maroon/black styling
     if (this.bannerText) {
-      this.bannerText.setText(`${this.layout.emoji} ${name} — ${this.layout.name}`);
+      this.bannerText.setText(`${name} — ${this.layout.name}`);
       this.bannerText.setColor(color);
-      
+
       if (this.topBannerAvatar) {
         const usherKeys = ['usher_blue', 'usher_red', 'usher_green', 'usher_orange'];
         const usherKey = usherKeys[this.currentPlayer];
@@ -1201,7 +1382,7 @@ export class GameScene extends Phaser.Scene {
            const textWidth = this.bannerText.width;
            const newX = this.bannerText.x - textWidth / 2 - s(30);
            this.topBannerAvatar.setX(newX);
-           
+
            if (this.bannerMask) {
              this.bannerMask.clear();
              this.bannerMask.fillStyle(0xffffff);
@@ -1216,7 +1397,25 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (this.deckText) {
-      this.deckText.setText(`Deck: ${this.deck.length} cards`);
+      this.deckText.setText(`Deck: ${this.deck.length}`);
+    }
+
+    // Update dynamic deck pile visualization
+    if (this.deckImages && this.deckImages.length > 0) {
+      const cardsToDisplay = Math.ceil((this.deck.length / 54) * 15);
+      for (let i = 0; i < this.deckImages.length; i++) {
+        this.deckImages[i].setVisible(i < cardsToDisplay);
+      }
+    }
+
+    // Update local player avatar
+    if (this.localPlayerAvatar && this.localPlayerRing) {
+      const usherKeys = ['usher_blue', 'usher_red', 'usher_green', 'usher_orange'];
+      const usherKey = usherKeys[this.currentPlayer];
+      if (this.textures.exists(usherKey)) {
+        this.localPlayerAvatar.setTexture(usherKey);
+        this.localPlayerRing.setStrokeStyle(s(6), colorHex);
+      }
     }
   }
 
@@ -1230,9 +1429,19 @@ export class GameScene extends Phaser.Scene {
     // Clear hand
     this.clearHandVisuals();
 
+    // Hide game UI elements
+    if (this.topBanner) this.topBanner.setVisible(false);
+    if (this.bannerText) this.bannerText.setVisible(false);
+    if (this.topBannerAvatar) this.topBannerAvatar.setVisible(false);
+    if (this.bannerMask) this.bannerMask.setVisible(false);
+    if (this.turnText) this.turnText.setVisible(false);
+    if (this.deckText) this.deckText.setVisible(false);
+    if (this.uiContainer) this.uiContainer.setVisible(false);
+    if (this.localPlayerContainer) this.localPlayerContainer.setVisible(false);
+
     // Full overlay
     this.add
-      .rectangle(width / 2, height / 2, width, height, 0x000000, 0.93)
+      .rectangle(width / 2, height / 2, width, height, 0x000000, 0.96)
       .setDepth(300);
 
     const container = this.add.container(0, 0).setDepth(301);
@@ -1467,5 +1676,3 @@ export class GameScene extends Phaser.Scene {
     // Event-driven game — nothing needed here.
   }
 }
-
-

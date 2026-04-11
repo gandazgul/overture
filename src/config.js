@@ -19,10 +19,10 @@
 export const DPR = globalThis.devicePixelRatio || 1;
 
 /** Game canvas width in physical pixels */
-export const GAME_WIDTH = Math.round(1024 * DPR);
+export const GAME_WIDTH = Math.round(1280 * DPR);
 
 /** Game canvas height in physical pixels */
-export const GAME_HEIGHT = Math.round(768 * DPR);
+export const GAME_HEIGHT = Math.round(900 * DPR);
 
 /**
  * Scale a numeric pixel value by DPR.
