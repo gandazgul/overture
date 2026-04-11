@@ -8,7 +8,7 @@ A digital card game where players act as theater ushers, seating patrons to maxi
 # Run the development server
 deno task dev
 
-# Open http://localhost:5173 in your browser
+# Open http://localhost:8080 in your browser
 ```
 
 ## 🧰 Available Tasks
@@ -47,19 +47,26 @@ deno task test
 ### The Goal
 Seat patrons strategically to earn victory points. Different patron types have special placement rules and synergies!
 
-### Patron Types
-| Type | Emoji | Strategy |
-|------|-------|----------|
-| Standard | 🧑 | Worth 1 VP anywhere |
-| Bespectacled | 🤓 | Bonus VP in front rows |
-| VIP | ⭐ | High VP in front, penalty near Kids/Noisy |
-| Lovebirds | 💕 | Score only if adjacent to another Lovebirds |
-| Kid | 👦 | Negative VP unless capped by Teachers |
-| Teacher | 👩‍🏫 | Scores VP for each adjacent Kid capped |
-| Tall | 🦒 | Patron behind gets -2 VP |
-| Short | 🧒 | Bonus if no one in front |
-| Critic | 🎩 | Triple VP in aisle seats |
-| Noisy | 📢 | Adjacent patrons get -2 VP |
+### Primary Patrons
+| Type | Strategy |
+|------|----------|
+| **Standard** | Worth 3 VP anywhere. |
+| **VIP** | 5 VP base; +3 VP in front rows. Penalty near Kids and Noisy patrons. |
+| **Lovebirds** | 0 VP base; +3 VP if adjacent to another Lovebird. **×2 VP** in back rows. |
+| **Kid** | 0 VP base; 2 VP only if capped by Teachers on both ends of a group. |
+| **Teacher** | 1 VP base; +1 VP for each adjacent capped Kid. |
+| **Critic** | 2 VP base; **×3 VP** if seated in an aisle seat. |
+
+### Secondary Traits
+Traits can be applied to any patron type, adding unique bonuses or penalties.
+
+| Trait | Effect |
+|-------|--------|
+| **Bespectacled** | +2 VP in front 3 rows (closer to the stage). |
+| **Tall** | Patron directly behind this seat gets −2 VP. |
+| **Short** | +2 VP if no one is in front; −3 VP if a **Tall** patron is in front. |
+| **Noisy** | Each adjacent patron (any type) gets −1 VP. |
+
 
 ## 🛠️ Tech Stack
 
@@ -100,7 +107,7 @@ overture/
 - ✅ **Card Placement** — Click seat to place selected card
 - ✅ **Visual Feedback** — Tweens, hover effects, color changes
 - ✅ **Game Over** — End screen with "Play Again" button
-- ✅ **Full Deck** — 56 cards with all patron types implemented
+- ✅ **Full Deck** — 56 cards with all 6 patrons and 4 traits implemented
 - ✅ **Responsive** — Scales to fit browser window
 - ✅ **Scoring Engine** — Implement VIP bonuses, Teacher/Kid capping, adjacency debuffs
 - ✅ **Victory Points Display** — Show running score during gameplay, with settings to toggle on/off
@@ -117,24 +124,21 @@ deno task test
 
 Tests live alongside source files (`src/scoring.test.js`) and cover:
 
-- All 10 patron scoring rules (Standard, Bespectacled, VIP, Lovebirds, Kid/Teacher capping, Tall/Short interactions, Critic, Noisy adjacency)
-- Edge cases: empty grids, unknown patron types, overlapping debuffs, back-row multipliers
+- All 6 patron types and 4 traits scoring rules (Standard, VIP, Lovebirds, Kid/Teacher capping, Critic; plus Tall, Short, Bespectacled, and Noisy modifiers)
+- Edge cases: empty grids, unknown types, overlapping debuffs, back-row multipliers
 - Deck creation: correct card count, patron distribution, and metadata
 
 The scoring engine (`src/scoring.js`) is intentionally kept as **pure functions with no Phaser dependency**, making it straightforward to test in isolation.
 
 ## 📝 Notes
 
-- **Geometric shapes** — Uses Phaser rectangles/text instead of sprites
 - **No audio** — Sound effects not yet added
-- **Deno-compatible globals** — Uses `globalThis` instead of `window` for cross-runtime compatibility
 - **JSDoc types** — All type annotations via JSDoc; `deno task check` validates them including code blocks in doc comments
 
 ## 🚧 Roadmap
 
 ### Next Up
-- [ ] **Play Variants** — Different theater layouts and "plays" with special rules
-- [ ] **Visual Assets** — Replace rectangles with 2D sprites
+- [ ] **Play Variants** — Different "plays" with special rules
 - [ ] **Audio** — Ambient theater sounds and placement effects
 
 ## 📚 Learning Phaser?
