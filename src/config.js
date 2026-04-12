@@ -18,11 +18,23 @@
 /** Device pixel ratio (1 on standard displays, 2 on Retina, 3 on some phones) */
 export const DPR = Math.min(globalThis.devicePixelRatio || 1, 2);
 
+/**
+ * Viewport-adaptive game dimensions.
+ * Instead of a fixed 1280×900, we match the viewport aspect ratio so the
+ * game fills the screen on landscape mobile (no letterboxing).
+ * The aspect ratio is clamped to [1.33, 2.2] to avoid extreme layouts.
+ */
+const BASE_HEIGHT = 900;
+const viewW = globalThis.innerWidth || 1280;
+const viewH = globalThis.innerHeight || 900;
+const viewAspect = viewW / viewH;
+const clampedAspect = Math.max(1.33, Math.min(2.2, viewAspect));
+
 /** Game canvas width in physical pixels */
-export const GAME_WIDTH = Math.round(1280 * DPR);
+export const GAME_WIDTH = Math.round(BASE_HEIGHT * clampedAspect * DPR);
 
 /** Game canvas height in physical pixels */
-export const GAME_HEIGHT = Math.round(900 * DPR);
+export const GAME_HEIGHT = Math.round(BASE_HEIGHT * DPR);
 
 /**
  * Scale a numeric pixel value by DPR.
