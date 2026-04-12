@@ -270,6 +270,8 @@ Object.freeze(TraitScoring);
  * @property {string} id - Unique layout identifier
  * @property {string} name - Display name (e.g. "The Grand Empress")
  * @property {string} emoji - Theater emoji for UI
+ * @property {string} [bgKey] - Texture key for the full background image (game scene)
+ * @property {string} [bgThumbKey] - Texture key for the thumbnail background (theater selection)
  * @property {string} description - Short description for selection screen
  * @property {number} rows - Number of rows
  * @property {number} cols - Number of columns (max width)
@@ -292,6 +294,7 @@ export const GrandEmpressLayout = {
   name: "The Grand Empress",
   emoji: "🏛️",
   bgKey: "bg_grand_empress",
+  bgThumbKey: "bg_grand_empress_thumb",
   description: "Classic wide theater. Plentiful aisle seats. No house rule.",
   rows: 4,
   cols: 5,
@@ -308,6 +311,7 @@ export const BlackboxLayout = {
   name: "The Blackbox",
   emoji: "🎭",
   bgKey: "bg_blackbox",
+  bgThumbKey: "bg_blackbox_thumb",
   description: "Deep & narrow. Center aisles only. Dense packing rewarded.",
   rows: 5,
   cols: 4,
@@ -325,6 +329,7 @@ export const RoyalTheatreLayout = {
   name: "The Royal Theatre",
   emoji: "👑",
   bgKey: "bg_royal_theatre",
+  bgThumbKey: "bg_royal_theatre_thumb",
   description: "Royal Boxes in the front corners. Best patron gets +3 VP.",
   rows: 4,
   cols: 5,
@@ -346,6 +351,7 @@ export const PromenadeLayout = {
   name: "The Promenade",
   emoji: "🚶",
   bgKey: "bg_promenade",
+  bgThumbKey: "bg_promenade_thumb",
   description: "Staggered aisles every row. Critics spread out.",
   rows: 4,
   cols: 5,
@@ -371,6 +377,7 @@ export const AmphitheaterLayout = {
   name: "The Amphitheater",
   emoji: "🏛",
   bgKey: "bg_amphitheater",
+  bgThumbKey: "bg_amphitheater_thumb",
   description: "Tiered rows narrow toward the back. No aisles. Fill rows for bonus VP.",
   rows: 4,
   cols: 6,
@@ -410,6 +417,7 @@ export const CabaretLayout = {
   name: "The Cabaret",
   emoji: "🍸",
   bgKey: "bg_cabaret",
+  bgThumbKey: "bg_cabaret_thumb",
   description: "Intimate tables of 4. Fill a table for +3 VP.",
   rows: 4,
   cols: 8,
@@ -442,6 +450,7 @@ export const BalconyLayout = {
   name: "The Balcony",
   emoji: "🌃",
   bgKey: "bg_balcony",
+  bgThumbKey: "bg_balcony_thumb",
   description: "Elevated balcony (row A) disconnected from the main floor. Safe haven.",
   rows: 4,
   cols: 5,

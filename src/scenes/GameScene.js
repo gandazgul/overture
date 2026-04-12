@@ -5,7 +5,6 @@ import {
   createDeck,
   GrandEmpressLayout,
   Layouts,
-  PatronColors,
   TraitColors,
   PlayerColors,
   PlayerColorsHex,
@@ -111,8 +110,8 @@ export class GameScene extends Phaser.Scene {
     /** @type {Phaser.GameObjects.Container[]} */
     this.scorePanels = [];
 
-    /** @type {Phaser.GameObjects.Image[]} */
-    this.deckImages = [];
+    /** @type {Phaser.GameObjects.Image | null} */
+    this.deckPileImage = null;
 
     /** @type {Phaser.GameObjects.GameObject[]} */
     this.seatLabels = [];
@@ -134,36 +133,54 @@ export class GameScene extends Phaser.Scene {
   }
 
   preload() {
-    this.load.image('patron_standard', 'assets/patron_standard.png');
-    this.load.image('patron_vip', 'assets/patron_vip.png');
-    this.load.image('patron_lovebirds', 'assets/patron_lovebirds.png');
-    this.load.image('patron_kid', 'assets/patron_kid.png');
-    this.load.image('patron_teacher', 'assets/patron_teacher.png');
-    this.load.image('patron_critic', 'assets/patron_critic.png');
+    const { width, height } = this.scale;
 
-    this.load.image('badge_tall', 'assets/badge_tall.png');
-    this.load.image('badge_short', 'assets/badge_short.png');
-    this.load.image('badge_bespectacled', 'assets/badge_bespectacled.png');
-    this.load.image('badge_noisy', 'assets/badge_noisy.png');
+    // ── Progress bar ────────────────────────────────────────────────
+    const barW = s(300);
+    const barH = s(16);
+    const barBorder = this.add.rectangle(width / 2, height / 2, barW + s(4), barH + s(4));
+    barBorder.setStrokeStyle(s(2), 0xd4af37);
+    barBorder.setFillStyle(0x0a0a1a);
+    const barFill = this.add.rectangle(width / 2 - barW / 2 + s(2), height / 2, 0, barH, 0xd4af37).setOrigin(0, 0.5);
 
-    this.load.image('bg_grand-empress', 'assets/bg_grand_empress.png');
-    this.load.image('bg_blackbox', 'assets/bg_blackbox.png');
-    this.load.image('bg_royal-theatre', 'assets/bg_royal_theatre.png');
-    this.load.image('bg_amphitheater', 'assets/bg_amphitheater.png');
-    this.load.image('bg_cabaret', 'assets/bg_cabaret.png');
-    this.load.image('bg_balcony', 'assets/bg_balcony.png');
-    this.load.image('bg_promenade', 'assets/bg_promenade.png');
+    this.load.on("progress", (/** @type {number} */ value) => {
+      barFill.width = barW * value;
+    });
 
-    this.load.image('card_back', 'assets/card_back.png');
-    this.load.image('manager_token', 'assets/manager_token.png');
+    // ── Helper: only load if not already cached ─────────────────────
+    const loadIfMissing = (/** @type {string} */ key, /** @type {string} */ url) => {
+      if (!this.textures.exists(key)) {
+        this.load.image(key, url);
+      }
+    };
 
-    this.load.image('ui_stage', 'assets/ui_stage.png');
-    this.load.image('ui_logo', 'assets/ui_logo.png');
-    this.load.image('ui_button_frame', 'assets/ui_button_frame.png');
-    this.load.image('usher_blue', 'assets/usher_blue.png');
-    this.load.image('usher_red', 'assets/usher_red.png');
-    this.load.image('usher_green', 'assets/usher_green.png');
-    this.load.image('usher_orange', 'assets/usher_orange.png');
+    // ── Patron cards ────────────────────────────────────────────────
+    loadIfMissing('patron_standard', 'assets/patron_standard.png');
+    loadIfMissing('patron_vip', 'assets/patron_vip.png');
+    loadIfMissing('patron_lovebirds', 'assets/patron_lovebirds.png');
+    loadIfMissing('patron_kid', 'assets/patron_kid.png');
+    loadIfMissing('patron_teacher', 'assets/patron_teacher.png');
+    loadIfMissing('patron_critic', 'assets/patron_critic.png');
+
+    // ── Trait badges ────────────────────────────────────────────────
+    loadIfMissing('badge_tall', 'assets/badge_tall.png');
+    loadIfMissing('badge_short', 'assets/badge_short.png');
+    loadIfMissing('badge_bespectacled', 'assets/badge_bespectacled.png');
+    loadIfMissing('badge_noisy', 'assets/badge_noisy.png');
+
+    // ── Only the selected theater background (JPEG) ─────────────────
+    const bgKey = `bg_${this.layout.id}`;
+    loadIfMissing(bgKey, `assets/${this.layout.bgKey}.jpg`);
+
+    // ── Game UI assets ──────────────────────────────────────────────
+    loadIfMissing('card_back', 'assets/card_back.png');
+    loadIfMissing('ui_stage', 'assets/ui_stage.png');
+    loadIfMissing('ui_logo', 'assets/ui_logo.png');
+    loadIfMissing('ui_button_frame', 'assets/ui_button_frame.png');
+    loadIfMissing('usher_blue', 'assets/usher_blue.png');
+    loadIfMissing('usher_red', 'assets/usher_red.png');
+    loadIfMissing('usher_green', 'assets/usher_green.png');
+    loadIfMissing('usher_orange', 'assets/usher_orange.png');
   }
 
   /**
@@ -187,7 +204,7 @@ export class GameScene extends Phaser.Scene {
     this.playerHands = [];
     for (let p = 0; p < this.playerCount; p++) {
       this.placedPatrons[p] = Array.from({ length: rows }, () =>
-        Array(cols).fill(null)
+        Array.from(cols).fill(null)
       );
       // Deal starting hand: 1 card per player
       const startCard = this.deck.pop();
@@ -207,7 +224,7 @@ export class GameScene extends Phaser.Scene {
 
     this.seatGrid = [];
     this.scorePanels = [];
-    this.deckImages = [];
+    this.deckPileImage = null;
   }
 
   create() {
@@ -502,8 +519,10 @@ export class GameScene extends Phaser.Scene {
         );
 
         // Visual styling per seat type
-        const emptyFill = isRoyalBox ? 0x2a2040 : isAisle ? 0x1e1e38 : 0x1a1a3e;
-        const emptyStroke = isRoyalBox ? 0xdaa520 : isAisle ? 0x6a6a3e : 0x3a3a5e;
+        const emptyFillAisle = isAisle ? 0x1e1e38 : 0x1a1a3e;
+        const emptyFill = isRoyalBox ? 0x2a2040 : emptyFillAisle;
+        const emptyStrokeAisle = isAisle ? 0x6a6a3e : 0x3a3a5e;
+        const emptyStroke = isRoyalBox ? 0xdaa520 : emptyStrokeAisle;
         const strokeWidth = isRoyalBox ? s(3) : s(2);
 
         const seat = this.add
@@ -587,15 +606,37 @@ export class GameScene extends Phaser.Scene {
     this.uiContainer.add(this.deckText);
 
     // ── Deck Visual ───────────────────────────────────────────────
-    // Draw a pile of card backs to represent the deck
-    this.deckImages = [];
-    for (let i = 0; i < 15; i++) {
-      const dImg = this.add.image(hudW / 2 - i * s(2), s(145) - i * s(2), 'card_back');
-      dImg.setDisplaySize(s(65), s(87));
-      dImg.setAngle(i % 3 === 0 ? -3 : i % 2 === 0 ? 3 : 0);
-      this.deckImages.push(dImg);
-      this.uiContainer.add(dImg);
+    // Bake a pile of card backs into a single DynamicTexture (1 draw
+    // call instead of many separate Image game objects).
+    const PILE_LAYERS = 5;
+    const pileCardW = s(65);
+    const pileCardH = s(87);
+    const pileOffset = s(2);  // px shift per layer
+    const pileTexW = pileCardW + PILE_LAYERS * pileOffset + s(8);  // extra for rotation bleed
+    const pileTexH = pileCardH + PILE_LAYERS * pileOffset + s(8);
+    const pileTexKey = '__deck_pile';
+
+    // Remove stale texture from a previous scene start (replay)
+    if (this.textures.exists(pileTexKey)) {
+      this.textures.remove(pileTexKey);
     }
+
+    const pileTex = this.textures.addDynamicTexture(pileTexKey, pileTexW, pileTexH);
+    pileTex.beginDraw();
+    for (let i = PILE_LAYERS - 1; i >= 0; i--) {
+      const cx = pileTexW / 2 + i * pileOffset;
+      const cy = pileTexH / 2 + i * pileOffset;
+      // Stamp each layer; slight angle alternation baked in via position jitter
+      pileTex.batchDrawFrame('card_back', undefined,
+        cx - pileCardW / 2 + (i % 2 === 0 ? s(1) : -s(1)),
+        cy - pileCardH / 2);
+    }
+    pileTex.endDraw();
+
+    /** @type {Phaser.GameObjects.Image} */
+    this.deckPileImage = this.add.image(hudW / 2, s(145), pileTexKey);
+    this.deckPileImage.setDisplaySize(pileTexW, pileTexH);
+    this.uiContainer.add(this.deckPileImage);
 
     // ── VP Scoreboard w/ Avatars ──────────────────────────────────
     const scoreStartY = s(220);
@@ -1320,8 +1361,6 @@ export class GameScene extends Phaser.Scene {
   updateUI() {
     const color = PlayerColors[this.currentPlayer];
     const colorHex = PlayerColorsHex[this.currentPlayer];
-    const name = PlayerNames[this.currentPlayer];
-
 
     if (this.turnText) {
       this.turnText.setText(`Round ${this.round} / ${this.totalRounds}`);
@@ -1331,12 +1370,11 @@ export class GameScene extends Phaser.Scene {
       this.deckText.setText(`Deck: ${this.deck.length}`);
     }
 
-    // Update dynamic deck pile visualization
-    if (this.deckImages && this.deckImages.length > 0) {
-      const cardsToDisplay = Math.ceil((this.deck.length / 54) * 15);
-      for (let i = 0; i < this.deckImages.length; i++) {
-        this.deckImages[i].setVisible(i < cardsToDisplay);
-      }
+    // Update deck pile visualization (scale down as deck empties)
+    if (this.deckPileImage) {
+      const ratio = Math.max(this.deck.length / 54, 0);
+      this.deckPileImage.setScale(0.3 + 0.7 * ratio);
+      this.deckPileImage.setAlpha(ratio > 0 ? 0.5 + 0.5 * ratio : 0.2);
     }
 
     // Update local player avatar

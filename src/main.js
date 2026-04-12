@@ -1,5 +1,6 @@
 // @ts-check
 import Phaser from "phaser";
+import { BootScene } from "./scenes/BootScene.js";
 import { TitleScene } from "./scenes/TitleScene.js";
 import { TheaterSelectionScene } from "./scenes/TheaterSelectionScene.js";
 import { GameScene } from "./scenes/GameScene.js";
@@ -43,7 +44,7 @@ const config = {
   backgroundColor: "#1a1a2e",
 
   // Scene array: TitleScene starts first, other scenes are registered for later
-  scene: [TitleScene, TheaterSelectionScene, GameScene, EndGameScene],
+  scene: [BootScene, TitleScene, TheaterSelectionScene, GameScene, EndGameScene],
 
   // Scale manager: make the game responsive
   scale: {

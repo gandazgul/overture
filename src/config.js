@@ -16,7 +16,7 @@
  */
 
 /** Device pixel ratio (1 on standard displays, 2 on Retina, 3 on some phones) */
-export const DPR = globalThis.devicePixelRatio || 1;
+export const DPR = Math.min(globalThis.devicePixelRatio || 1, 2);
 
 /** Game canvas width in physical pixels */
 export const GAME_WIDTH = Math.round(1280 * DPR);

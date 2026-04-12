@@ -1,0 +1,11 @@
+assets-original/
+node_modules/
+.git/
+.vite/
+.coverage/
+.playwright-cli/
+.idea/
+.vera/
+.env
+*.md
+!README.md

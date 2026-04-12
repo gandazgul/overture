@@ -18,6 +18,30 @@ export class TheaterSelectionScene extends Phaser.Scene {
     this.selectedPlayerCount = data.playerCount || 2;
   }
 
+  preload() {
+    const { width, height } = this.scale;
+
+    // ── Progress bar for thumbnail loading ───────────────────────
+    const barW = s(300);
+    const barH = s(16);
+    const barBorder = this.add.rectangle(width / 2, height / 2, barW + s(4), barH + s(4));
+    barBorder.setStrokeStyle(s(2), 0xd4af37);
+    barBorder.setFillStyle(0x0a0a1a);
+    const barFill = this.add.rectangle(width / 2 - barW / 2 + s(2), height / 2, 0, barH, 0xd4af37).setOrigin(0, 0.5);
+
+    this.load.on("progress", (/** @type {number} */ value) => {
+      barFill.width = barW * value;
+    });
+
+    // Load thumbnail backgrounds for theater selection cards
+    const layouts = LayoutOrder.map((id) => Layouts[id]);
+    for (const layout of layouts) {
+      if (layout.bgThumbKey) {
+        this.load.image(layout.bgThumbKey, `assets/${layout.bgThumbKey}.jpg`);
+      }
+    }
+  }
+
   create() {
     this.showTheaterSelect();
   }
@@ -71,9 +95,10 @@ export class TheaterSelectionScene extends Phaser.Scene {
       // Container for the card
       const container = this.add.container(cx, cy);
 
-      // Background image (cropped to card size)
-      if (layout.bgKey && this.textures.exists(layout.bgKey)) {
-        const bgImg = this.add.image(0, 0, layout.bgKey);
+      // Background image (cropped to card size) — use thumbnail
+      const thumbKey = layout.bgThumbKey || layout.bgKey;
+      if (thumbKey && this.textures.exists(thumbKey)) {
+        const bgImg = this.add.image(0, 0, thumbKey);
         // Scale to cover the card
         const texW = bgImg.width;
         const texH = bgImg.height;
@@ -226,9 +251,10 @@ export class TheaterSelectionScene extends Phaser.Scene {
       ease: "Back.easeOut",
     });
 
-    // ── Background image ────────────────────────────────────────────
-    if (layout.bgKey && this.textures.exists(layout.bgKey)) {
-      const bgImg = this.add.image(0, 0, layout.bgKey);
+    // ── Background image (use thumbnail for modal preview) ─────────
+    const modalThumbKey = layout.bgThumbKey || layout.bgKey;
+    if (modalThumbKey && this.textures.exists(modalThumbKey)) {
+      const bgImg = this.add.image(0, 0, modalThumbKey);
       const texW = bgImg.width;
       const texH = bgImg.height;
       const scaleX = modalW / texW;

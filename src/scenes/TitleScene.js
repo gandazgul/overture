@@ -2,7 +2,7 @@
 import Phaser from "phaser";
 import { loadSettings } from "../settings.js";
 import { s, px } from "../config.js";
-import { Layouts, LayoutOrder } from "../types.js";
+
 
 /**
  * Title screen with player count selection.
@@ -12,18 +12,6 @@ export class TitleScene extends Phaser.Scene {
     super("TitleScene");
     /** @type {number} */
     this.selectedPlayerCount = 2;
-  }
-
-  preload() {
-    this.load.image('ui_logo', 'assets/ui_logo.png');
-    this.load.image('ui_button_frame', 'assets/ui_button_frame.png');
-    // Preload all theater background images
-    const layouts = LayoutOrder.map((id) => Layouts[id]);
-    for (const layout of layouts) {
-      if (layout.bgKey) {
-        this.load.image(layout.bgKey, `assets/${layout.bgKey}.png`);
-      }
-    }
   }
 
   create() {
