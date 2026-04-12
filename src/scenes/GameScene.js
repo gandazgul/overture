@@ -12,6 +12,7 @@ import {
   TraitColors,
 } from "../types.js";
 import { scorePlayer, seatExists } from "../scoring.js";
+import { createButton } from "../objects/Button.js";
 import { px, s } from "../config.js";
 
 const SEAT_SIZE = s(100);
@@ -347,21 +348,37 @@ export class GameScene extends Phaser.Scene {
     const staggerRowOffsets = [];
     const halfSeat = (SEAT_SIZE + SEAT_GAP) / 2;
     if (this.layout.staggered && this.layout.seatMask) {
-      // Find row 0's first valid column as the reference point
-      let row0FirstCol = 0;
-      while (row0FirstCol < COLS && !this.layout.seatMask[0][row0FirstCol]) {
-        row0FirstCol++;
-      }
+      // Find the widest row as the baseline (no offset needed)
+      let maxSeats = 0;
+      let widestFirstCol = 0;
       for (let r = 0; r < ROWS; r++) {
-        let firstCol = 0;
-        while (firstCol < COLS && !this.layout.seatMask[r][firstCol]) {
-          firstCol++;
+        let seats = 0;
+        let first = -1;
+        for (let c = 0; c < COLS; c++) {
+          if (this.layout.seatMask[r][c]) {
+            seats++;
+            if (first < 0) first = c;
+          }
         }
-        // Each row should be centered: r * halfSeat inset from row 0
-        // The seatMask already skips columns, adding an inherent offset
-        // Correction = desired centering offset − inherent grid offset
-        const desiredOffset = r * halfSeat;
-        const inherentOffset = (firstCol - row0FirstCol) *
+        if (seats > maxSeats) {
+          maxSeats = seats;
+          widestFirstCol = first;
+        }
+      }
+      // Each row offsets by (seatDifference * halfSeat) for the brick stagger,
+      // minus the inherent grid offset from the seatMask column positions
+      for (let r = 0; r < ROWS; r++) {
+        let seatCount = 0;
+        let firstCol = 0;
+        for (let c = 0; c < COLS; c++) {
+          if (this.layout.seatMask[r][c]) {
+            seatCount++;
+            if (seatCount === 1) firstCol = c;
+          }
+        }
+        const seatDiff = maxSeats - seatCount;
+        const desiredOffset = seatDiff * halfSeat;
+        const inherentOffset = (firstCol - widestFirstCol) *
           (SEAT_SIZE + SEAT_GAP);
         staggerRowOffsets[r] = desiredOffset - inherentOffset;
       }
@@ -836,12 +853,6 @@ export class GameScene extends Phaser.Scene {
       .rectangle(width / 2, height / 2, width, height, 0x000000, 0.85);
     container.add(bg);
 
-    // Colored accent bar at top
-    const accent = this.add
-      .rectangle(width / 2, 0, width, s(8), colorHex)
-      .setOrigin(0.5, 0);
-    container.add(accent);
-
     // Player usher avatar
     const usherKeys = [
       "usher_blue",
@@ -931,61 +942,14 @@ export class GameScene extends Phaser.Scene {
     }
 
     // Ready button
-    const buttonWidth = 220;
-    const buttonHeight = buttonWidth * 0.4704684318;
-    const btnW = s(buttonWidth);
-    const btnH = s(buttonHeight);
-    const readyBtn = this.add.container(width / 2, height / 2 + s(160));
-
-    if (this.textures.exists("ui_button_frame")) {
-      const bgImg = this.add.image(0, 0, "ui_button_frame");
-      bgImg.setDisplaySize(btnW, btnH);
-      readyBtn.add(bgImg);
-    } else {
-      const fallbackBg = this.add.rectangle(0, 0, btnW, btnH, 0x4a2c7a);
-      readyBtn.add(fallbackBg);
-    }
-
-    const textLabel = this.add.text(0, 0, "I'm Ready", {
-      fontSize: px(20),
-      fontFamily: "Georgia, serif",
-      color: "#ffffff",
-      fontStyle: "bold",
-    }).setOrigin(0.5);
-    readyBtn.add(textLabel);
-
-    const hitArea = this.add.rectangle(0, 0, btnW, btnH, 0, 0)
-      .setInteractive({ useHandCursor: true });
-    readyBtn.add(hitArea);
-
-    hitArea.on("pointerover", () => {
-      textLabel.setStyle({ color: "#f5c518" });
-      this.tweens.add({
-        targets: readyBtn,
-        scaleX: 1.05,
-        scaleY: 1.05,
-        duration: 150,
-        ease: "Sine.easeOut",
-      });
-    });
-
-    hitArea.on("pointerout", () => {
-      textLabel.setStyle({ color: "#ffffff" });
-      this.tweens.add({
-        targets: readyBtn,
-        scaleX: 1,
-        scaleY: 1,
-        duration: 150,
-        ease: "Sine.easeOut",
-      });
-    });
-
-    hitArea.on("pointerdown", () => {
+    const { container: readyBtn, hitArea: readyHit } = createButton(
+      this, width / 2, height / 2 + s(160), "I'm Ready", { fontSize: 20 },
+    );
+    readyHit.on("pointerdown", () => {
       container.destroy();
       this.passOverlay = null;
       this.startTurn();
     });
-
     container.add(readyBtn);
     this.passOverlay = container;
   }

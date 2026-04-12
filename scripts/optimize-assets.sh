@@ -40,15 +40,15 @@ echo ""
 
 # ── Step 2: Resize assets ───────────────────────────────────────────
 
-echo "--- Backgrounds (game: 800px wide JPEG, thumbnails: 300px wide JPEG) ---"
+echo "--- Backgrounds (game: 800px wide JPEG, thumbnails: 320px wide JPEG) ---"
 for bg in "$ARCHIVE"/bg_*.png; do
   name=$(basename "$bg" .png)
   # Full-size for game scenes (800px wide, JPEG 85%)
   magick "$bg" -resize 800x -quality 85 "$SRC/${name}.jpg"
   # Remove old PNG
   rm -f "$SRC/${name}.png"
-  # Thumbnail for theater selection (300px wide, JPEG 80%)
-  magick "$bg" -resize 300x -quality 80 "$SRC/${name}_thumb.jpg"
+  # Thumbnail for theater selection cards (320px covers 300×164 card + 1.04× zoom)
+  magick "$bg" -resize 320x -quality 80 "$SRC/${name}_thumb.jpg"
   echo "  $name: $(du -h "$SRC/${name}.jpg" | cut -f1) (full), $(du -h "$SRC/${name}_thumb.jpg" | cut -f1) (thumb)"
 done
 echo ""

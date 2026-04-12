@@ -2,6 +2,7 @@
 import Phaser from 'phaser';
 import { loadSettings } from '../settings.js';
 import { px, s } from '../config.js';
+import { createButton } from '../objects/Button.js';
 
 /**
  * Title screen with player count selection.
@@ -82,7 +83,7 @@ export class TitleScene extends Phaser.Scene {
         // Player count buttons
         const counts = [2, 3, 4];
         const buttonWidth = 180;
-        const buttonHeight = buttonWidth * 0.4704684318;
+        const buttonHeight = Math.round(buttonWidth * 0.4704684318);
         const gap = s(30);
         const totalWidth = counts.length * s(buttonWidth) +
             (counts.length - 1) * gap;
@@ -90,62 +91,12 @@ export class TitleScene extends Phaser.Scene {
 
         for (let i = 0; i < counts.length; i++) {
             const n = counts[i];
-            const x = startX + i * (s(buttonWidth) + gap);
-            const y = height / 2 + s(buttonHeight / 2);
+            const bx = startX + i * (s(buttonWidth) + gap);
+            const by = height / 2 + s(buttonHeight / 2);
 
-            const btnContainer = this.add.container(x, y);
-
-            if (this.textures.exists('ui_button_frame')) {
-                const bgImg = this.add.image(0, 0, 'ui_button_frame');
-                bgImg.setDisplaySize(s(buttonWidth), s(buttonHeight));
-                btnContainer.add(bgImg);
-            }
-            else {
-                const fallbackBg = this.add.rectangle(
-                    0,
-                    0,
-                    s(buttonWidth),
-                    s(buttonHeight),
-                    0x4a2c7a,
-                );
-                btnContainer.add(fallbackBg);
-            }
-
-            const textLabel = this.add
-                .text(0, 0, `${n} Players`, {
-                    fontSize: px(18),
-                    fontFamily: 'Georgia, serif',
-                    color: '#ffffff',
-                    fontStyle: 'bold',
-                })
-                .setOrigin(0.5);
-            btnContainer.add(textLabel);
-
-            const hitArea = this.add.rectangle(0, 0, buttonWidth, s(60), 0, 0)
-                .setInteractive({ useHandCursor: true });
-            btnContainer.add(hitArea);
-
-            hitArea.on('pointerover', () => {
-                textLabel.setStyle({ color: '#f5c518' });
-                this.tweens.add({
-                    targets: btnContainer,
-                    scaleX: 1.05,
-                    scaleY: 1.05,
-                    duration: 150,
-                    ease: 'Sine.easeOut',
-                });
+            const { hitArea } = createButton(this, bx, by, `${n} Players`, {
+                width: buttonWidth,
             });
-            hitArea.on('pointerout', () => {
-                textLabel.setStyle({ color: '#ffffff' });
-                this.tweens.add({
-                    targets: btnContainer,
-                    scaleX: 1,
-                    scaleY: 1,
-                    duration: 150,
-                    ease: 'Sine.easeOut',
-                });
-            });
-
             hitArea.on('pointerdown', () => {
                 this.selectedPlayerCount = n;
                 this.scene.start('TheaterSelectionScene', { playerCount: n });

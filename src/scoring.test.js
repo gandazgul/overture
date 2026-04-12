@@ -695,12 +695,12 @@ Deno.test("Promenade: wandering critics — fewer than 3 in aisles gives no bonu
 
 import { AmphitheaterLayout, BalconyLayout, CabaretLayout } from "./types.js";
 
-Deno.test("Amphitheater: 18 seats in tiered rows (6-5-4-3)", () => {
+Deno.test("Amphitheater: 18 seats in tiered rows (3-4-5-6)", () => {
   const mask = /** @type {boolean[][]} */ (AmphitheaterLayout.seatMask);
-  assertEquals(mask[0].filter(Boolean).length, 6);
-  assertEquals(mask[1].filter(Boolean).length, 5);
-  assertEquals(mask[2].filter(Boolean).length, 4);
-  assertEquals(mask[3].filter(Boolean).length, 3);
+  assertEquals(mask[0].filter(Boolean).length, 3);
+  assertEquals(mask[1].filter(Boolean).length, 4);
+  assertEquals(mask[2].filter(Boolean).length, 5);
+  assertEquals(mask[3].filter(Boolean).length, 6);
 });
 
 Deno.test("Amphitheater: no aisle seats", () => {
@@ -719,22 +719,22 @@ Deno.test("Amphitheater: Critic scores base 2 VP only (no aisles)", () => {
 });
 
 Deno.test("Amphitheater: neighbors respect seatMask", () => {
-  // Row 3 only has seats at cols 2,3,4. A patron at row 3, col 2
+  // Row 0 only has seats at cols 2,3,4. A patron at row 0, col 2
   // should NOT have col 1 as a neighbor (no seat there).
-  const neighbors = getOrthogonalNeighbors(3, 2, 4, 6, AmphitheaterLayout);
-  const hasBadNeighbor = neighbors.some((n) => n.row === 3 && n.col === 1);
+  const neighbors = getOrthogonalNeighbors(0, 2, 4, 6, AmphitheaterLayout);
+  const hasBadNeighbor = neighbors.some((n) => n.row === 0 && n.col === 1);
   assertEquals(hasBadNeighbor, false);
   // But col 3 should be a neighbor
-  const hasGoodNeighbor = neighbors.some((n) => n.row === 3 && n.col === 3);
+  const hasGoodNeighbor = neighbors.some((n) => n.row === 0 && n.col === 3);
   assertEquals(hasGoodNeighbor, true);
 });
 
 Deno.test("Amphitheater: panorama — +2 VP for completely filled row", () => {
   const grid = emptyGrid(AmphitheaterLayout);
-  // Fill row 3 completely (3 seats: cols 2,3,4)
-  place(grid, 3, 2, PatronType.STANDARD);
-  place(grid, 3, 3, PatronType.STANDARD);
-  place(grid, 3, 4, PatronType.STANDARD);
+  // Fill row 0 completely (3 seats: cols 2,3,4 — narrow front)
+  place(grid, 0, 2, PatronType.STANDARD);
+  place(grid, 0, 3, PatronType.STANDARD);
+  place(grid, 0, 4, PatronType.STANDARD);
   const result = scorePlayer(grid, AmphitheaterLayout);
   // 3 standards = 9 VP base + 2 panorama = 11
   assertEquals(result.total, 11);
@@ -742,9 +742,9 @@ Deno.test("Amphitheater: panorama — +2 VP for completely filled row", () => {
 
 Deno.test("Amphitheater: panorama — incomplete row gets no bonus", () => {
   const grid = emptyGrid(AmphitheaterLayout);
-  // Fill 2 of 3 seats in row 3
-  place(grid, 3, 2, PatronType.STANDARD);
-  place(grid, 3, 3, PatronType.STANDARD);
+  // Fill 2 of 3 seats in row 0
+  place(grid, 0, 2, PatronType.STANDARD);
+  place(grid, 0, 3, PatronType.STANDARD);
   const result = scorePlayer(grid, AmphitheaterLayout);
   assertEquals(result.total, 6); // just 2 × 3 VP
 });
@@ -754,7 +754,7 @@ Deno.test("Amphitheater: Lovebirds in back row (row 3) get ×2", () => {
   place(grid, 3, 2, PatronType.LOVEBIRDS);
   place(grid, 3, 3, PatronType.LOVEBIRDS);
   const result = scorePlayer(grid, AmphitheaterLayout);
-  // (0+3)×2 = 6 each = 12, + 2 panorama (row 3 not full — only 2 of 3)
+  // (0+3)×2 = 6 each
   assertEquals(result.perSeat[3][2], 6);
   assertEquals(result.perSeat[3][3], 6);
 });

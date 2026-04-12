@@ -9,6 +9,7 @@ import {
   PlayerNames,
 } from "../types.js";
 import { scorePlayer } from "../scoring.js";
+import { createButton } from "../objects/Button.js";
 
 /** Usher avatar texture keys, indexed by player index. */
 const USHER_KEYS = ["usher_blue", "usher_red", "usher_green", "usher_orange"];
@@ -342,62 +343,10 @@ export class EndGameScene extends Phaser.Scene {
     }
 
     // ── Play Again Button ───────────────────────────────────────────
-    const btnY = height - s(140);
-    const buttonWidth = 220;
-    const buttonHeight = buttonWidth * 0.4704684318;
-    const btnContainer = this.add.container(width / 2, btnY);
-
-    if (this.textures.exists("ui_button_frame")) {
-      const bgImg = this.add.image(0, 0, "ui_button_frame");
-      bgImg.setDisplaySize(s(buttonWidth), s(buttonHeight));
-      btnContainer.add(bgImg);
-    } else {
-      const fallbackBg = this.add.rectangle(
-        0,
-        0,
-        s(buttonWidth),
-        s(buttonHeight),
-        0x4a2c7a,
-      );
-      btnContainer.add(fallbackBg);
-    }
-
-    const textLabel = this.add
-      .text(0, 0, "Play Again", {
-        fontSize: px(20),
-        fontFamily: "Georgia, serif",
-        color: "#ffffff",
-        fontStyle: "bold",
-      })
-      .setOrigin(0.5);
-    btnContainer.add(textLabel);
-
-    const hitArea = this.add
-      .rectangle(0, 0, s(buttonWidth), s(buttonHeight), 0, 0)
-      .setInteractive({ useHandCursor: true });
-    btnContainer.add(hitArea);
-
-    hitArea.on("pointerover", () => {
-      textLabel.setStyle({ color: "#f5c518" });
-      this.tweens.add({
-        targets: btnContainer,
-        scaleX: 1.05,
-        scaleY: 1.05,
-        duration: 150,
-        ease: "Sine.easeOut",
-      });
-    });
-    hitArea.on("pointerout", () => {
-      textLabel.setStyle({ color: "#ffffff" });
-      this.tweens.add({
-        targets: btnContainer,
-        scaleX: 1,
-        scaleY: 1,
-        duration: 150,
-        ease: "Sine.easeOut",
-      });
-    });
-    hitArea.on("pointerdown", () => {
+    const { hitArea: playAgainHit } = createButton(
+      this, width / 2, height - s(140), "Play Again", { fontSize: 20 },
+    );
+    playAgainHit.on("pointerdown", () => {
       this.scene.start("TitleScene");
     });
   }

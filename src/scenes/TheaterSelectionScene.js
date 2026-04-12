@@ -2,6 +2,7 @@
 import Phaser from "phaser";
 import { px, s } from "../config.js";
 import { LayoutOrder, Layouts } from "../types.js";
+import { createButton } from "../objects/Button.js";
 
 /**
  * Scene for selecting a theater layout before starting the game.
@@ -118,22 +119,22 @@ export class TheaterSelectionScene extends Phaser.Scene {
 
       // Background image (cropped to card size) — use thumbnail
       const thumbKey = layout.bgThumbKey || layout.bgKey;
+      /** @type {Phaser.GameObjects.Graphics | null} */
+      let bgMaskShape = null;
       if (thumbKey && this.textures.exists(thumbKey)) {
         const bgImg = this.add.image(0, 0, thumbKey);
-        // Scale to cover the card
+        // Scale to cover the card with padding for zoom
         const texW = bgImg.width;
         const texH = bgImg.height;
+        const zoomPadding = 1.10; // larger than hover zoom (1.08) to avoid edge clipping
         const scaleX = cardW / texW;
         const scaleY = cardH / texH;
-        const coverScale = Math.max(scaleX, scaleY);
+        const coverScale = Math.max(scaleX, scaleY) * zoomPadding;
         bgImg.setScale(coverScale);
-        // Create a geometry mask to clip to card bounds
-        const maskShape = this.make.graphics({
-          x: cx - cardW / 2,
-          y: cy - cardH / 2,
-        });
-        maskShape.fillRect(0, 0, cardW, cardH);
-        bgImg.setMask(maskShape.createGeometryMask());
+        // Geometry mask at card size (updated on hover to match zoom)
+        bgMaskShape = this.make.graphics();
+        bgMaskShape.fillRect(cx - cardW / 2, cy - cardH / 2, cardW, cardH);
+        bgImg.setMask(bgMaskShape.createGeometryMask());
         container.add(bgImg);
       }
 
@@ -187,15 +188,26 @@ export class TheaterSelectionScene extends Phaser.Scene {
       container.add(hitArea);
 
       // Hover effects
+      const hoverZoom = 1.08;
+      /** Updates the bg mask to match the container's current scale */
+      const syncMask = () => {
+        if (!bgMaskShape) return;
+        const sc = container.scaleX;
+        const mW = cardW * sc;
+        const mH = cardH * sc;
+        bgMaskShape.clear();
+        bgMaskShape.fillRect(cx - mW / 2, cy - mH / 2, mW, mH);
+      };
       hitArea.on("pointerover", () => {
         border.setStrokeStyle(s(2), 0xf5c518);
         overlay.fillAlpha = 0.45;
         this.tweens.add({
           targets: container,
-          scaleX: 1.04,
-          scaleY: 1.04,
+          scaleX: hoverZoom,
+          scaleY: hoverZoom,
           duration: 150,
           ease: "Sine.easeOut",
+          onUpdate: syncMask,
         });
       });
       hitArea.on("pointerout", () => {
@@ -207,6 +219,7 @@ export class TheaterSelectionScene extends Phaser.Scene {
           scaleY: 1,
           duration: 150,
           ease: "Sine.easeOut",
+          onUpdate: syncMask,
         });
       });
 
@@ -263,7 +276,7 @@ export class TheaterSelectionScene extends Phaser.Scene {
     });
 
     // ── Modal container ─────────────────────────────────────────────
-    const modalW = s(550);
+    const modalW = s(570);
     const modalH = s(520);
     const modalX = width / 2;
     const modalY = height / 2;
@@ -341,6 +354,7 @@ export class TheaterSelectionScene extends Phaser.Scene {
         fontFamily: "Georgia, serif",
         color: "#f5c518",
         fontStyle: "bold",
+        shadow: { blur: 8, color: "#000000", fill: true },
       })
       .setOrigin(0.5);
     modalContainer.add(titleText);
@@ -452,15 +466,12 @@ export class TheaterSelectionScene extends Phaser.Scene {
     const btnGap = s(30);
 
     // — "Close" button —
-    const closeBtn = this._createModalButton(
-      -btnGap - s(70),
-      btnY,
-      "Close",
-      0x3a3a5e,
-      "#ccccdd",
-      modalContainer,
+    const { hitArea: closeHit } = createButton(
+      this, -btnGap - s(70), btnY, "Close",
+      { width: 180, fontSize: 16, bgColor: 0x3a3a5e, fontColor: "#ccccdd" },
     );
-    closeBtn.on("pointerdown", () => {
+    modalContainer.add(closeHit.parentContainer);
+    closeHit.on("pointerdown", () => {
       this._dismissModal(dimOverlay, modalContainer);
     });
 
@@ -472,15 +483,12 @@ export class TheaterSelectionScene extends Phaser.Scene {
     dimOverlay.setData("escListener", escListener);
 
     // — "Let's Go!" button —
-    const letsGoBtn = this._createModalButton(
-      btnGap + s(70),
-      btnY,
-      "Let's Go!",
-      0x4a2c7a,
-      "#f5c518",
-      modalContainer,
+    const { hitArea: goHit } = createButton(
+      this, btnGap + s(70), btnY, "Let's Go!",
+      { width: 180, fontSize: 16 },
     );
-    letsGoBtn.on("pointerdown", () => {
+    modalContainer.add(goHit.parentContainer);
+    goHit.on("pointerdown", () => {
       this.scene.start("GameScene", {
         playerCount: this.selectedPlayerCount,
         layoutId: layout.id,
@@ -492,84 +500,6 @@ export class TheaterSelectionScene extends Phaser.Scene {
     this._modalDim = dimOverlay;
     /** @type {Phaser.GameObjects.Container} */
     this._modalContainer = modalContainer;
-  }
-
-  /**
-   * Create a styled button inside the modal.
-   * @param {number} x
-   * @param {number} y
-   * @param {string} label
-   * @param {number} bgColor
-   * @param {string} textColor
-   * @param {Phaser.GameObjects.Container} parent
-   * @returns {Phaser.GameObjects.Rectangle}
-   */
-  _createModalButton(x, y, label, bgColor, textColor, parent) {
-    const buttonWidth = 180;
-    const buttonHeight = buttonWidth * 0.4704684318;
-    const btnW = s(buttonWidth);
-    const btnH = s(buttonHeight);
-
-    const btnContainer = this.add.container(x, y);
-
-    let bg;
-    if (this.textures.exists("ui_button_frame")) {
-      bg = this.add.image(0, 0, "ui_button_frame");
-      bg.setDisplaySize(btnW, btnH);
-    } else {
-      bg = this.add.rectangle(0, 0, btnW, btnH, bgColor, 0.9);
-      bg.setStrokeStyle(s(1), 0xf5c518, 0.5);
-    }
-    btnContainer.add(bg);
-
-    const text = this.add
-      .text(0, 0, label, {
-        fontSize: px(16),
-        fontFamily: "Georgia, serif",
-        color: textColor,
-        fontStyle: "bold",
-      })
-      .setOrigin(0.5);
-    btnContainer.add(text);
-
-    // Hit area
-    const hitArea = this.add.rectangle(0, 0, btnW, btnH, 0x000000, 0)
-      .setInteractive({ useHandCursor: true });
-    btnContainer.add(hitArea);
-
-    // Hover
-    hitArea.on("pointerover", () => {
-      text.setStyle({ color: "#ffffff" });
-      if (bg instanceof Phaser.GameObjects.Rectangle) {
-        bg.fillAlpha = 1;
-        bg.setStrokeStyle(s(2), 0xf5c518, 0.8);
-      }
-      this.tweens.add({
-        targets: btnContainer,
-        scaleX: 1.05,
-        scaleY: 1.05,
-        duration: 150,
-        ease: "Sine.easeOut",
-      });
-    });
-    hitArea.on("pointerout", () => {
-      text.setStyle({ color: textColor });
-      if (bg instanceof Phaser.GameObjects.Rectangle) {
-        bg.fillAlpha = 0.9;
-        bg.setStrokeStyle(s(1), 0xf5c518, 0.5);
-      }
-      this.tweens.add({
-        targets: btnContainer,
-        scaleX: 1,
-        scaleY: 1,
-        duration: 150,
-        ease: "Sine.easeOut",
-      });
-    });
-
-    parent.add(btnContainer);
-
-    return hitArea;
   }
 
   /**

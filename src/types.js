@@ -454,17 +454,17 @@ export const AmphitheaterLayout = {
   bgKey: "bg_amphitheater",
   bgThumbKey: "bg_amphitheater_thumb",
   description:
-    "Tiered rows narrow toward the back. No aisles. Fill rows for bonus VP.",
+    "Tiered rows widen toward the back. No aisles. Fill rows for bonus VP.",
   rows: 4,
   cols: 6,
   aisleCols: [],
   backRows: [3],
   seatMask: [
     //       col: 0     1     2     3     4     5
-    /* Row 0 */ [true, true, true, true, true, true], // 6 seats
-    /* Row 1 */ [false, true, true, true, true, true], // 5 seats (offset 1)
-    /* Row 2 */ [false, true, true, true, true, false], // 4 seats (centered)
-    /* Row 3 */ [false, false, true, true, true, false], // 3 seats (centered)
+    /* Row 0 */ [false, false, true, true, true, false], // 3 seats (narrow front)
+    /* Row 1 */ [false, true, true, true, true, false], // 4 seats
+    /* Row 2 */ [false, true, true, true, true, true], // 5 seats
+    /* Row 3 */ [true, true, true, true, true, true], // 6 seats (wide back)
   ],
   staggered: true,
   houseRule: "panorama",

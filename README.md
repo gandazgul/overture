@@ -43,7 +43,7 @@ Traits can be applied to any patron type, adding unique bonuses or penalties.
 
 | Trait            | Effect                                                               |
 | ---------------- | -------------------------------------------------------------------- |
-| **Bespectacled** | +2 VP in front 3 rows (closer to the stage).                         |
+| **Bespectacled** | +2 VP unless seated in the back row.                                  |
 | **Tall**         | Patron directly behind this seat gets −2 VP.                         |
 | **Short**        | +2 VP if no one is in front; −3 VP if a **Tall** patron is in front. |
 | **Noisy**        | Each adjacent patron (any type) gets −1 VP.                          |

@@ -150,7 +150,7 @@ optional trait adds a modifier on top.
 | ---------------- | ----- | ---------------------------------------------------------------------------------------- |
 | **Tall**         | 🦒    | Patron directly behind gets -2 VP.                                                       |
 | **Short**        | 🧒    | +2 VP if no one is directly in front. -3 VP if a Tall-trait patron is directly in front. |
-| **Bespectacled** | 🤓    | +2 VP if seated in the front 3 rows.                                                     |
+| **Bespectacled** | 🤓    | +2 VP unless seated in the back row.                                                     |
 | **Noisy**        | 📢    | Each orthogonally adjacent patron gets -1 VP (all types, not just Standard).             |
 
 ### Trait Assignment Rules
@@ -256,7 +256,7 @@ Traits modify the card's VP _on top of_ primary type scoring.
 
 #### Bespectacled 🤓
 
-- **+2 VP** if seated in the **front 3 rows** (rows 0, 1, or 2).
+- **+2 VP** unless seated in the **back row**.
 
 #### Noisy 📢
 
@@ -396,19 +396,19 @@ Box itself make the card your best?
 
 ```
      Col 0  1  2  3  4  5
-Row 0: [ ][ ][ ][ ][ ][ ]    Tiered: 6-5-4-3 = 18 seats
-Row 1:  [ ][ ][ ][ ][ ]      NO aisle seats at all
-Row 2:    [ ][ ][ ][ ]       Rows narrow toward the back
-Row 3:      [ ][ ][ ]
+Row 0:      [ ][ ][ ]         Tiered: 3-4-5-6 = 18 seats
+Row 1:    [ ][ ][ ][ ]       NO aisle seats at all
+Row 2:  [ ][ ][ ][ ][ ]      Rows widen toward the back
+Row 3: [ ][ ][ ][ ][ ][ ]
 ```
 
 **House Rule: "The Panorama"** - +2 VP bonus for each completely filled row.
 
 **Strategic feel:** Zero aisles means Critics are nearly dead (base 2 VP only).
-Shrinking rows create natural scarcity in the back-only 3 back-row seats for
-Lovebirds. "The Panorama" bonus makes you want to fill rows completely, but row
-0 has 6 seats and you only place 14 cards total. Filling the big front row means
-neglecting the easy-to-complete back rows.
+Widening rows create a natural wedge shape-the narrow front (3 seats) is easy to
+fill for Panorama bonus but scarce for VIPs. The wide back row (6 seats) is
+Lovebirds paradise but hard to fill completely. Do you complete the easy small
+rows or go for the big back row?
 
 ---
 
@@ -482,6 +482,32 @@ seat (as normal), but aisle seats change every row. +1 VP per Critic if you have
 isn't a single column anymore. Tall patrons in aisles block different positions
 than expected. The stagger means you can't just fill column 0 with Critics.
 Forces spread-out thinking.
+
+---
+
+### 🎪 The Rotunda
+
+```
+  Col 0  1  2  3  4
+Row 0:    [F][F][F]        Hollow ring: 16 seats
+Row 1: [A][F]   [F][A]    Center = stage (no seats)
+Row 2: [A]         [A]    F = Front (stage-side)
+Row 3: [A][F]   [F][A]    A = Aisle (outer ring)
+Row 4:    [F][F][F]        No back row at all
+```
+
+**House Rule: "In the Round"** — No back row. Stage-side seats (inner ring)
+count as front row. Outer-ring seats are aisles.
+
+**Strategic feel:** Theater-in-the-round completely redefines the geometry. The
+10 inner-ring seats are all "front row," making VIPs strong almost everywhere.
+Bespectacled gets +2 VP on every seat (no back row to exclude them). But
+Lovebirds lose their back-row ×2 multiplier entirely — they're capped at 3 VP
+per pair. Critics have only 6 outer-ring aisle seats to compete for. The hollow
+center breaks adjacency across the stage — patrons on opposite sides of the ring
+can't see each other. Short patrons love the inner ring: many seats face the
+empty stage, triggering the +2 VP empty-front bonus. The ring shape also limits
+max neighbors to 2-3 per seat, making Noisy patrons slightly less punishing.
 
 ---
 
@@ -660,12 +686,12 @@ referenced by specific Plays.
 
 | Card Type               | Count  | Used By                |
 | ----------------------- | ------ | ---------------------- |
-| Theater cards           | 7      | Setup: draw 1 per game |
+| Theater cards           | 8      | Setup: draw 1 per game |
 | Play cards              | 7      | Setup: draw 1 per game |
 | Role cards              | 6      | The Casting Call play  |
 | Demand cards            | 10     | The Mystery play       |
 | Understudy patron cards | 3      | The Understudy play    |
-| **Total**               | **33** |                        |
+| **Total**               | **34** |                        |
 
 ### Notable Theater × Play Combos
 
@@ -678,6 +704,8 @@ referenced by specific Plays.
 | **Promenade + The Dress Rehearsal**  | Staggered aisles + draft-and-pass. You can see what your neighbor needs AND deny them the right aisle-seat card.         |
 | **Royal Theatre + The Casting Call** | The Collector role loves the Royal Boxes (diverse types for +6 VP). The Architect can swap a patron INTO a Box mid-game. |
 | **Grand Empress + The Mystery**      | Vanilla layout lets you focus purely on demand adaptation. Good for learning The Mystery without layout complexity.      |
+| **Rotunda + The Avant-Garde**        | Empty stage center already breaks adjacency; leaving outer-ring gaps for +2 VP each compounds the breathing-room bonus. |
+| **Rotunda + The Matinee**            | Every inner-ring seat is "front row" and scores twice at intermission. VIPs and Bespectacled patrons are massive.       |
 
 ---
 
@@ -710,8 +738,8 @@ expansions:
 3. **Scarcity creates tension.** Fewer Teachers than Kids, only 4 VIPs, limited
    aisle seats-constraints force meaningful trade-offs.
 4. **Modular replayability.** Theaters × Plays = exponential variety. Each
-   combination shifts the meta without changing the core rules. 7 theaters × 7
-   plays = 49 unique session configurations.
+   combination shifts the meta without changing the core rules. 8 theaters × 7
+   plays = 56 unique session configurations.
 5. **Constructive core.** The game feels like building something-your theater is
    a personal puzzle you're proud of-with just enough interaction to keep
    everyone engaged.
