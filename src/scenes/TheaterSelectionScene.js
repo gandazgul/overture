@@ -88,8 +88,8 @@ export class TheaterSelectionScene extends Phaser.Scene {
 
     // Subtitle
     this.add
-      .text(width / 2, logoY + s(75), "Choose Your Theater", {
-        fontSize: px(26),
+      .text(width / 2, logoY + s(100), "Choose Your Theater", {
+        fontSize: px(28),
         fontFamily: "Georgia, serif",
         color: "#ffd700",
       })
@@ -97,14 +97,14 @@ export class TheaterSelectionScene extends Phaser.Scene {
 
     // ── Theater cards grid ──────────────────────────────────────────
     const layouts = LayoutOrder.map((id) => Layouts[id]);
-    const cardW = s(250);
-    const cardH = s(130);
-    const cardGapX = s(24);
-    const cardGapY = s(16);
-    const gridCols = 2;
+    const cardW = s(300);
+    const cardH = s(164);
+    const cardGapX = s(16);
+    const cardGapY = s(14);
+    const gridCols = 4;
     const gridTotalW = gridCols * cardW + (gridCols - 1) * cardGapX;
     const gridStartX = (width - gridTotalW) / 2;
-    const gridStartY = logoY + s(115);
+    const gridStartY = logoY + s(160);
 
     for (let i = 0; i < layouts.length; i++) {
       const layout = layouts[i];
@@ -147,21 +147,22 @@ export class TheaterSelectionScene extends Phaser.Scene {
       border.setFillStyle();
       container.add(border);
 
-      // Theater name (no emoji)
+      // Theater name
       const nameText = this.add
         .text(0, -s(30), layout.name, {
-          fontSize: px(17),
+          fontSize: px(20),
           fontFamily: "Georgia, serif",
           color: "#f5c518",
           fontStyle: "bold",
+          shadow: { blur: 8, color: "#000000", fill: true },
         })
         .setOrigin(0.5);
       container.add(nameText);
 
       // Description
       const descText = this.add
-        .text(0, s(2), layout.description, {
-          fontSize: px(10),
+        .text(0, s(4), layout.description, {
+          fontSize: px(16),
           fontFamily: "Arial",
           color: "#ccccdd",
           wordWrap: { width: cardW - s(30) },
@@ -172,10 +173,10 @@ export class TheaterSelectionScene extends Phaser.Scene {
 
       // Grid size
       const sizeText = this.add
-        .text(0, s(32), `${layout.cols}\u00d7${layout.rows} grid`, {
-          fontSize: px(9),
+        .text(0, s(45), `${layout.cols}\u00d7${layout.rows} grid`, {
+          fontSize: px(16),
           fontFamily: "Arial",
-          color: "#888899",
+          color: "#ccccdd",
         })
         .setOrigin(0.5);
       container.add(sizeText);
@@ -359,7 +360,7 @@ export class TheaterSelectionScene extends Phaser.Scene {
     // Description
     const descText = this.add
       .text(0, dividerY + s(30), layout.description, {
-        fontSize: px(15),
+        fontSize: px(16),
         fontFamily: "Georgia, serif",
         color: "#ccccdd",
         wordWrap: { width: modalW - s(80) },
@@ -373,7 +374,7 @@ export class TheaterSelectionScene extends Phaser.Scene {
     const gridInfoY = dividerY + s(75);
     const gridInfoText = this.add
       .text(0, gridInfoY, `${layout.cols} \u00d7 ${layout.rows} Seating Grid`, {
-        fontSize: px(13),
+        fontSize: px(16),
         fontFamily: "Arial",
         color: "#aaaacc",
       })

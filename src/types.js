@@ -548,7 +548,7 @@ export const BalconyLayout = {
   bgKey: "bg_balcony",
   bgThumbKey: "bg_balcony_thumb",
   description:
-    "Elevated balcony (row A) disconnected from the main floor. Safe haven.",
+    "Elevated balcony (row A) disconnected from the main floor.",
   rows: 4,
   cols: 5,
   aisleCols: [0, 4],
