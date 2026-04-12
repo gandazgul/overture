@@ -110,7 +110,7 @@ export class GameScene extends Phaser.Scene {
     /** @type {Phaser.GameObjects.Container[]} */
     this.scorePanels = [];
 
-    /** @type {Phaser.GameObjects.Image | null} */
+    /** @type {Phaser.GameObjects.Container | null} */
     this.deckPileImage = null;
 
     /** @type {Phaser.GameObjects.GameObject[]} */
@@ -606,36 +606,24 @@ export class GameScene extends Phaser.Scene {
     this.uiContainer.add(this.deckText);
 
     // ── Deck Visual ───────────────────────────────────────────────
-    // Bake a pile of card backs into a single DynamicTexture (1 draw
-    // call instead of many separate Image game objects).
+    // Stack regular Image objects to form a card pile. This avoids
+    // DynamicTexture / framebuffer issues on mobile WebGL.
     const PILE_LAYERS = 5;
     const pileCardW = s(65);
     const pileCardH = s(87);
     const pileOffset = s(2);  // px shift per layer
-    const pileTexW = pileCardW + PILE_LAYERS * pileOffset + s(8);  // extra for rotation bleed
-    const pileTexH = pileCardH + PILE_LAYERS * pileOffset + s(8);
-    const pileTexKey = '__deck_pile';
+    const pileCenterX = hudW / 2;
+    const pileCenterY = s(145);
 
-    // Remove stale texture from a previous scene start (replay)
-    if (this.textures.exists(pileTexKey)) {
-      this.textures.remove(pileTexKey);
-    }
-
-    const pileTex = this.textures.addDynamicTexture(pileTexKey, pileTexW, pileTexH);
-    pileTex.beginDraw();
+    /** @type {Phaser.GameObjects.Container} */
+    this.deckPileImage = this.add.container(pileCenterX, pileCenterY);
     for (let i = PILE_LAYERS - 1; i >= 0; i--) {
-      const cx = pileTexW / 2 + i * pileOffset;
-      const cy = pileTexH / 2 + i * pileOffset;
-      // Stamp each layer; slight angle alternation baked in via position jitter
-      pileTex.batchDrawFrame('card_back', undefined,
-        cx - pileCardW / 2 + (i % 2 === 0 ? s(1) : -s(1)),
-        cy - pileCardH / 2);
+      const ox = i * pileOffset + (i % 2 === 0 ? s(1) : -s(1));
+      const oy = i * pileOffset;
+      const layer = this.add.image(ox, oy, 'card_back');
+      layer.setDisplaySize(pileCardW, pileCardH);
+      this.deckPileImage.add(layer);
     }
-    pileTex.endDraw();
-
-    /** @type {Phaser.GameObjects.Image} */
-    this.deckPileImage = this.add.image(hudW / 2, s(145), pileTexKey);
-    this.deckPileImage.setDisplaySize(pileTexW, pileTexH);
     this.uiContainer.add(this.deckPileImage);
 
     // ── VP Scoreboard w/ Avatars ──────────────────────────────────
@@ -1215,13 +1203,19 @@ export class GameScene extends Phaser.Scene {
       childrenForAnim.push(badge);
     }
 
-    // Placement animation (Fade-in with a subtle pop instead of a huge scaling pop)
+    // Placement animation: fade in + scale pop
     baseImg.setAlpha(0);
+    // Fade in (no yoyo — stays visible)
+    this.tweens.add({
+      targets: childrenForAnim,
+      alpha: 1,
+      duration: 150,
+    });
+    // Scale pop (yoyo back to normal size)
     this.tweens.add({
       targets: childrenForAnim,
       scaleX: 1.05,
       scaleY: 1.05,
-      alpha: 1,
       duration: 150,
       yoyo: true,
     });
