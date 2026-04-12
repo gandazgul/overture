@@ -1,12 +1,12 @@
 // @ts-check
 import Phaser from "phaser";
-import { s, px } from "../config.js";
+import { px, s } from "../config.js";
 import {
-  PlayerNames,
+  PatronInfo,
+  PatronType,
   PlayerColors,
   PlayerColorsHex,
-  PatronType,
-  PatronInfo,
+  PlayerNames,
 } from "../types.js";
 import { scorePlayer } from "../scoring.js";
 
@@ -27,6 +27,13 @@ const TYPE_ORDER = [
  * End-game scene — polished scorecard styled to match the title screen.
  */
 export class EndGameScene extends Phaser.Scene {
+  /** @type {number} Player count (set in init, before create). */
+  playerCount = 2;
+  /** @type {import('../types.js').LayoutMeta} Layout metadata (set in init, before create). */
+  layout = /** @type {*} */ (null);
+  /** @type {(import('../types.js').CardData | null)[][][]} Per-player grids (set in init, before create). */
+  placedPatrons = /** @type {*} */ ([]);
+
   constructor() {
     super("EndGameScene");
   }
@@ -43,16 +50,26 @@ export class EndGameScene extends Phaser.Scene {
   create() {
     const { width, height } = this.scale;
 
+    // ── DEV DEBUG SKIP (Shift+D) ────────────────────────────────────
+    this.input.keyboard?.on("keydown-D", (/** @type {KeyboardEvent} */ e) => {
+      if (!e.shiftKey) return;
+      console.log("DEBUG: Skipping to TitleScene");
+      this.scene.start("TitleScene");
+    });
+
     // ── Dark background ─────────────────────────────────────────────
     this.cameras.main.setBackgroundColor(0x0a0a1a);
 
     // ── Logo (same position as TitleScene) ──────────────────────────
     if (this.textures.exists("ui_logo")) {
+      const titleLogo = this.add.image(
+        width / 2,
+        height / 5 - s(30),
+        "ui_logo",
+      );
       const logoRatio = 0.3643695015;
-      const logoWidth = 380;
-      this.add
-        .image(width / 2, height / 4 - s(30), "ui_logo")
-        .setDisplaySize(s(logoWidth), s(logoWidth * logoRatio));
+      const logoWidth = 480;
+      titleLogo.setDisplaySize(s(logoWidth), s(logoWidth * logoRatio));
     } else {
       this.add
         .text(width / 2, height / 4 - s(30), "Overture", {
@@ -86,7 +103,8 @@ export class EndGameScene extends Phaser.Scene {
         for (let c = 0; c < this.layout.cols; c++) {
           const card = grid[r][c];
           if (card) {
-            breakdown[card.type] = (breakdown[card.type] || 0) + playerScores[p].perSeat[r][c];
+            breakdown[card.type] = (breakdown[card.type] || 0) +
+              playerScores[p].perSeat[r][c];
           }
         }
       }
@@ -129,7 +147,7 @@ export class EndGameScene extends Phaser.Scene {
     const totalRowH = s(38);
     const dataRowH = Math.min(
       s(34),
-      (tableAvailH - avatarRowH - totalRowH - s(10)) / dataRowCount
+      (tableAvailH - avatarRowH - totalRowH - s(10)) / dataRowCount,
     );
 
     const gold = 0xd4af37;
@@ -141,9 +159,21 @@ export class EndGameScene extends Phaser.Scene {
     // ── Table outer border + background ─────────────────────────────
     const fullTableH = avatarRowH + dataRowCount * dataRowH + s(4) + totalRowH;
     gfx.fillStyle(darkBg, 0.95);
-    gfx.fillRoundedRect(tableLeft - s(4), tableTop - s(4), tableW + s(8), fullTableH + s(8), s(8));
+    gfx.fillRoundedRect(
+      tableLeft - s(4),
+      tableTop - s(4),
+      tableW + s(8),
+      fullTableH + s(8),
+      s(8),
+    );
     gfx.lineStyle(s(2), gold, 0.8);
-    gfx.strokeRoundedRect(tableLeft - s(4), tableTop - s(4), tableW + s(8), fullTableH + s(8), s(8));
+    gfx.strokeRoundedRect(
+      tableLeft - s(4),
+      tableTop - s(4),
+      tableW + s(8),
+      fullTableH + s(8),
+      s(8),
+    );
 
     // ── Avatar header row ───────────────────────────────────────────
     const headerY = tableTop;
@@ -187,13 +217,18 @@ export class EndGameScene extends Phaser.Scene {
         colX - playerColW / 2 + s(10),
         headerY + avatarRowH - s(2),
         colX + playerColW / 2 - s(10),
-        headerY + avatarRowH - s(2)
+        headerY + avatarRowH - s(2),
       );
     }
 
     // Horizontal line under header
     gfx.lineStyle(s(1), gold, 0.5);
-    gfx.lineBetween(tableLeft, headerY + avatarRowH, tableLeft + tableW, headerY + avatarRowH);
+    gfx.lineBetween(
+      tableLeft,
+      headerY + avatarRowH,
+      tableLeft + tableW,
+      headerY + avatarRowH,
+    );
 
     // ── Data rows (one per patron type) ─────────────────────────────
     const dataStartY = headerY + avatarRowH;
@@ -211,11 +246,16 @@ export class EndGameScene extends Phaser.Scene {
 
       // Row label: emoji + type name
       this.add
-        .text(tableLeft + s(10), rowY + dataRowH / 2, `${info.emoji}  ${type}`, {
-          fontSize: px(12),
-          fontFamily: "Georgia, serif",
-          color: "#ccccdd",
-        })
+        .text(
+          tableLeft + s(10),
+          rowY + dataRowH / 2,
+          `${info.emoji}  ${type}`,
+          {
+            fontSize: px(12),
+            fontFamily: "Georgia, serif",
+            color: "#ccccdd",
+          },
+        )
         .setOrigin(0, 0.5);
 
       // Player values
@@ -236,7 +276,12 @@ export class EndGameScene extends Phaser.Scene {
 
       // Horizontal line
       gfx.lineStyle(s(1), gold, 0.15);
-      gfx.lineBetween(tableLeft, rowY + dataRowH, tableLeft + tableW, rowY + dataRowH);
+      gfx.lineBetween(
+        tableLeft,
+        rowY + dataRowH,
+        tableLeft + tableW,
+        rowY + dataRowH,
+      );
     }
 
     // ── Total row ───────────────────────────────────────────────────
@@ -288,7 +333,7 @@ export class EndGameScene extends Phaser.Scene {
       tableLeft + labelColW,
       tableTop,
       tableLeft + labelColW,
-      totalY + totalRowH
+      totalY + totalRowH,
     );
     for (let p = 1; p < this.playerCount; p++) {
       const lineX = tableLeft + labelColW + p * playerColW;
@@ -297,7 +342,7 @@ export class EndGameScene extends Phaser.Scene {
     }
 
     // ── Play Again Button ───────────────────────────────────────────
-    const btnY = height - s(50);
+    const btnY = height - s(140);
     const buttonWidth = 220;
     const buttonHeight = buttonWidth * 0.4704684318;
     const btnContainer = this.add.container(width / 2, btnY);
@@ -307,7 +352,13 @@ export class EndGameScene extends Phaser.Scene {
       bgImg.setDisplaySize(s(buttonWidth), s(buttonHeight));
       btnContainer.add(bgImg);
     } else {
-      const fallbackBg = this.add.rectangle(0, 0, s(buttonWidth), s(buttonHeight), 0x4a2c7a);
+      const fallbackBg = this.add.rectangle(
+        0,
+        0,
+        s(buttonWidth),
+        s(buttonHeight),
+        0x4a2c7a,
+      );
       btnContainer.add(fallbackBg);
     }
 

@@ -5,7 +5,7 @@ import { TitleScene } from "./scenes/TitleScene.js";
 import { TheaterSelectionScene } from "./scenes/TheaterSelectionScene.js";
 import { GameScene } from "./scenes/GameScene.js";
 import { EndGameScene } from "./scenes/EndGameScene.js";
-import { GAME_WIDTH, GAME_HEIGHT } from "./config.js";
+import { GAME_HEIGHT, GAME_WIDTH } from "./config.js";
 
 /**
  * ========================================================================
@@ -44,7 +44,13 @@ const config = {
   backgroundColor: "#1a1a2e",
 
   // Scene array: TitleScene starts first, other scenes are registered for later
-  scene: [BootScene, TitleScene, TheaterSelectionScene, GameScene, EndGameScene],
+  scene: [
+    BootScene,
+    TitleScene,
+    TheaterSelectionScene,
+    GameScene,
+    EndGameScene,
+  ],
 
   // Scale manager: make the game responsive
   scale: {

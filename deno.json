@@ -1,21 +1,30 @@
 {
-  "compilerOptions": {
-    "checkJs": true,
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "strict": true
-  },
-  "tasks": {
-    "dev": "deno run -A npm:vite@5",
-    "build": "deno run -A npm:vite@5 build",
-    "preview": "deno run -A npm:vite@5 preview",
-    "serve": "deno run -A server.js",
-    "check": "deno check --doc src/**/*.js",
-    "lint": "deno lint src/",
-    "test": "deno test src/",
-    "ci": "deno task check && deno task lint && deno task test"
-  },
-  "imports": {
-    "phaser": "npm:phaser@^3.86.0"
-  },
-  "nodeModulesDir": "auto"
+    "compilerOptions": {
+        "checkJs": true,
+        "lib": ["dom", "dom.iterable", "esnext"],
+        "strict": true
+    },
+    "tasks": {
+        "dev": "deno run -A npm:vite@5",
+        "build": "deno run -A npm:vite@5 build",
+        "preview": "deno run -A npm:vite@5 preview",
+        "serve": "deno run -A server.js",
+        "check": "deno check --doc src/**/*.js",
+        "lint": "deno lint src/",
+        "test": "deno test src/",
+        "ci": "deno task check && deno task lint && deno task test"
+    },
+    "imports": {
+        "phaser": "npm:phaser@^3.86.0"
+    },
+    "fmt": {
+        "useTabs": false,
+        "lineWidth": 120,
+        "indentWidth": 4,
+        "semiColons": true,
+        "singleQuote": false,
+        "proseWrap": "preserve",
+        "exclude": ["dist/"]
+    },
+    "nodeModulesDir": "auto"
 }

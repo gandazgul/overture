@@ -1,27 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Overture</title>
-  <style>
-    /* Phaser's autoCenter: CENTER_BOTH handles canvas positioning.
-       Avoid CSS flex centering here — it conflicts with Phaser's
-       inline styles and shifts the canvas off-center. */
-    body {
-      margin: 0;
-      padding: 0;
-      background: #0a0a1a;
-      overflow: hidden;
-    }
-  </style>
-</head>
-<body>
-  <!--
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Overture</title>
+    <style>
+      /* Phaser's autoCenter: CENTER_BOTH handles canvas positioning.
+         Avoid CSS flex centering here — it conflicts with Phaser's
+         inline styles and shifts the canvas off-center. */
+      body {
+        margin: 0;
+        padding: 0;
+        background: #0a0a1a;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <!--
     Phaser will create a <canvas> element and append it to the body.
     We don't need a container div — Phaser handles this automatically
     based on the 'parent' config option (defaults to document.body).
   -->
-  <script type="module" src="/src/main.js"></script>
-</body>
+    <script type="module" src="/src/main.js"></script>
+  </body>
 </html>

@@ -108,6 +108,11 @@ ASSETS_TO_GENERATE = [
         "prompt": "A top-down stylized view of a modern theater floor with swirling, asymmetric carpet patterns in teal and copper. Avant-garde theater interior, sleek and intriguing. UI background illustration.",
         "aspect_ratio": "16:9"
     },
+    {
+        "filename": "bg_rotunda.png",
+        "prompt": "A top-down stylized view of a circular theater-in-the-round floor. Concentric rings of polished marble and dark wood radiate outward from a central stage area. Warm amber spotlight on the center, Art Deco geometric inlays in the stone. Intimate and dramatic. UI background illustration.",
+        "aspect_ratio": "16:9"
+    },
 
     # 4. Game UI & Extras - Varies
     {
@@ -174,7 +179,10 @@ def main():
         aspect_ratio = asset["aspect_ratio"]
         output_path = os.path.join(OUTPUT_DIR, filename)
 
-        if os.path.exists(output_path):
+        # Check for the original file or an optimized variant (.png → .jpg)
+        base, ext = os.path.splitext(output_path)
+        optimized_variants = [output_path, base + ".jpg", base + ".png"]
+        if any(os.path.exists(v) for v in optimized_variants):
             print(f"Skipping {filename} - already exists.")
             continue
 

@@ -17,11 +17,12 @@
  */
 
 import {
-  PatronType,
+  DefaultLayout,
+  hasSeatLabel,
   PatronScoring,
+  PatronType,
   Trait,
   TraitScoring,
-  DefaultLayout,
 } from "./types.js";
 
 /** @typedef {import('./types.js').CardData} CardData */
@@ -42,7 +43,9 @@ import {
  * @returns {boolean}
  */
 export function seatExists(row, col, layout) {
-  if (row < 0 || row >= layout.rows || col < 0 || col >= layout.cols) return false;
+  if (row < 0 || row >= layout.rows || col < 0 || col >= layout.cols) {
+    return false;
+  }
   if (layout.seatMask) return layout.seatMask[row][col];
   return true;
 }
@@ -58,7 +61,7 @@ export function seatExists(row, col, layout) {
 function isAdjacencyBroken(rowA, rowB, layout) {
   if (!layout.adjacencyBreaks) return false;
   return layout.adjacencyBreaks.some(
-    ([a, b]) => (a === rowA && b === rowB) || (a === rowB && b === rowA)
+    ([a, b]) => (a === rowA && b === rowB) || (a === rowB && b === rowA),
   );
 }
 
@@ -85,7 +88,9 @@ export function getOrthogonalNeighbors(row, col, rows, cols, layout) {
   for (const c of candidates) {
     if (c.row < 0 || c.row >= rows || c.col < 0 || c.col >= cols) continue;
     // Check adjacency breaks between rows
-    if (layout && c.row !== row && isAdjacencyBroken(row, c.row, layout)) continue;
+    if (layout && c.row !== row && isAdjacencyBroken(row, c.row, layout)) {
+      continue;
+    }
     // Check seatMask
     if (layout && layout.seatMask && !layout.seatMask[c.row][c.col]) continue;
     neighbors.push(c);
@@ -103,16 +108,7 @@ export function getOrthogonalNeighbors(row, col, rows, cols, layout) {
  * @returns {boolean}
  */
 export function isAisleSeat(row, col, layout) {
-  // Royal Boxes always count as aisle seats
-  if (layout.royalBoxes?.some((b) => b.row === row && b.col === col)) {
-    return true;
-  }
-  // Per-row aisles (e.g. Promenade)
-  if (layout.aisleColsByRow) {
-    return layout.aisleColsByRow[row]?.includes(col) ?? false;
-  }
-  // Default: column-based
-  return layout.aisleCols.includes(col);
+  return hasSeatLabel(row, col, "aisle", layout);
 }
 
 /**
@@ -148,12 +144,10 @@ export function findHorizontalKidGroups(rowData, cols) {
       const leftCol = groupCols[0] - 1;
       const rightCol = groupCols[groupCols.length - 1] + 1;
 
-      const cappedLeft =
-        leftCol >= 0 &&
+      const cappedLeft = leftCol >= 0 &&
         rowData[leftCol] !== null &&
         rowData[leftCol]?.type === PatronType.TEACHER;
-      const cappedRight =
-        rightCol < cols &&
+      const cappedRight = rightCol < cols &&
         rowData[rightCol] !== null &&
         rowData[rightCol]?.type === PatronType.TEACHER;
 
@@ -195,7 +189,7 @@ function buildCappedKidMap(grid, rows, cols, layout) {
   if (layout && layout.tableGroups) {
     for (const table of layout.tableGroups) {
       const hasTeacher = table.some(
-        (pos) => grid[pos.row]?.[pos.col]?.type === PatronType.TEACHER
+        (pos) => grid[pos.row]?.[pos.col]?.type === PatronType.TEACHER,
       );
       if (hasTeacher) {
         for (const pos of table) {
@@ -252,10 +246,9 @@ export function scoreSeat(grid, row, col, layout, cappedKids) {
     }
 
     case PatronType.VIP: {
-      // Row bonus
+      // Front seat bonus
       if (
-        scoring.rowBonusRows &&
-        scoring.rowBonusRows.includes(row) &&
+        hasSeatLabel(row, col, "front", layout) &&
         scoring.rowBonusValue
       ) {
         vp += scoring.rowBonusValue;
@@ -301,10 +294,9 @@ export function scoreSeat(grid, row, col, layout, cappedKids) {
         vp += scoring.adjacentMatchBonus;
       }
       // Back row multiplier
-      const backRows = scoring.backRows ?? layout.backRows;
       if (
         hasAdjacentMatch &&
-        backRows.includes(row) &&
+        hasSeatLabel(row, col, "back", layout) &&
         scoring.backRowMultiplier
       ) {
         vp *= scoring.backRowMultiplier;
@@ -352,10 +344,10 @@ export function scoreSeat(grid, row, col, layout, cappedKids) {
     const traitScoring = TraitScoring[card.trait];
 
     if (traitScoring) {
-      // Bespectacled trait: row bonus
+      // Bespectacled trait: bonus unless in back row
       if (
-        traitScoring.rowBonusRows &&
-        traitScoring.rowBonusRows.includes(row) &&
+        card.trait === Trait.BESPECTACLED &&
+        !hasSeatLabel(row, col, "back", layout) &&
         traitScoring.rowBonusValue
       ) {
         vp += traitScoring.rowBonusValue;

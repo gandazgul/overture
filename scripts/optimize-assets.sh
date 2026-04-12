@@ -19,7 +19,16 @@ echo ""
 
 # ── Step 1: Archive originals ────────────────────────────────────────
 if [ -d "$ARCHIVE" ]; then
-  echo "Archive already exists, skipping copy."
+  echo "Archive exists, syncing new assets..."
+  # Copy any new PNGs from source that aren't already archived
+  for f in "$SRC"/*.png; do
+    [ -f "$f" ] || continue
+    base=$(basename "$f")
+    if [ ! -f "$ARCHIVE/$base" ]; then
+      cp "$f" "$ARCHIVE/$base"
+      echo "  Archived new asset: $base"
+    fi
+  done
 else
   echo "Copying originals to $ARCHIVE..."
   cp -r "$SRC" "$ARCHIVE"

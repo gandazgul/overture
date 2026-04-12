@@ -7,20 +7,22 @@
 
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/assert_equals.ts";
 import {
-  scorePlayer,
+  findHorizontalKidGroups,
   getOrthogonalNeighbors,
   isAisleSeat,
-  findHorizontalKidGroups,
+  scorePlayer,
 } from "./scoring.js";
 import {
-  PatronType,
-  Trait,
-  DefaultLayout,
   BlackboxLayout,
-  RoyalTheatreLayout,
-  PromenadeLayout,
   createDeck,
+  DefaultLayout,
+  hasSeatLabel,
   PatronInfo,
+  PatronType,
+  PromenadeLayout,
+  RotundaLayout,
+  RoyalTheatreLayout,
+  Trait,
   TraitInfo,
 } from "./types.js";
 
@@ -47,7 +49,12 @@ function emptyGrid(layout) {
  */
 function card(type, trait) {
   /** @type {CardData} */
-  const c = { type, label: trait ? `${trait} ${type}` : type, emoji: "", description: "" };
+  const c = {
+    type,
+    label: trait ? `${trait} ${type}` : type,
+    emoji: "",
+    description: "",
+  };
   if (trait) c.trait = trait;
   return c;
 }
@@ -402,7 +409,12 @@ Deno.test("Tall behind penalty does NOT double-apply to Short (uses tallInFrontP
 
 Deno.test("Unknown patron type scores 0 VP", () => {
   const grid = emptyGrid();
-  grid[1][1] = { type: "UNKNOWN", label: "UNKNOWN", emoji: "", description: "" };
+  grid[1][1] = {
+    type: "UNKNOWN",
+    label: "UNKNOWN",
+    emoji: "",
+    description: "",
+  };
   const result = scorePlayer(grid, DefaultLayout);
   assertEquals(result.perSeat[1][1], 0);
 });
@@ -681,14 +693,10 @@ Deno.test("Promenade: wandering critics — fewer than 3 in aisles gives no bonu
 // Amphitheater Layout Tests
 // ══════════════════════════════════════════════════════════════════
 
-import {
-  AmphitheaterLayout,
-  CabaretLayout,
-  BalconyLayout,
-} from "./types.js";
+import { AmphitheaterLayout, BalconyLayout, CabaretLayout } from "./types.js";
 
 Deno.test("Amphitheater: 18 seats in tiered rows (6-5-4-3)", () => {
-  const mask = /** @type {boolean[][]} */(AmphitheaterLayout.seatMask);
+  const mask = /** @type {boolean[][]} */ (AmphitheaterLayout.seatMask);
   assertEquals(mask[0].filter(Boolean).length, 6);
   assertEquals(mask[1].filter(Boolean).length, 5);
   assertEquals(mask[2].filter(Boolean).length, 4);
@@ -714,10 +722,10 @@ Deno.test("Amphitheater: neighbors respect seatMask", () => {
   // Row 3 only has seats at cols 2,3,4. A patron at row 3, col 2
   // should NOT have col 1 as a neighbor (no seat there).
   const neighbors = getOrthogonalNeighbors(3, 2, 4, 6, AmphitheaterLayout);
-  const hasBadNeighbor = neighbors.some(n => n.row === 3 && n.col === 1);
+  const hasBadNeighbor = neighbors.some((n) => n.row === 3 && n.col === 1);
   assertEquals(hasBadNeighbor, false);
   // But col 3 should be a neighbor
-  const hasGoodNeighbor = neighbors.some(n => n.row === 3 && n.col === 3);
+  const hasGoodNeighbor = neighbors.some((n) => n.row === 3 && n.col === 3);
   assertEquals(hasGoodNeighbor, true);
 });
 
@@ -756,7 +764,7 @@ Deno.test("Amphitheater: Lovebirds in back row (row 3) get ×2", () => {
 // ══════════════════════════════════════════════════════════════════
 
 Deno.test("Cabaret: 24 seats with gap columns at 2 and 5", () => {
-  const mask = /** @type {boolean[][]} */(CabaretLayout.seatMask);
+  const mask = /** @type {boolean[][]} */ (CabaretLayout.seatMask);
   assertEquals(mask.flat().filter(Boolean).length, 24);
   // Gap columns
   for (let r = 0; r < 4; r++) {
@@ -768,18 +776,18 @@ Deno.test("Cabaret: 24 seats with gap columns at 2 and 5", () => {
 Deno.test("Cabaret: gaps break adjacency between tables", () => {
   // Col 1 and col 3 are separated by gap col 2
   const neighbors = getOrthogonalNeighbors(0, 1, 4, 8, CabaretLayout);
-  const hasCol3 = neighbors.some(n => n.row === 0 && n.col === 3);
+  const hasCol3 = neighbors.some((n) => n.row === 0 && n.col === 3);
   assertEquals(hasCol3, false); // col 2 is a gap, col 3 is not adjacent
   // But col 0 IS a neighbor
-  const hasCol0 = neighbors.some(n => n.row === 0 && n.col === 0);
+  const hasCol0 = neighbors.some((n) => n.row === 0 && n.col === 0);
   assertEquals(hasCol0, true);
 });
 
 Deno.test("Cabaret: Noisy patron only affects tablemates, not other tables", () => {
   const grid = emptyGrid(CabaretLayout);
   place(grid, 0, 1, PatronType.STANDARD, Trait.NOISY); // table 1, right seat
-  place(grid, 0, 0, PatronType.STANDARD);               // table 1, left seat (adjacent)
-  place(grid, 0, 3, PatronType.STANDARD);               // table 2, left seat (NOT adjacent)
+  place(grid, 0, 0, PatronType.STANDARD); // table 1, left seat (adjacent)
+  place(grid, 0, 3, PatronType.STANDARD); // table 2, left seat (NOT adjacent)
   const result = scorePlayer(grid, CabaretLayout);
   assertEquals(result.perSeat[0][0], 2); // 3 - 1 noisy
   assertEquals(result.perSeat[0][3], 3); // unaffected by noisy
@@ -814,23 +822,23 @@ Deno.test("Cabaret: 6 table groups defined", () => {
 Deno.test("Cabaret: adjacency broken between row 1 and row 2", () => {
   // Row 1 can't see row 2 (horizontal gap between row-pairs)
   const neighbors = getOrthogonalNeighbors(1, 0, 4, 8, CabaretLayout);
-  const hasRow2 = neighbors.some(n => n.row === 2);
+  const hasRow2 = neighbors.some((n) => n.row === 2);
   assertEquals(hasRow2, false);
   // Row 2 can't see row 1 either
   const neighbors2 = getOrthogonalNeighbors(2, 0, 4, 8, CabaretLayout);
-  const hasRow1 = neighbors2.some(n => n.row === 1);
+  const hasRow1 = neighbors2.some((n) => n.row === 1);
   assertEquals(hasRow1, false);
   // Row 0 CAN see row 1
   const neighbors0 = getOrthogonalNeighbors(0, 0, 4, 8, CabaretLayout);
-  const hasRow1from0 = neighbors0.some(n => n.row === 1);
+  const hasRow1from0 = neighbors0.some((n) => n.row === 1);
   assertEquals(hasRow1from0, true);
 });
 
 Deno.test("Cabaret: Kid capped by Teacher at same table", () => {
   // Table at rows 0-1, cols 0-1 (grid cols 0,1)
   const grid = emptyGrid(CabaretLayout);
-  grid[0][0] = card(PatronType.KID);      // seat (0,0)
-  grid[0][1] = card(PatronType.TEACHER);  // seat (0,1) — same table
+  grid[0][0] = card(PatronType.KID); // seat (0,0)
+  grid[0][1] = card(PatronType.TEACHER); // seat (0,1) — same table
   const result = scorePlayer(grid, CabaretLayout);
   // Kid should be capped (2 VP)
   assertEquals(result.perSeat[0][0], 2);
@@ -839,8 +847,8 @@ Deno.test("Cabaret: Kid capped by Teacher at same table", () => {
 Deno.test("Cabaret: Kid NOT capped without Teacher at same table", () => {
   // Kid at table 1 (rows 0-1, cols 0-1), Teacher at table 2 (rows 0-1, cols 3-4)
   const grid = emptyGrid(CabaretLayout);
-  grid[0][0] = card(PatronType.KID);      // table 1
-  grid[0][3] = card(PatronType.TEACHER);  // table 2 — different table
+  grid[0][0] = card(PatronType.KID); // table 1
+  grid[0][3] = card(PatronType.TEACHER); // table 2 — different table
   const result = scorePlayer(grid, CabaretLayout);
   // Kid should NOT be capped (0 VP)
   assertEquals(result.perSeat[0][0], 0);
@@ -849,9 +857,9 @@ Deno.test("Cabaret: Kid NOT capped without Teacher at same table", () => {
 Deno.test("Cabaret: Teacher scores +1 per adjacent capped Kid", () => {
   // Table at rows 0-1, cols 0-1: Teacher + 2 adjacent Kids
   const grid = emptyGrid(CabaretLayout);
-  grid[0][0] = card(PatronType.TEACHER);  // adjacent to (0,1) and (1,0)
-  grid[0][1] = card(PatronType.KID);      // adjacent to teacher
-  grid[1][0] = card(PatronType.KID);      // adjacent to teacher
+  grid[0][0] = card(PatronType.TEACHER); // adjacent to (0,1) and (1,0)
+  grid[0][1] = card(PatronType.KID); // adjacent to teacher
+  grid[1][0] = card(PatronType.KID); // adjacent to teacher
   const result = scorePlayer(grid, CabaretLayout);
   // Teacher: 1 base + 2 (two adjacent capped Kids) = 3 VP
   assertEquals(result.perSeat[0][0], 3);
@@ -880,14 +888,14 @@ Deno.test("Cabaret: one Teacher caps all Kids at the same table", () => {
 
 Deno.test("Balcony: adjacency broken between row 0 and row 1", () => {
   const neighbors = getOrthogonalNeighbors(0, 2, 4, 5, BalconyLayout);
-  const hasRow1 = neighbors.some(n => n.row === 1);
+  const hasRow1 = neighbors.some((n) => n.row === 1);
   assertEquals(hasRow1, false);
   // Row 1 also can't see row 0
   const neighbors1 = getOrthogonalNeighbors(1, 2, 4, 5, BalconyLayout);
-  const hasRow0 = neighbors1.some(n => n.row === 0);
+  const hasRow0 = neighbors1.some((n) => n.row === 0);
   assertEquals(hasRow0, false);
   // Row 1 CAN see row 2
-  const hasRow2 = neighbors1.some(n => n.row === 2);
+  const hasRow2 = neighbors1.some((n) => n.row === 2);
   assertEquals(hasRow2, true);
 });
 
@@ -939,4 +947,147 @@ Deno.test("Balcony: Lovebirds in back row (row 3) get ×2", () => {
   const result = scorePlayer(grid, BalconyLayout);
   assertEquals(result.perSeat[3][2], 6);
   assertEquals(result.perSeat[3][3], 6);
+});
+
+// ── Rotunda Tests ───────────────────────────────────────────────────
+
+Deno.test("Rotunda: 16 seats in hollow ring (5×5)", () => {
+  let seatCount = 0;
+  for (let r = 0; r < RotundaLayout.rows; r++) {
+    for (let c = 0; c < RotundaLayout.cols; c++) {
+      if (RotundaLayout.seatMask && RotundaLayout.seatMask[r][c]) seatCount++;
+    }
+  }
+  assertEquals(seatCount, 16);
+});
+
+Deno.test("Rotunda: inner ring seats labeled 'front'", () => {
+  // Inner ring = seats adjacent to stage (center hole)
+  const expectedFront = [
+    [0, 1],
+    [0, 2],
+    [0, 3],
+    [1, 1],
+    [1, 3],
+    [3, 1],
+    [3, 3],
+    [4, 1],
+    [4, 2],
+    [4, 3],
+  ];
+  for (const [r, c] of expectedFront) {
+    assertEquals(
+      hasSeatLabel(r, c, "front", RotundaLayout),
+      true,
+      `Seat (${r},${c}) should be front`,
+    );
+  }
+});
+
+Deno.test("Rotunda: outer ring seats labeled 'aisle'", () => {
+  const expectedAisle = [
+    [1, 0],
+    [1, 4],
+    [2, 0],
+    [2, 4],
+    [3, 0],
+    [3, 4],
+  ];
+  for (const [r, c] of expectedAisle) {
+    assertEquals(
+      hasSeatLabel(r, c, "aisle", RotundaLayout),
+      true,
+      `Seat (${r},${c}) should be aisle`,
+    );
+  }
+});
+
+Deno.test("Rotunda: no seats labeled 'back'", () => {
+  for (let r = 0; r < RotundaLayout.rows; r++) {
+    for (let c = 0; c < RotundaLayout.cols; c++) {
+      assertEquals(
+        hasSeatLabel(r, c, "back", RotundaLayout),
+        false,
+        `Seat (${r},${c}) should not be back`,
+      );
+    }
+  }
+});
+
+Deno.test("Rotunda: VIP in inner ring gets +3 front bonus", () => {
+  const grid = emptyGrid(RotundaLayout);
+  place(grid, 1, 1, PatronType.VIP); // inner ring = front
+  const result = scorePlayer(grid, RotundaLayout);
+  assertEquals(result.perSeat[1][1], 8); // 5 base + 3 front
+});
+
+Deno.test("Rotunda: VIP in outer ring gets base only", () => {
+  const grid = emptyGrid(RotundaLayout);
+  place(grid, 2, 0, PatronType.VIP); // outer ring = aisle, not front
+  const result = scorePlayer(grid, RotundaLayout);
+  assertEquals(result.perSeat[2][0], 5); // 5 base, no front bonus
+});
+
+Deno.test("Rotunda: Critic in outer ring scores ×3", () => {
+  const grid = emptyGrid(RotundaLayout);
+  place(grid, 2, 0, PatronType.CRITIC); // outer ring = aisle
+  const result = scorePlayer(grid, RotundaLayout);
+  assertEquals(result.perSeat[2][0], 6); // 2 × 3
+});
+
+Deno.test("Rotunda: Critic in inner ring scores base only", () => {
+  const grid = emptyGrid(RotundaLayout);
+  place(grid, 1, 1, PatronType.CRITIC); // inner ring = front, not aisle
+  const result = scorePlayer(grid, RotundaLayout);
+  assertEquals(result.perSeat[1][1], 2); // base only
+});
+
+Deno.test("Rotunda: Lovebirds never get ×2 (no back row)", () => {
+  const grid = emptyGrid(RotundaLayout);
+  place(grid, 0, 1, PatronType.LOVEBIRDS);
+  place(grid, 0, 2, PatronType.LOVEBIRDS);
+  const result = scorePlayer(grid, RotundaLayout);
+  assertEquals(result.perSeat[0][1], 3); // 0 + 3 adjacent, no ×2
+  assertEquals(result.perSeat[0][2], 3);
+});
+
+Deno.test("Rotunda: Bespectacled gets +2 everywhere (no back seats)", () => {
+  const grid = emptyGrid(RotundaLayout);
+  // Place Bespectacled Standard in inner ring
+  place(grid, 1, 1, PatronType.STANDARD, Trait.BESPECTACLED);
+  // Place Bespectacled Standard in outer ring
+  place(grid, 2, 0, PatronType.STANDARD, Trait.BESPECTACLED);
+  const result = scorePlayer(grid, RotundaLayout);
+  assertEquals(result.perSeat[1][1], 5); // 3 base + 2 bespectacled
+  assertEquals(result.perSeat[2][0], 5); // 3 base + 2 bespectacled (outer ring too!)
+});
+
+Deno.test("Rotunda: Short patron facing stage gets +2 empty front bonus", () => {
+  const grid = emptyGrid(RotundaLayout);
+  // (1,1) has (0,1) in front which is a seat — place Short there
+  // (1,1)'s "front" is row 0 col 1 which exists. If empty, Short gets bonus.
+  place(grid, 1, 1, PatronType.STANDARD, Trait.SHORT);
+  const result = scorePlayer(grid, RotundaLayout);
+  // row-1=0, col=1 is a valid seat but empty → emptyFrontBonus = +2
+  assertEquals(result.perSeat[1][1], 5); // 3 base + 2 short bonus
+});
+
+Deno.test("Rotunda: Short in row 0 has no seat in front → +2 bonus", () => {
+  const grid = emptyGrid(RotundaLayout);
+  place(grid, 0, 2, PatronType.STANDARD, Trait.SHORT);
+  const result = scorePlayer(grid, RotundaLayout);
+  // row-1 = -1 → frontBlocked → emptyFrontBonus
+  assertEquals(result.perSeat[0][2], 5); // 3 base + 2 short
+});
+
+Deno.test("Rotunda: adjacency across stage hole is broken", () => {
+  const grid = emptyGrid(RotundaLayout);
+  // (1,1) and (1,3) are on opposite sides of the stage
+  // They should NOT be orthogonal neighbors
+  place(grid, 1, 1, PatronType.LOVEBIRDS);
+  place(grid, 1, 3, PatronType.LOVEBIRDS);
+  const result = scorePlayer(grid, RotundaLayout);
+  // Not adjacent → no bonus (0 VP each)
+  assertEquals(result.perSeat[1][1], 0);
+  assertEquals(result.perSeat[1][3], 0);
 });

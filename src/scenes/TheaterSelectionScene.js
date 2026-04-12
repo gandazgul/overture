@@ -1,7 +1,7 @@
 // @ts-check
 import Phaser from "phaser";
-import { s, px } from "../config.js";
-import { Layouts, LayoutOrder } from "../types.js";
+import { px, s } from "../config.js";
+import { LayoutOrder, Layouts } from "../types.js";
 
 /**
  * Scene for selecting a theater layout before starting the game.
@@ -24,10 +24,21 @@ export class TheaterSelectionScene extends Phaser.Scene {
     // ── Progress bar for thumbnail loading ───────────────────────
     const barW = s(300);
     const barH = s(16);
-    const barBorder = this.add.rectangle(width / 2, height / 2, barW + s(4), barH + s(4));
+    const barBorder = this.add.rectangle(
+      width / 2,
+      height / 2,
+      barW + s(4),
+      barH + s(4),
+    );
     barBorder.setStrokeStyle(s(2), 0xd4af37);
     barBorder.setFillStyle(0x0a0a1a);
-    const barFill = this.add.rectangle(width / 2 - barW / 2 + s(2), height / 2, 0, barH, 0xd4af37).setOrigin(0, 0.5);
+    const barFill = this.add.rectangle(
+      width / 2 - barW / 2 + s(2),
+      height / 2,
+      0,
+      barH,
+      0xd4af37,
+    ).setOrigin(0, 0.5);
 
     this.load.on("progress", (/** @type {number} */ value) => {
       barFill.width = barW * value;
@@ -43,6 +54,16 @@ export class TheaterSelectionScene extends Phaser.Scene {
   }
 
   create() {
+    // ── DEV DEBUG SKIP (Shift+D) ────────────────────────────────────
+    this.input.keyboard?.on("keydown-D", (/** @type {KeyboardEvent} */ e) => {
+      if (!e.shiftKey) return;
+      console.log("DEBUG: Skipping to GameScene");
+      this.scene.start("GameScene", {
+        playerCount: this.selectedPlayerCount,
+        layoutId: LayoutOrder[0],
+      });
+    });
+
     this.showTheaterSelect();
   }
 
@@ -58,8 +79,8 @@ export class TheaterSelectionScene extends Phaser.Scene {
 
     // ── Logo — same position as title screen ────────────────────────
     const logoY = s(90);
-    if (this.textures.exists('ui_logo')) {
-      const logo = this.add.image(width / 2, logoY, 'ui_logo');
+    if (this.textures.exists("ui_logo")) {
+      const logo = this.add.image(width / 2, logoY, "ui_logo");
       const logoRatio = 0.3643695015;
       const logoWidth = 320;
       logo.setDisplaySize(s(logoWidth), s(logoWidth * logoRatio));
@@ -107,7 +128,10 @@ export class TheaterSelectionScene extends Phaser.Scene {
         const coverScale = Math.max(scaleX, scaleY);
         bgImg.setScale(coverScale);
         // Create a geometry mask to clip to card bounds
-        const maskShape = this.make.graphics({ x: cx - cardW / 2, y: cy - cardH / 2 });
+        const maskShape = this.make.graphics({
+          x: cx - cardW / 2,
+          y: cy - cardH / 2,
+        });
         maskShape.fillRect(0, 0, cardW, cardH);
         bgImg.setMask(maskShape.createGeometryMask());
         container.add(bgImg);
@@ -217,7 +241,14 @@ export class TheaterSelectionScene extends Phaser.Scene {
     const { width, height } = this.scale;
 
     // ── Dim overlay ─────────────────────────────────────────────────
-    const dimOverlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0);
+    const dimOverlay = this.add.rectangle(
+      width / 2,
+      height / 2,
+      width,
+      height,
+      0x000000,
+      0,
+    );
     dimOverlay.setInteractive(); // block clicks through
     dimOverlay.setDepth(100);
     dimOverlay.on("pointerdown", () => {
@@ -272,7 +303,14 @@ export class TheaterSelectionScene extends Phaser.Scene {
     }
 
     // ── Dark gradient overlay ───────────────────────────────────────
-    const gradOverlay = this.add.rectangle(0, 0, modalW, modalH, 0x0a0a1a, 0.75);
+    const gradOverlay = this.add.rectangle(
+      0,
+      0,
+      modalW,
+      modalH,
+      0x0a0a1a,
+      0.75,
+    );
     modalContainer.add(gradOverlay);
 
     // ── Gold border ─────────────────────────────────────────────────
@@ -282,7 +320,12 @@ export class TheaterSelectionScene extends Phaser.Scene {
     modalContainer.add(modalBorder);
 
     // ── Inner accent border ─────────────────────────────────────────
-    const innerBorder = this.add.rectangle(0, 0, modalW - s(12), modalH - s(12));
+    const innerBorder = this.add.rectangle(
+      0,
+      0,
+      modalW - s(12),
+      modalH - s(12),
+    );
     innerBorder.setStrokeStyle(s(1), 0xf5c518, 0.3);
     innerBorder.setFillStyle();
     modalContainer.add(innerBorder);
@@ -303,7 +346,14 @@ export class TheaterSelectionScene extends Phaser.Scene {
 
     // Decorative divider
     const dividerY = contentTop + s(35);
-    const divLine = this.add.rectangle(0, dividerY, s(200), s(1), 0xf5c518, 0.5);
+    const divLine = this.add.rectangle(
+      0,
+      dividerY,
+      s(200),
+      s(1),
+      0xf5c518,
+      0.5,
+    );
     modalContainer.add(divLine);
 
     // Description
@@ -350,7 +400,14 @@ export class TheaterSelectionScene extends Phaser.Scene {
       const ruleBoxH = s(60);
       const ruleBoxY = ruleY + s(42);
 
-      const ruleBox = this.add.rectangle(0, ruleBoxY, ruleBoxW, ruleBoxH, 0x2a1a4e, 0.6);
+      const ruleBox = this.add.rectangle(
+        0,
+        ruleBoxY,
+        ruleBoxW,
+        ruleBoxH,
+        0x2a1a4e,
+        0.6,
+      );
       ruleBox.setStrokeStyle(s(1), 0xf5c518, 0.4);
       modalContainer.add(ruleBox);
 
@@ -400,7 +457,7 @@ export class TheaterSelectionScene extends Phaser.Scene {
       "Close",
       0x3a3a5e,
       "#ccccdd",
-      modalContainer
+      modalContainer,
     );
     closeBtn.on("pointerdown", () => {
       this._dismissModal(dimOverlay, modalContainer);
@@ -410,8 +467,8 @@ export class TheaterSelectionScene extends Phaser.Scene {
     const escListener = () => {
       this._dismissModal(dimOverlay, modalContainer);
     };
-    this.input.keyboard.on("keydown-ESC", escListener);
-    dimOverlay.setData('escListener', escListener);
+    this.input.keyboard?.on("keydown-ESC", escListener);
+    dimOverlay.setData("escListener", escListener);
 
     // — "Let's Go!" button —
     const letsGoBtn = this._createModalButton(
@@ -420,7 +477,7 @@ export class TheaterSelectionScene extends Phaser.Scene {
       "Let's Go!",
       0x4a2c7a,
       "#f5c518",
-      modalContainer
+      modalContainer,
     );
     letsGoBtn.on("pointerdown", () => {
       this.scene.start("GameScene", {
@@ -444,7 +501,7 @@ export class TheaterSelectionScene extends Phaser.Scene {
    * @param {number} bgColor
    * @param {string} textColor
    * @param {Phaser.GameObjects.Container} parent
-   * @returns {Phaser.GameObjects.Container}
+   * @returns {Phaser.GameObjects.Rectangle}
    */
   _createModalButton(x, y, label, bgColor, textColor, parent) {
     const buttonWidth = 180;
@@ -455,8 +512,8 @@ export class TheaterSelectionScene extends Phaser.Scene {
     const btnContainer = this.add.container(x, y);
 
     let bg;
-    if (this.textures.exists('ui_button_frame')) {
-      bg = this.add.image(0, 0, 'ui_button_frame');
+    if (this.textures.exists("ui_button_frame")) {
+      bg = this.add.image(0, 0, "ui_button_frame");
       bg.setDisplaySize(btnW, btnH);
     } else {
       bg = this.add.rectangle(0, 0, btnW, btnH, bgColor, 0.9);
@@ -520,9 +577,9 @@ export class TheaterSelectionScene extends Phaser.Scene {
    * @param {Phaser.GameObjects.Container} modalContainer
    */
   _dismissModal(dimOverlay, modalContainer) {
-    const escListener = dimOverlay.getData('escListener');
+    const escListener = dimOverlay.getData("escListener");
     if (escListener) {
-      this.input.keyboard.off("keydown-ESC", escListener);
+      this.input.keyboard?.off("keydown-ESC", escListener);
     }
 
     this.tweens.add({
