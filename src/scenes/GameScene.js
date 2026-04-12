@@ -337,7 +337,8 @@ export class GameScene extends Phaser.Scene {
     }
     const totalGridH = yCursor;
 
-    const floorW = totalGridW;
+    const labelPad = s(75); // space for row letter labels on the left
+    const floorW = totalGridW + labelPad; // total floor width including labels
     const stageAscpectRatio = 222 / 978;
     const stageRenderWidth = floorW + s(115);
     const actualStageH = stageRenderWidth * stageAscpectRatio;
@@ -387,20 +388,20 @@ export class GameScene extends Phaser.Scene {
       for (let r = 0; r < ROWS; r++) staggerRowOffsets[r] = 0;
     }
 
-    const gridStartX = (width - totalGridW) / 2;
+    // Center the entire floor (label pad + grid) on screen
+    const floorLeft = (width - floorW) / 2;
+    const gridStartX = floorLeft + labelPad;
 
     // Offset colX and rowY so they're relative to gridStartX/gridStartY
     for (let c = 0; c < COLS; c++) colX[c] += gridStartX;
     for (let r = 0; r < ROWS; r++) rowY[r] += gridStartY;
 
     // ── Theater floor background ─────────────────────────────────
-    const floorLeft = gridStartX;
-    const floorRight = gridStartX + totalGridW;
     const floorTop = gridStartY - s(4);
     const floorBottom = gridStartY + totalGridH + s(4);
-    // floorW was declared earlier to compute aspect ratio
     const floorH = floorBottom - floorTop;
 
+    const floorCenterX = floorLeft + floorW / 2;
     const bgKey = `bg_${this.layout.id}`;
     if (this.textures.exists(bgKey)) {
       // Draw the background image with cover scaling (maintain aspect ratio)
@@ -408,7 +409,7 @@ export class GameScene extends Phaser.Scene {
       const coverW = floorW + bleed;
       const coverH = floorH + bleed;
       const bgImg = this.add.image(
-        floorLeft + floorW / 2,
+        floorCenterX,
         floorTop + floorH / 2,
         bgKey,
       );
@@ -429,7 +430,7 @@ export class GameScene extends Phaser.Scene {
     } else {
       this.add
         .rectangle(
-          floorLeft + floorW / 2,
+          floorCenterX,
           floorTop + floorH / 2,
           floorW,
           floorH,
@@ -463,7 +464,7 @@ export class GameScene extends Phaser.Scene {
 
     // Right aisle walkway
     if (rightAisle) {
-      const aisleX = floorRight - AISLE_GAP / 2;
+      const aisleX = (floorLeft + floorW) - AISLE_GAP / 2;
       this.add
         .rectangle(
           aisleX,
@@ -526,7 +527,7 @@ export class GameScene extends Phaser.Scene {
 
     if (this.textures.exists("ui_stage")) {
       const stageImg = this.add.image(
-        floorLeft + floorW / 2,
+        floorCenterX,
         stageY,
         "ui_stage",
       );
@@ -535,7 +536,7 @@ export class GameScene extends Phaser.Scene {
     } else {
       this.add
         .rectangle(
-          floorLeft + floorW / 2,
+          floorCenterX,
           stageY,
           floorW,
           actualStageH,
@@ -545,7 +546,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.add
-      .text(floorLeft + floorW / 2, stageY, this.layout.name, {
+      .text(floorCenterX, stageY, this.layout.name, {
         fontSize: px(36),
         color: "#ffd700",
         fontFamily: "Georgia, serif",
@@ -567,9 +568,9 @@ export class GameScene extends Phaser.Scene {
       const y2 = rowY[breakRow + 1] - SEAT_SIZE / 2;
       const midY = (y1 + y2) / 2;
       // Dashed horizontal line
-      for (let dx = 0; dx < floorW; dx += s(12)) {
+      for (let dx = 0; dx < totalGridW; dx += s(12)) {
         this.add
-          .rectangle(floorLeft + dx + s(3), midY, s(6), s(2), 0x555577)
+          .rectangle(gridStartX + dx + s(3), midY, s(6), s(2), 0x555577)
           .setAlpha(0.5);
       }
     }
@@ -621,11 +622,18 @@ export class GameScene extends Phaser.Scene {
         );
 
         // Visual styling per seat type
-        const emptyFillAisle = isAisle ? 0x1e1e38 : 0x1a1a3e;
-        const emptyFill = isRoyalBox ? 0x2a2040 : emptyFillAisle;
-        const emptyStrokeAisle = isAisle ? 0x6a6a3e : 0x3a3a5e;
-        const emptyStroke = isRoyalBox ? 0xdaa520 : emptyStrokeAisle;
-        const strokeWidth = isRoyalBox ? s(3) : s(2);
+        let emptyFill = 0x1a1a3e;
+        let emptyStroke = 0x3a3a5e;
+        let strokeWidth = s(2);
+        if (isRoyalBox) {
+          emptyFill = 0x2a2040;
+          emptyStroke = 0xdaa520;
+          strokeWidth = s(3);
+        } else if (isAisle) {
+          emptyFill = 0x1e1e38;
+          emptyStroke = 0x8a7a3e;
+          strokeWidth = s(2.5);
+        }
 
         const seat = this.add
           .rectangle(x, y, SEAT_SIZE, SEAT_SIZE, emptyFill)
