@@ -26,27 +26,26 @@ export class BootScene extends Phaser.Scene {
     // ── Progress bar (drawn with rectangles, no images) ─────────────
     const barW = s(300);
     const barH = s(20);
-    const barX = width / 2 - barW / 2;
-    const barY = height / 2;
+    const barCenterY = height / 2 + barH / 2;
 
-    // Outer border
+    // Outer border (center origin)
     const barBorder = this.add.rectangle(
       width / 2,
-      barY + barH / 2,
+      barCenterY,
       barW + s(4),
       barH + s(4),
     );
     barBorder.setStrokeStyle(s(2), 0xd4af37);
     barBorder.setFillStyle(0x0a0a1a);
 
-    // Inner fill (will be scaled on progress)
+    // Inner fill (left-aligned, grows with progress)
     const barFill = this.add.rectangle(
-      barX + s(2),
-      barY + s(2),
+      width / 2 - barW / 2,
+      barCenterY,
       0,
       barH,
       0xd4af37,
-    ).setOrigin(0, 0);
+    ).setOrigin(0, 0.5);
 
     this.load.on("progress", (/** @type {number} */ value) => {
       barFill.width = barW * value;

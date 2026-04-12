@@ -158,18 +158,4 @@ with no Phaser dependency**, making it straightforward to test in isolation.
 - [ ] **Play Variants** — Different "plays" with special rules
 - [ ] **Audio** — Ambient theater sounds and placement effects
 
-## 📚 Learning Phaser?
 
-This codebase includes extensive JSDoc comments explaining Phaser concepts:
-
-- **Scenes** — `src/scenes/TitleScene.js`, `src/scenes/GameScene.js`
-- **Game Objects** — `src/objects/Card.js`
-- **Configuration** — `src/main.js`
-
-Check the code comments for explanations of:
-
-- Scene lifecycle (init, preload, create, update)
-- Interactive objects and events
-- Containers for grouping elements
-- Tweens for animations
-- Grid-based game object placement

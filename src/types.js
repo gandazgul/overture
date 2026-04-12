@@ -1,16 +1,5 @@
 // @ts-check
 
-/**
- * ========================================================================
- * PHASER CONCEPT: No built-in data model
- * ========================================================================
- * Phaser doesn't dictate how you structure your game data. It provides
- * rendering, input, and physics — but YOUR game logic (cards, turns,
- * scoring) lives in plain JavaScript. This file defines our data types
- * using JSDoc so Deno can typecheck them.
- * ========================================================================
- */
-
 // ── Primary Patron Types ───────────────────────────────────────────
 
 /**
