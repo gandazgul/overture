@@ -1,6 +1,7 @@
 // @ts-check
 import Phaser from "phaser";
 import { Card } from "../objects/Card.js";
+import { SpeechBubble } from "../objects/SpeechBubble.js";
 import {
   createDeck,
   GrandEmpressLayout,
@@ -402,13 +403,29 @@ export class GameScene extends Phaser.Scene {
 
     const bgKey = `bg_${this.layout.id}`;
     if (this.textures.exists(bgKey)) {
-      // Draw the background image with slight aesthetic bleed
+      // Draw the background image with cover scaling (maintain aspect ratio)
+      const bleed = s(60);
+      const coverW = floorW + bleed;
+      const coverH = floorH + bleed;
       const bgImg = this.add.image(
         floorLeft + floorW / 2,
         floorTop + floorH / 2,
         bgKey,
       );
-      bgImg.setDisplaySize(floorW + s(60), floorH + s(60));
+      const texW = bgImg.width;
+      const texH = bgImg.height;
+      const coverScale = Math.max(coverW / texW, coverH / texH);
+      bgImg.setScale(coverScale);
+
+      // Clip to the floor area with bleed
+      const bgMask = this.make.graphics();
+      bgMask.fillRect(
+        floorLeft - bleed / 2,
+        floorTop - bleed / 2,
+        coverW,
+        coverH,
+      );
+      bgImg.setMask(bgMask.createGeometryMask());
     } else {
       this.add
         .rectangle(
@@ -1149,91 +1166,13 @@ export class GameScene extends Phaser.Scene {
     }
     if (!card.cardData.label && !hint) return;
 
-    // Explicit Speech Bubble Structure
-    this.scoringTooltip = this.add.container(card.x, card.baseY - s(220))
-      .setDepth(200);
+    this.scoringTooltip = new SpeechBubble(this, card, card.cardData.label, hint);
 
-    const bubbleW = s(220);
-    const bubbleH = s(80);
-
-    const bubbleBg = this.add.graphics();
-    const r = s(12); // corner radius
-    const tailW = s(12); // half-width of tail base
-    const tailH = s(16); // tail height
-
-    // 1) Fill the rounded rect body
-    bubbleBg.fillStyle(0x1a1a2e, 0.95);
-    bubbleBg.fillRoundedRect(-bubbleW / 2, -bubbleH, bubbleW, bubbleH, r);
-
-    // 2) Fill the tail triangle (overlap into rect by 2px to hide seam)
-    bubbleBg.beginPath();
-    bubbleBg.moveTo(-tailW, -s(1));
-    bubbleBg.lineTo(tailW, -s(1));
-    bubbleBg.lineTo(0, tailH);
-    bubbleBg.closePath();
-    bubbleBg.fillPath();
-
-    // 3) Stroke: one continuous path around the entire silhouette
-    bubbleBg.lineStyle(s(2), 0xd4af37, 1);
-    bubbleBg.beginPath();
-    // Start at bottom-left of rect, just before the tail gap
-    bubbleBg.moveTo(-tailW, 0);
-    // Down the left side of the tail
-    bubbleBg.lineTo(0, tailH);
-    // Up the right side of the tail
-    bubbleBg.lineTo(tailW, 0);
-    // Continue along the bottom edge to the bottom-right corner
-    bubbleBg.lineTo(bubbleW / 2 - r, 0);
-    // Bottom-right corner arc
-    bubbleBg.arc(bubbleW / 2 - r, -r, r, Math.PI * 0.5, 0, true);
-    // Right edge up to top-right corner
-    bubbleBg.lineTo(bubbleW / 2, -bubbleH + r);
-    // Top-right corner arc
-    bubbleBg.arc(bubbleW / 2 - r, -bubbleH + r, r, 0, -Math.PI * 0.5, true);
-    // Top edge to top-left corner
-    bubbleBg.lineTo(-bubbleW / 2 + r, -bubbleH);
-    // Top-left corner arc
-    bubbleBg.arc(
-      -bubbleW / 2 + r,
-      -bubbleH + r,
-      r,
-      -Math.PI * 0.5,
-      Math.PI,
-      true,
-    );
-    // Left edge down to bottom-left corner
-    bubbleBg.lineTo(-bubbleW / 2, -r);
-    // Bottom-left corner arc
-    bubbleBg.arc(-bubbleW / 2 + r, -r, r, Math.PI, Math.PI * 0.5, true);
-    // Along bottom edge back to the tail
-    bubbleBg.lineTo(-tailW, 0);
-    bubbleBg.strokePath();
-
-    const titleText = this.add.text(0, -bubbleH + s(18), card.cardData.label, {
-      fontSize: px(14),
-      fontFamily: "Georgia, serif",
-      color: "#d4af37",
-      fontStyle: "bold",
-      align: "center",
-    }).setOrigin(0.5, 0.5);
-
-    const hintText = this.add.text(0, -bubbleH + s(48), hint, {
-      fontSize: px(11),
-      fontFamily: "Arial",
-      color: "#ffffff",
-      align: "center",
-      wordWrap: { width: bubbleW - s(16) },
-    }).setOrigin(0.5, 0.5);
-
-    this.scoringTooltip.add([bubbleBg, titleText, hintText]);
-
-    // Fade in and float up slightly
+    // Fade in
     this.scoringTooltip.setAlpha(0);
-    this.scoringTooltip.setY(card.baseY - s(200));
     this.tweens.add({
       targets: this.scoringTooltip,
       alpha: 1,
-      y: card.baseY - s(220),
       duration: 150,
       ease: "Sine.easeOut",
     });
