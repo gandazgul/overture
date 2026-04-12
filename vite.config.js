@@ -8,5 +8,14 @@ export default {
   },
   build: {
     outDir: "dist",
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Phaser is ~1.1MB minified / ~355KB gzip and doesn't change
+          // between deploys — split it so repeat visitors skip re-downloading.
+          phaser: ["phaser"],
+        },
+      },
+    },
   },
 };

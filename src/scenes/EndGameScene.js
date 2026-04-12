@@ -1,11 +1,30 @@
 // @ts-check
 import Phaser from "phaser";
 import { s, px } from "../config.js";
-import { PlayerNames, PlayerColors, PatronColors } from "../types.js";
-import { scorePlayer, seatExists } from "../scoring.js";
+import {
+  PlayerNames,
+  PlayerColors,
+  PlayerColorsHex,
+  PatronType,
+  PatronInfo,
+} from "../types.js";
+import { scorePlayer } from "../scoring.js";
+
+/** Usher avatar texture keys, indexed by player index. */
+const USHER_KEYS = ["usher_blue", "usher_red", "usher_green", "usher_orange"];
+
+/** Patron types in display order for the scorecard rows. */
+const TYPE_ORDER = [
+  PatronType.STANDARD,
+  PatronType.VIP,
+  PatronType.LOVEBIRDS,
+  PatronType.KID,
+  PatronType.TEACHER,
+  PatronType.CRITIC,
+];
 
 /**
- * Scene for displaying the final scores and the players' theaters.
+ * End-game scene — polished scorecard styled to match the title screen.
  */
 export class EndGameScene extends Phaser.Scene {
   constructor() {
@@ -24,231 +43,311 @@ export class EndGameScene extends Phaser.Scene {
   create() {
     const { width, height } = this.scale;
 
-    // Full overlay
-    this.add
-      .rectangle(width / 2, height / 2, width, height, 0x000000, 0.96)
-      .setDepth(300);
+    // ── Dark background ─────────────────────────────────────────────
+    this.cameras.main.setBackgroundColor(0x0a0a1a);
 
-    const container = this.add.container(0, 0).setDepth(301);
-
-    // Title
-    container.add(
+    // ── Logo (same position as TitleScene) ──────────────────────────
+    if (this.textures.exists("ui_logo")) {
+      const logoRatio = 0.3643695015;
+      const logoWidth = 380;
       this.add
-        .text(width / 2, s(30), "🎭 Show's Over!", {
-          fontSize: px(32),
+        .image(width / 2, height / 4 - s(30), "ui_logo")
+        .setDisplaySize(s(logoWidth), s(logoWidth * logoRatio));
+    } else {
+      this.add
+        .text(width / 2, height / 4 - s(30), "Overture", {
+          fontSize: px(52),
           fontFamily: "Georgia, serif",
           color: "#f5c518",
         })
-        .setOrigin(0.5)
-    );
-
-    // Calculate real VP scores
-    /** @type {number[]} */
-    const scores = [];
-    /** @type {import('../scoring.js').PlayerScore[]} */
-    const playerScores = [];
-    for (let p = 0; p < this.playerCount; p++) {
-      const result = scorePlayer(this.placedPatrons[p], this.layout);
-      scores.push(result.total);
-      playerScores.push(result);
+        .setOrigin(0.5);
     }
 
-    // Find winner
-    const maxScore = Math.max(...scores);
-
-    // ── Layout: 2-column grid ───────────────────────────────────────
-    // 2 players → 1 row, 2 cols
-    // 3 players → row 1: 2 cols, row 2: 1 centered
-    // 4 players → 2 rows, 2 cols
-    const gridCols = 2;
-    const gridRows = this.playerCount <= 2 ? 1 : 2;
-
-    // Size the mini seats to fill available space
-    const titleAreaH = s(60);                // space for title at top
-    const footerAreaH = s(90);               // space for winner text + button
-    const availH = height - titleAreaH - footerAreaH;
-    const availW = width - s(60);            // horizontal margin
-
-    const cellGapX = s(40);                  // gap between grid columns
-    const cellGapY = s(30);                  // gap between grid rows
-    const labelH = s(45);                    // player name + score above grid
-
-    // Compute max seat size that fits
-    const cellW = (availW - (gridCols - 1) * cellGapX) / gridCols;
-    const cellH = (availH - (gridRows - 1) * cellGapY) / gridRows;
-    const ROWS = this.layout.rows;
-    const COLS = this.layout.cols;
-    const maxSeatFromW = (cellW - (COLS - 1) * s(3)) / COLS;
-    const maxSeatFromH = (cellH - labelH - (ROWS - 1) * s(3)) / ROWS;
-    const miniSeatSize = Math.min(Math.floor(Math.min(maxSeatFromW, maxSeatFromH)), s(50));
-    const miniGap = s(5);
-
-    const miniGridW = COLS * (miniSeatSize + miniGap) - miniGap;
-    const miniGridH = ROWS * (miniSeatSize + miniGap) - miniGap;
-    const panelW = miniGridW;                // width of one player panel
-    const panelH = labelH + miniGridH;       // height of one player panel
-
-    // Compute grid positions for each player slot
-    // Returns {cx, cy} — the center-x of the panel and top-y
-    /**
-     * @param {number} idx
-     * @returns {{cx: number, topY: number}}
-     */
-    const slotPosition = (idx) => {
-      let col, row;
-      if (this.playerCount === 3 && idx === 2) {
-        // 3rd player: centered on second row
-        col = 0.5; // will be centered
-        row = 1;
-      } else {
-        col = idx % gridCols;
-        row = Math.floor(idx / gridCols);
-      }
-
-      const totalRowW = (col === 0.5)
-        ? panelW  // single centered panel
-        : gridCols * panelW + (gridCols - 1) * cellGapX;
-      const rowStartX = (width - totalRowW) / 2;
-
-      const cx = (col === 0.5)
-        ? width / 2
-        : rowStartX + col * (panelW + cellGapX) + panelW / 2;
-
-      const totalH = gridRows * panelH + (gridRows - 1) * cellGapY;
-      const gridStartY = titleAreaH + (availH - totalH) / 2;
-      const topY = gridStartY + row * (panelH + cellGapY);
-
-      return { cx, topY };
-    };
-
-    // Draw each player's theater
+    // ── Compute scores ──────────────────────────────────────────────
+    /** @type {import('../scoring.js').PlayerScore[]} */
+    const playerScores = [];
+    /** @type {number[]} */
+    const totals = [];
     for (let p = 0; p < this.playerCount; p++) {
-      const { cx, topY } = slotPosition(p);
-      const baseX = cx - miniGridW / 2;      // left edge of grid
-      const gridTopY = topY + labelH;         // top of seat grid
-      const color = PlayerColors[p];
-      const isWinner = scores[p] === maxScore;
+      const result = scorePlayer(this.placedPatrons[p], this.layout);
+      playerScores.push(result);
+      totals.push(result.total);
+    }
 
-      // Player name
-      container.add(
-        this.add
-          .text(cx, topY, PlayerNames[p], {
-            fontSize: px(18),
-            fontFamily: "Georgia, serif",
-            color: color,
-          })
-          .setOrigin(0.5, 0)
-      );
-
-      // Score
-      container.add(
-        this.add
-          .text(
-            cx,
-            topY + s(22),
-            `${scores[p]} VP${isWinner ? " 🏆" : ""}`,
-            {
-              fontSize: px(14),
-              fontFamily: "Arial",
-              color: isWinner ? "#f5c518" : "#aaaaaa",
-            }
-          )
-          .setOrigin(0.5, 0)
-      );
-
-      // Mini grid
-      for (let r = 0; r < ROWS; r++) {
-        for (let c = 0; c < COLS; c++) {
-          if (!seatExists(r, c, this.layout)) continue;
-
-          const x = baseX + c * (miniSeatSize + miniGap) + miniSeatSize / 2;
-          const y = gridTopY + r * (miniSeatSize + miniGap) + miniSeatSize / 2;
-          const cardData = this.placedPatrons[p][r][c];
-
-          const seatVP = playerScores[p].perSeat[r][c];
-          const seatColor = cardData
-            ? PatronColors[cardData.type] || 0x607d8b
-            : 0x1a1a3e;
-
-          const rect = this.add
-            .rectangle(x, y, miniSeatSize, miniSeatSize, seatColor)
-            .setStrokeStyle(
-              s(1),
-              cardData
-                ? seatVP < 0
-                  ? 0xff4444
-                  : seatVP > 3
-                    ? 0xf5c518
-                    : 0x888888
-                : 0x3a3a5e
-            );
-          container.add(rect);
-
-          if (cardData) {
-            const emojiSize = Math.max(8, Math.round(miniSeatSize * 0.45));
-            const vpSize = Math.max(6, Math.round(miniSeatSize * 0.32));
-            const e = this.add
-              .text(x, y - miniSeatSize * 0.12, cardData.emoji, {
-                fontSize: `${emojiSize}px`,
-              })
-              .setOrigin(0.5);
-            container.add(e);
-
-            // Show per-seat VP
-            const vpLabel = this.add
-              .text(x, y + miniSeatSize * 0.28, `${seatVP}`, {
-                fontSize: `${vpSize}px`,
-                fontFamily: "Arial",
-                color: seatVP < 0 ? "#ff6666" : seatVP > 0 ? "#ffffff" : "#888888",
-              })
-              .setOrigin(0.5);
-            container.add(vpLabel);
+    // Per-type VP breakdown: typeVP[playerIdx][patronType] = sum
+    /** @type {Record<string, number>[]} */
+    const typeVP = [];
+    for (let p = 0; p < this.playerCount; p++) {
+      /** @type {Record<string, number>} */
+      const breakdown = {};
+      for (const t of TYPE_ORDER) breakdown[t] = 0;
+      const grid = this.placedPatrons[p];
+      for (let r = 0; r < this.layout.rows; r++) {
+        for (let c = 0; c < this.layout.cols; c++) {
+          const card = grid[r][c];
+          if (card) {
+            breakdown[card.type] = (breakdown[card.type] || 0) + playerScores[p].perSeat[r][c];
           }
         }
       }
+      typeVP.push(breakdown);
     }
 
-    // ── Winner announcement & Play Again ─────────────────────────────
-    const footerY = height - footerAreaH;
-
-    const winners = scores
+    // ── Winner announcement ─────────────────────────────────────────
+    const maxScore = Math.max(...totals);
+    const winners = totals
       .map((sc, i) => (sc === maxScore ? PlayerNames[i] : null))
       .filter(Boolean);
-    const winnerMsg =
-      winners.length > 1
-        ? `It's a tie! ${winners.join(" & ")}`
-        : `${winners[0]} wins!`;
+    const isTie = winners.length > 1;
+    const winnerMsg = isTie
+      ? `It's a tie! ${winners.join(" & ")}`
+      : `🏆 ${winners[0]} wins! 🏆`;
 
-    container.add(
-      this.add
-        .text(width / 2, footerY, winnerMsg, {
-          fontSize: px(26),
-          fontFamily: "Georgia, serif",
-          color: "#f5c518",
-        })
-        .setOrigin(0.5, 0)
+    const winnerY = height / 4 + s(50);
+    this.add
+      .text(width / 2, winnerY, winnerMsg, {
+        fontSize: px(isTie ? 22 : 26),
+        fontFamily: "Georgia, serif",
+        color: "#f5c518",
+      })
+      .setOrigin(0.5);
+
+    // ── Scoring Card Table ──────────────────────────────────────────
+    const tableTop = winnerY + s(45);
+    const tableBottom = height - s(90);
+    const tableAvailH = tableBottom - tableTop;
+
+    // Columns: label column + one per player
+    const labelColW = s(130);
+    const playerColW = s(this.playerCount <= 3 ? 140 : 115);
+    const tableW = labelColW + this.playerCount * playerColW;
+    const tableLeft = (width - tableW) / 2;
+
+    // Rows: avatar header + 6 patron types + divider + total = 9 visual rows
+    const avatarRowH = s(70);
+    const dataRowCount = TYPE_ORDER.length;
+    const totalRowH = s(38);
+    const dataRowH = Math.min(
+      s(34),
+      (tableAvailH - avatarRowH - totalRowH - s(10)) / dataRowCount
     );
 
-    const restartBtn = this.add
-      .text(
-        width / 2,
-        footerY + s(40),
-        "▶  Play Again",
-        {
-          fontSize: px(22),
-          fontFamily: "Georgia, serif",
-          color: "#ffffff",
-          backgroundColor: "#4a2c7a",
-          padding: { x: s(20), y: s(10) },
-        }
-      )
-      .setOrigin(0.5, 0)
-      .setInteractive({ useHandCursor: true });
+    const gold = 0xd4af37;
+    const darkBg = 0x12122a;
+    const altBg = 0x181838;
 
-    restartBtn.on("pointerdown", () => {
+    const gfx = this.add.graphics();
+
+    // ── Table outer border + background ─────────────────────────────
+    const fullTableH = avatarRowH + dataRowCount * dataRowH + s(4) + totalRowH;
+    gfx.fillStyle(darkBg, 0.95);
+    gfx.fillRoundedRect(tableLeft - s(4), tableTop - s(4), tableW + s(8), fullTableH + s(8), s(8));
+    gfx.lineStyle(s(2), gold, 0.8);
+    gfx.strokeRoundedRect(tableLeft - s(4), tableTop - s(4), tableW + s(8), fullTableH + s(8), s(8));
+
+    // ── Avatar header row ───────────────────────────────────────────
+    const headerY = tableTop;
+    // "Score Card" label in top-left
+    this.add
+      .text(tableLeft + labelColW / 2, headerY + avatarRowH / 2, "Score Card", {
+        fontSize: px(13),
+        fontFamily: "Georgia, serif",
+        color: "#d4af37",
+        fontStyle: "italic",
+      })
+      .setOrigin(0.5);
+
+    for (let p = 0; p < this.playerCount; p++) {
+      const colX = tableLeft + labelColW + p * playerColW + playerColW / 2;
+
+      // Usher avatar
+      const avatarSize = s(36);
+      if (this.textures.exists(USHER_KEYS[p])) {
+        const avatar = this.add.image(colX, headerY + s(22), USHER_KEYS[p]);
+        avatar.setDisplaySize(avatarSize, avatarSize);
+        // Circular mask
+        const maskGfx = this.add.graphics();
+        maskGfx.fillCircle(colX, headerY + s(22), avatarSize / 2);
+        avatar.setMask(maskGfx.createGeometryMask());
+      }
+
+      // Player name
+      this.add
+        .text(colX, headerY + s(46), PlayerNames[p].replace("Player ", "P"), {
+          fontSize: px(11),
+          fontFamily: "Georgia, serif",
+          color: PlayerColors[p],
+          fontStyle: "bold",
+        })
+        .setOrigin(0.5, 0);
+
+      // Colored underline
+      gfx.lineStyle(s(2), PlayerColorsHex[p], 0.7);
+      gfx.lineBetween(
+        colX - playerColW / 2 + s(10),
+        headerY + avatarRowH - s(2),
+        colX + playerColW / 2 - s(10),
+        headerY + avatarRowH - s(2)
+      );
+    }
+
+    // Horizontal line under header
+    gfx.lineStyle(s(1), gold, 0.5);
+    gfx.lineBetween(tableLeft, headerY + avatarRowH, tableLeft + tableW, headerY + avatarRowH);
+
+    // ── Data rows (one per patron type) ─────────────────────────────
+    const dataStartY = headerY + avatarRowH;
+
+    for (let i = 0; i < TYPE_ORDER.length; i++) {
+      const type = TYPE_ORDER[i];
+      const info = PatronInfo[type];
+      const rowY = dataStartY + i * dataRowH;
+
+      // Alternating row background
+      if (i % 2 === 1) {
+        gfx.fillStyle(altBg, 0.5);
+        gfx.fillRect(tableLeft, rowY, tableW, dataRowH);
+      }
+
+      // Row label: emoji + type name
+      this.add
+        .text(tableLeft + s(10), rowY + dataRowH / 2, `${info.emoji}  ${type}`, {
+          fontSize: px(12),
+          fontFamily: "Georgia, serif",
+          color: "#ccccdd",
+        })
+        .setOrigin(0, 0.5);
+
+      // Player values
+      for (let p = 0; p < this.playerCount; p++) {
+        const colX = tableLeft + labelColW + p * playerColW + playerColW / 2;
+        const vp = typeVP[p][type];
+        const color = vp < 0 ? "#ff6666" : vp > 0 ? "#ffffff" : "#666677";
+
+        this.add
+          .text(colX, rowY + dataRowH / 2, `${vp}`, {
+            fontSize: px(13),
+            fontFamily: "Arial",
+            color,
+            fontStyle: vp !== 0 ? "bold" : "",
+          })
+          .setOrigin(0.5);
+      }
+
+      // Horizontal line
+      gfx.lineStyle(s(1), gold, 0.15);
+      gfx.lineBetween(tableLeft, rowY + dataRowH, tableLeft + tableW, rowY + dataRowH);
+    }
+
+    // ── Total row ───────────────────────────────────────────────────
+    const totalY = dataStartY + dataRowCount * dataRowH + s(4);
+
+    // Gold background for totals
+    gfx.fillStyle(gold, 0.12);
+    gfx.fillRect(tableLeft, totalY, tableW, totalRowH);
+    gfx.lineStyle(s(2), gold, 0.6);
+    gfx.lineBetween(tableLeft, totalY, tableLeft + tableW, totalY);
+
+    // "Total" label
+    this.add
+      .text(tableLeft + s(10), totalY + totalRowH / 2, "Total VP", {
+        fontSize: px(14),
+        fontFamily: "Georgia, serif",
+        color: "#d4af37",
+        fontStyle: "bold",
+      })
+      .setOrigin(0, 0.5);
+
+    // Player totals
+    for (let p = 0; p < this.playerCount; p++) {
+      const colX = tableLeft + labelColW + p * playerColW + playerColW / 2;
+      const isWinner = totals[p] === maxScore;
+
+      this.add
+        .text(colX, totalY + totalRowH / 2, `${totals[p]}`, {
+          fontSize: px(isWinner ? 18 : 15),
+          fontFamily: "Georgia, serif",
+          color: isWinner ? "#f5c518" : "#ccccdd",
+          fontStyle: "bold",
+        })
+        .setOrigin(0.5);
+
+      // Trophy for winner
+      if (isWinner) {
+        this.add
+          .text(colX + s(18), totalY + totalRowH / 2 - s(1), "🏆", {
+            fontSize: px(12),
+          })
+          .setOrigin(0, 0.5);
+      }
+    }
+
+    // Vertical separator lines (label | player cols)
+    gfx.lineStyle(s(1), gold, 0.3);
+    gfx.lineBetween(
+      tableLeft + labelColW,
+      tableTop,
+      tableLeft + labelColW,
+      totalY + totalRowH
+    );
+    for (let p = 1; p < this.playerCount; p++) {
+      const lineX = tableLeft + labelColW + p * playerColW;
+      gfx.lineStyle(s(1), gold, 0.15);
+      gfx.lineBetween(lineX, tableTop, lineX, totalY + totalRowH);
+    }
+
+    // ── Play Again Button ───────────────────────────────────────────
+    const btnY = height - s(50);
+    const buttonWidth = 220;
+    const buttonHeight = buttonWidth * 0.4704684318;
+    const btnContainer = this.add.container(width / 2, btnY);
+
+    if (this.textures.exists("ui_button_frame")) {
+      const bgImg = this.add.image(0, 0, "ui_button_frame");
+      bgImg.setDisplaySize(s(buttonWidth), s(buttonHeight));
+      btnContainer.add(bgImg);
+    } else {
+      const fallbackBg = this.add.rectangle(0, 0, s(buttonWidth), s(buttonHeight), 0x4a2c7a);
+      btnContainer.add(fallbackBg);
+    }
+
+    const textLabel = this.add
+      .text(0, 0, "Play Again", {
+        fontSize: px(20),
+        fontFamily: "Georgia, serif",
+        color: "#ffffff",
+        fontStyle: "bold",
+      })
+      .setOrigin(0.5);
+    btnContainer.add(textLabel);
+
+    const hitArea = this.add
+      .rectangle(0, 0, s(buttonWidth), s(buttonHeight), 0, 0)
+      .setInteractive({ useHandCursor: true });
+    btnContainer.add(hitArea);
+
+    hitArea.on("pointerover", () => {
+      textLabel.setStyle({ color: "#f5c518" });
+      this.tweens.add({
+        targets: btnContainer,
+        scaleX: 1.05,
+        scaleY: 1.05,
+        duration: 150,
+        ease: "Sine.easeOut",
+      });
+    });
+    hitArea.on("pointerout", () => {
+      textLabel.setStyle({ color: "#ffffff" });
+      this.tweens.add({
+        targets: btnContainer,
+        scaleX: 1,
+        scaleY: 1,
+        duration: 150,
+        ease: "Sine.easeOut",
+      });
+    });
+    hitArea.on("pointerdown", () => {
       this.scene.start("TitleScene");
     });
-
-    container.add(restartBtn);
   }
 }

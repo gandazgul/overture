@@ -171,6 +171,28 @@ export class TitleScene extends Phaser.Scene {
       toggleText.setStyle({ color: next ? "#66bb6a" : "#888899" });
     });
 
-    // Flavor text removed per requested changes
+    // Fullscreen button
+    const fsBtn = this.add
+      .text(width * 0.9, s(40), "⛶ Fullscreen", {
+        fontSize: px(16),
+        fontFamily: "Arial",
+        color: "#ffffff",
+        backgroundColor: "#2a2a4e",
+        padding: { x: s(12), y: s(6) },
+      })
+      .setOrigin(0.5, 0)
+      .setInteractive({ useHandCursor: true });
+
+    fsBtn.on("pointerdown", () => {
+      const el = /** @type {any} */ (document.documentElement);
+      if (el.requestFullscreen) {
+        el.requestFullscreen();
+      } else if (el.webkitRequestFullscreen) {
+        el.webkitRequestFullscreen();
+      } else if (el.msRequestFullscreen) {
+        el.msRequestFullscreen();
+      }
+    });
+
   }
 }
