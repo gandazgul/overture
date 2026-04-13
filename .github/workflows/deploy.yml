@@ -22,18 +22,22 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Set short SHA
+      - name: Determine image tags
         id: vars
-        run: echo "sha_short=$(echo ${{ github.sha }} | cut -c1-7)" >> "$GITHUB_OUTPUT"
+        run: |
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            echo "tags=latest ${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          else
+            SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+            echo "tags=sha-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Build image with Buildah
         id: build
         uses: redhat-actions/buildah-build@v2
         with:
           image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: >-
-            latest
-            sha-${{ steps.vars.outputs.sha_short }}
+          tags: ${{ steps.vars.outputs.tags }}
           containerfiles: ./Containerfile
           oci: true
 
@@ -42,6 +46,5 @@ jobs:
         with:
           image: ${{ steps.build.outputs.image }}
           tags: ${{ steps.build.outputs.tags }}
-          registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
