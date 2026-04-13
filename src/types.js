@@ -10,7 +10,7 @@
  * @enum {string}
  */
 export const PatronType = /** @type {const} */ ({
-  STANDARD: "Standard",
+  STANDARD: "Patron",
   VIP: "VIP",
   LOVEBIRDS: "Lovebirds",
   KID: "Kid",

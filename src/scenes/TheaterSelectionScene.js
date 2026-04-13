@@ -246,7 +246,12 @@ export class TheaterSelectionScene extends Phaser.Scene {
 
     backBtn.on("pointerover", () => backBtn.setStyle({ color: "#f5c518" }));
     backBtn.on("pointerout", () => backBtn.setStyle({ color: "#888899" }));
-    backBtn.on("pointerdown", () => this.scene.start("TitleScene"));
+    backBtn.on("pointerdown", () => this.scene.start("TitleScene", {
+      returnToSetup: true,
+      playerCount: this.selectedPlayerCount,
+      aiConfig: this.aiConfig,
+      playerColorMap: this.playerColorMap,
+    }));
   }
 
   // ══════════════════════════════════════════════════════════════════

@@ -20,7 +20,7 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 ASSETS_TO_GENERATE = [
     # 1. Primary Patron Types (Card Illustrations) - Aspect Ratio: 3:4
     {
-        "filename": "patron_standard.png",
+        "filename": "patron_patron.png",
         "prompt": "A charming, stylized 2D digital illustration of a 1920s everyday theatergoer, dressed in a neat vintage suit, looking attentively forward. Warm theater lighting. Art Deco illustration style, clean lines, vibrant but elegant color palette, centered portrait, plain dark background.",
         "aspect_ratio": "3:4"
     },

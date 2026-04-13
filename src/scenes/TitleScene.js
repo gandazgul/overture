@@ -31,6 +31,23 @@ export class TitleScene extends Phaser.Scene {
          * @type {number[]}
          */
         this.playerColorMap = [0, 1, 2, 3];
+
+        /** @type {boolean} Whether to jump straight to player setup on create */
+        this._returnToSetup = false;
+    }
+
+    /**
+     * @param {{ returnToSetup?: boolean, playerCount?: number, aiConfig?: (string | null)[], playerColorMap?: number[] }} [data]
+     */
+    init(data) {
+        if (data?.returnToSetup) {
+            this._returnToSetup = true;
+            this.selectedPlayerCount = data.playerCount || this.selectedPlayerCount;
+            this.aiConfig = data.aiConfig || this.aiConfig;
+            this.playerColorMap = data.playerColorMap || this.playerColorMap;
+        } else {
+            this._returnToSetup = false;
+        }
     }
 
     create() {
@@ -44,7 +61,12 @@ export class TitleScene extends Phaser.Scene {
             this.scene.start('TheaterSelectionScene', { playerCount: 2 });
         });
 
-        this.showMainMenu();
+        if (this._returnToSetup) {
+            this._returnToSetup = false;
+            this.showAISetup();
+        } else {
+            this.showMainMenu();
+        }
     }
 
     // ══════════════════════════════════════════════════════════════════

@@ -30,7 +30,7 @@ deno task dev
 
 | Type          | Strategy                                                                  |
 | ------------- | ------------------------------------------------------------------------- |
-| **Standard**  | Worth 3 VP anywhere.                                                      |
+| **Patron**    | Worth 3 VP anywhere.                                                      |
 | **VIP**       | 5 VP base; +3 VP in front rows. Penalty near Kids and Noisy patrons.      |
 | **Lovebirds** | 0 VP base; +3 VP if adjacent to another Lovebird. **×2 VP** in back rows. |
 | **Kid**       | 0 VP base; 2 VP only if capped by Teachers on both ends of a group.       |

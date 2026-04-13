@@ -6,11 +6,16 @@ import {
   createDeck,
   GrandEmpressLayout,
   hasSeatLabel,
+  LayoutOrder,
   Layouts,
+  PatronInfo,
+  PatronType,
   PlayerColors,
   PlayerColorsHex,
   PlayerNames,
+  Trait,
   TraitColors,
+  TraitInfo,
 } from "../types.js";
 import { scorePlayer, seatExists } from "../scoring.js";
 import { createButton } from "../objects/Button.js";
@@ -26,13 +31,14 @@ const AISLE_GAP = s(30); // wider gap for aisle walkways
  * @type {Record<string, string>}
  */
 const SCORING_HINTS = {
-  "Standard": "Base 3 VP",
+  "Patron": "Base 3 VP",
   "VIP":
     "Base 5 VP\n+3 VP in rows A–B (front 2)\n⚠ −3 VP per adjacent Kid or Noisy",
   "Lovebirds": "+3 VP per adjacent Lovebirds\n×2 VP in back row\n0 VP if alone",
   "Kid": "⚠ 0 VP unless capped by Teacher\n+2 VP when capped",
   "Teacher": "Base 1 VP\n+1 VP per adjacent capped Kid",
-  "Critic": "Base 2 VP\n×3 VP in an aisle seat (col 1 or 5)",
+  "Critic": "Base 2 VP\n×3 VP in an aisle seat (gold border)",
+  "Friends": "Base 3 VP\n+1 VP per adjacent Friend",
 };
 
 /**
@@ -203,7 +209,7 @@ export class GameScene extends Phaser.Scene {
     };
 
     // ── Patron cards ────────────────────────────────────────────────
-    loadIfMissing("patron_standard", "assets/patron_standard.png");
+    loadIfMissing("patron_patron", "assets/patron_patron.png");
     loadIfMissing("patron_vip", "assets/patron_vip.png");
     loadIfMissing("patron_lovebirds", "assets/patron_lovebirds.png");
     loadIfMissing("patron_kid", "assets/patron_kid.png");
@@ -293,6 +299,59 @@ export class GameScene extends Phaser.Scene {
       console.log("DEBUG: Skipping to end screen");
       this.turnPhase = "game-over";
       this.endGame();
+    });
+
+    // ── DEV DEBUG HAND (Shift+H) — one of each patron + one of each trait
+    this.input.keyboard?.on("keydown-H", (/** @type {KeyboardEvent} */ e) => {
+      if (!e.shiftKey) return;
+      console.log("DEBUG: Dealing debug hand (all types + all traits)");
+      const hand = this.playerHands[this.currentPlayer];
+      hand.length = 0;
+
+      // One card per patron type (no trait)
+      for (const type of Object.values(PatronType)) {
+        const info = PatronInfo[type];
+        hand.push({
+          type,
+          label: type,
+          emoji: info.emoji,
+          description: info.description,
+        });
+      }
+
+      // One Standard card per trait
+      const baseType = PatronType.STANDARD;
+      const baseInfo = PatronInfo[baseType];
+      for (const trait of Object.values(Trait)) {
+        const tInfo = TraitInfo[trait];
+        hand.push({
+          type: baseType,
+          trait,
+          label: `${trait} ${baseType}`,
+          emoji: `${tInfo.emoji}${baseInfo.emoji}`,
+          description: `${baseInfo.description} ${tInfo.description}`,
+        });
+      }
+
+      // Clear visible hand and re-render
+      for (const c of this.handCards) c.destroy();
+      this.handCards = [];
+      this.renderHand();
+    });
+
+    // ── DEV DEBUG THEATER CYCLE (Shift+T) ─────────────────────────
+    this.input.keyboard?.on("keydown-T", (/** @type {KeyboardEvent} */ e) => {
+      if (!e.shiftKey) return;
+      const curIdx = LayoutOrder.indexOf(this.layout.id);
+      const nextIdx = (curIdx + 1) % LayoutOrder.length;
+      const nextId = LayoutOrder[nextIdx];
+      console.log(`DEBUG: Cycling theater → ${Layouts[nextId].name}`);
+      this.scene.restart({
+        layoutId: nextId,
+        playerCount: this.playerCount,
+        aiConfig: this.aiConfig,
+        playerColorMap: this.playerColorMap,
+      });
     });
 
     // ── Compute aisle walkway positions ────────────────────────────
@@ -853,10 +912,13 @@ export class GameScene extends Phaser.Scene {
   showPassScreen() {
     this.turnPhase = "pass-screen";
 
-    // AI players skip the pass screen entirely
-    if (this.aiConfig[this.currentPlayer]) {
+    // Skip the pass screen for AI players, and for the sole human in an AI game
+    const isAI = !!this.aiConfig[this.currentPlayer];
+    const soloHuman = !isAI &&
+      this.aiConfig.filter((a, i) => i < this.playerCount && !a).length === 1;
+    if (isAI || soloHuman) {
       this.clearHandVisuals();
-      this.time.delayedCall(400, () => this.startTurn());
+      this.time.delayedCall(isAI ? 400 : 0, () => this.startTurn());
       return;
     }
 

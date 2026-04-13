@@ -143,7 +143,7 @@ optional trait adds a modifier on top.
 
 | Type          | Base VP | Core Mechanic                                                     |
 | ------------- | ------- | ----------------------------------------------------------------- |
-| **Standard**  | 3       | Reliable points anywhere. No special conditions.                  |
+| **Patron**    | 3       | Reliable points anywhere. No special conditions.                  |
 | **VIP**       | 3       | +3 VP in front 2 rows. −3 per adjacent Kid or Noisy-trait patron. |
 | **Lovebirds** | 1       | +3 VP if horizontally paired. +2 VP in back row. Pairs only.      |
 | **Kid**       | 1       | 1 VP uncapped; 3 VP when capped.                                  |
@@ -158,7 +158,7 @@ optional trait adds a modifier on top.
 | **Tall**         | Patron directly behind gets -2 VP.                                                       |
 | **Short**        | +2 VP if no one is directly in front. -3 VP if a Tall-trait patron is directly in front. |
 | **Bespectacled** | +2 VP unless seated in the back row.                                                     |
-| **Noisy**        | Each orthogonally adjacent patron gets -1 VP (all types, not just Standard).             |
+| **Noisy**        | Each orthogonally adjacent patron gets -1 VP (all types, not just Patron).             |
 
 ### Trait Assignment Rules
 
@@ -183,7 +183,7 @@ optional trait adds a modifier on top.
 
 | Primary Type | Clean  | Tall  | Short | Bespectacled | Noisy | **Total** |
 | ------------ | :----: | :---: | :---: | :----------: | :---: | :-------: |
-| Standard     |   5    |   2   |   2   |      2       |   2   |  **13**   |
+| Patron       |   5    |   2   |   2   |      2       |   2   |  **13**   |
 | VIP          |   3    |   -   |   -   |      1       |   -   |   **4**   |
 | Lovebirds    |   8    |   1   |   -   |      -       |   1   |  **10**   |
 | Kid          |   5    |   1   |   1   |      -       |   1   |   **8**   |
@@ -194,7 +194,7 @@ optional trait adds a modifier on top.
 
 **Design rationale:**
 
-- **Standard (13)** - Most common; reliable filler that keeps hands playable.
+- **Patron (13)** - Most common; reliable filler that keeps hands playable.
 - **Lovebirds (10)** - Enough density for pairs to be a viable strategy.
 - **Friends (8)** - Rewards clustering in any direction. Safe 3 VP floor when isolated.
 - **Kid (8) vs Teacher (6)** - Fewer Teachers than Kids creates tension around
@@ -213,7 +213,7 @@ Scoring is computed in two phases, then cross-type modifiers are applied.
 
 ### Primary Type Scoring
 
-#### Standard
+#### Patron
 
 - **3 VP** flat. No conditions.
 
@@ -283,7 +283,7 @@ Traits modify the card's VP _on top of_ primary type scoring.
 #### Noisy
 
 - Each **orthogonally adjacent patron** (any type) receives **-1 VP**.
-- This affects _all_ patron types-not only Standard.
+- This affects _all_ patron types-not only Patron.
 
 ### Cross-Type Modifiers
 
@@ -558,7 +558,7 @@ Deck):
 | **The Architect**    | Once per game, after placing a patron, swap two adjacent patrons in your theater.                     |
 | **The Collector**    | End-game: +1 VP per unique primary type in your theater (max +6).                                     |
 | **The Director**     | Once per game, look at the top 3 cards before drawing. Take one, return two in any order.             |
-| **The Understudy**   | Once per game, place a drawn card face-down. It scores as a Standard (3 VP) regardless of what it is. |
+| **The Understudy**   | Once per game, place a drawn card face-down. It scores as a Patron (3 VP) regardless of what it is. |
 | **The Patron Saint** | End-game: your 3 lowest-scoring patrons each get +1 VP.                                               |
 
 **Why it's interesting:** Three "once per game" roles (Veteran, Architect,
