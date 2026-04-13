@@ -34,18 +34,27 @@ export class EndGameScene extends Phaser.Scene {
   layout = /** @type {*} */ (null);
   /** @type {(import('../types.js').CardData | null)[][][]} Per-player grids (set in init, before create). */
   placedPatrons = /** @type {*} */ ([]);
+  /** @type {number[]} Maps player slot → color index. */
+  playerColorMap = [0, 1, 2, 3];
+  /** @type {(string | null)[]} AI config per player. */
+  aiConfig = [null, null, null, null];
 
   constructor() {
     super("EndGameScene");
   }
 
+  /** Get color index for player. */
+  colorOf(/** @type {number} */ p) { return this.playerColorMap[p] ?? p; }
+
   /**
-   * @param {{ playerCount: number, layout: import('../types.js').LayoutMeta, placedPatrons: (import('../types.js').CardData | null)[][][] }} data
+   * @param {{ playerCount: number, layout: import('../types.js').LayoutMeta, placedPatrons: (import('../types.js').CardData | null)[][][], playerColorMap?: number[], aiConfig?: (string | null)[] }} data
    */
   init(data) {
     this.playerCount = data.playerCount || 2;
     this.layout = data.layout;
     this.placedPatrons = data.placedPatrons;
+    this.playerColorMap = data.playerColorMap || Array.from({ length: this.playerCount }, (_, i) => i);
+    this.aiConfig = data.aiConfig || Array.from({ length: this.playerCount }, () => null);
   }
 
   create() {
@@ -193,8 +202,9 @@ export class EndGameScene extends Phaser.Scene {
 
       // Usher avatar
       const avatarSize = s(36);
-      if (this.textures.exists(USHER_KEYS[p])) {
-        const avatar = this.add.image(colX, headerY + s(22), USHER_KEYS[p]);
+      const usherKey = USHER_KEYS[this.colorOf(p)];
+      if (this.textures.exists(usherKey)) {
+        const avatar = this.add.image(colX, headerY + s(22), usherKey);
         avatar.setDisplaySize(avatarSize, avatarSize);
         // Circular mask
         const maskGfx = this.add.graphics();
@@ -203,17 +213,21 @@ export class EndGameScene extends Phaser.Scene {
       }
 
       // Player name
+      const isAI = !!this.aiConfig[p];
+      const nameLabel = isAI
+        ? `${PlayerNames[p].replace("Player ", "P")} \uD83E\uDD16`
+        : PlayerNames[p].replace("Player ", "P");
       this.add
-        .text(colX, headerY + s(46), PlayerNames[p].replace("Player ", "P"), {
+        .text(colX, headerY + s(46), nameLabel, {
           fontSize: px(11),
           fontFamily: "Georgia, serif",
-          color: PlayerColors[p],
+          color: PlayerColors[this.colorOf(p)],
           fontStyle: "bold",
         })
         .setOrigin(0.5, 0);
 
       // Colored underline
-      gfx.lineStyle(s(2), PlayerColorsHex[p], 0.7);
+      gfx.lineStyle(s(2), PlayerColorsHex[this.colorOf(p)], 0.7);
       gfx.lineBetween(
         colX - playerColW / 2 + s(10),
         headerY + avatarRowH - s(2),

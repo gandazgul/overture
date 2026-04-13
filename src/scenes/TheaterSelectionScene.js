@@ -13,10 +13,14 @@ export class TheaterSelectionScene extends Phaser.Scene {
   }
 
   /**
-   * @param {{ playerCount: number }} data
+   * @param {{ playerCount: number, aiConfig?: (string | null)[], playerColorMap?: number[] }} data
    */
   init(data) {
     this.selectedPlayerCount = data.playerCount || 2;
+    /** @type {(string | null)[]} */
+    this.aiConfig = data.aiConfig || Array.from({ length: this.selectedPlayerCount }, () => null);
+    /** @type {number[]} */
+    this.playerColorMap = data.playerColorMap || Array.from({ length: this.selectedPlayerCount }, (_, i) => i);
   }
 
   preload() {
@@ -62,6 +66,8 @@ export class TheaterSelectionScene extends Phaser.Scene {
       this.scene.start("GameScene", {
         playerCount: this.selectedPlayerCount,
         layoutId: LayoutOrder[0],
+        aiConfig: this.aiConfig,
+        playerColorMap: this.playerColorMap,
       });
     });
 
@@ -492,6 +498,8 @@ export class TheaterSelectionScene extends Phaser.Scene {
       this.scene.start("GameScene", {
         playerCount: this.selectedPlayerCount,
         layoutId: layout.id,
+        aiConfig: this.aiConfig,
+        playerColorMap: this.playerColorMap,
       });
     });
 

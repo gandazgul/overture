@@ -336,7 +336,7 @@ scoring rules.
 ### 🎭 The Grand Empress _(Default)_
 
 ```
-  Col 0  1  2  3  4
+    Col 0  1  2  3  4
 Row 0: [A][ ][ ][ ][A]    A = Aisle seat
 Row 1: [A][ ][ ][ ][A]    20 seats total
 Row 2: [A][ ][ ][ ][A]    8 aisle seats
@@ -354,12 +354,12 @@ Kid-Teacher chains. The baseline experience.
 ### 🎭 The Blackbox
 
 ```
-  Col 0  1  2  3
-Row 0: [ ][ ][ ][ ]       20 seats total
-Row 1: [ ][A][A][ ]       4 aisle seats (center only)
+    Col 0  1  2  3
+Row 0: [ ][A][A][ ]       20 seats total
+Row 1: [ ][A][A][ ]       the aisle seats are in the center
 Row 2: [ ][A][A][ ]       4 columns, 5 rows deep
-Row 3: [ ][ ][ ][ ]
-Row 4: [ ][ ][ ][ ]
+Row 3: [ ][A][A][ ]
+Row 4: [ ][A][A][ ]
 ```
 
 **House Rule: “Intimate Venue”** — Each patron adjacent to 3+ other patrons
@@ -375,8 +375,8 @@ devastating. The dense packing bonus creates tension: you _want_ neighbors for
 ### 🎭 The Royal Theatre
 
 ```
-  Col 0  1  2  3  4
-Row 0: [B][ ][ ][ ][B]    B = Royal Box (counts as aisle + front row)
+    Col 0  1  2  3  4
+Row 0: [B][F][F][F][B]    B = Royal Box (counts as aisle + front row) and they are not adjacent to the front row seats
 Row 1: [A][ ][ ][ ][A]    20 seats, 8 aisle seats, 2 Royal Boxes
 Row 2: [A][ ][ ][ ][A]
 Row 3: [A][ ][ ][ ][A]
@@ -395,8 +395,8 @@ Box itself make the card your best?
 ### 🎭 The Amphitheater
 
 ```
-     Col 0  1  2  3  4  5
-Row 0:      [ ][ ][ ]         Tiered: 3-4-5-6 = 18 seats
+    Col 0  1  2  3  4  5
+Row 0:     [F][F][F]         Tiered: 3-4-5-6 = 18 seats
 Row 1:    [ ][ ][ ][ ]       NO aisle seats at all
 Row 2:  [ ][ ][ ][ ][ ]      Rows widen toward the back
 Row 3: [ ][ ][ ][ ][ ][ ]
@@ -416,12 +416,11 @@ rows or go for the big back row?
 
 ```
   Col   0  1     2  3     4  5
-Row 0: [ ][ ]   [ ][ ]   [ ][ ]    "Tables" of 2×2
+Row 0: [F][F]   [F][F]   [F][F]    "Tables" of 2×2
 Row 1: [ ][ ]   [ ][ ]   [ ][ ]    with gaps between them
-                                     24 seats, 3 tables per row-pair
-         ─── horizontal gap ───
-Row 2: [ ][ ]   [ ][ ]   [ ][ ]
-Row 3: [ ][ ]   [ ][ ]   [ ][ ]
+       ─── horizontal gap ───      24 seats, 3 tables per row-pair
+Row 2: [ ][ ]   [ ][ ]   [ ][ ]    No aisles, but gaps break adjacency
+Row 3: [ ][ ]   [ ][ ]   [ ][ ]    Kids and Teachers want to cluster at tables; Noisy patrons are less punishing with gaps.
 ```
 
 **House Rule: "Full Tables"** - +3 VP for each 2×2 table where all 4 seats are
@@ -446,10 +445,10 @@ higher-scoring patrons. Critics score only 2 VP base (no aisle seats exist).
 
 ```
   Col   0  1  2  3  4
-Row 0: [A][ ][ ][ ][A]    Balcony (elevated, separate)
-       ─────────────────   Gap: no adjacency between row 0 and row 1
-Row 1: [A][ ][ ][ ][A]    Main floor
-Row 2: [A][ ][ ][ ][A]
+Row 0: [B][F][F][F][B]    Balcony (elevated, separate)
+      ────────────────    Gap: no adjacency between row 0 and row 1
+Row 1: [A][F][F][F][A]    Main floor, both the balcony and Row 1 are front rows for VIPs
+Row 2: [A][ ][ ][ ][A]    B = Box seat (counts as aisle + front row) but they are adjacent to the balcony seats
 Row 3: [A][ ][ ][ ][A]
 ```
 
@@ -468,7 +467,7 @@ your best scorers and deal with Tall/Noisy problems below?
 
 ```
   Col 0  1  2  3  4
-Row 0: [A][ ][ ][ ][A]    Staggered aisles:
+Row 0: [A][F][F][F][A]    Staggered aisles:
 Row 1: [ ][ ][A][ ][ ]    different columns each row
 Row 2: [A][ ][ ][ ][A]    20 seats, 8 aisle seats
 Row 3: [ ][ ][A][ ][ ]

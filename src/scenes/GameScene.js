@@ -14,6 +14,7 @@ import {
 } from "../types.js";
 import { scorePlayer, seatExists } from "../scoring.js";
 import { createButton } from "../objects/Button.js";
+import { pickCardAndSeat, pickSeat } from "../ai.js";
 import { px, s } from "../config.js";
 
 const SEAT_SIZE = s(100);
@@ -132,6 +133,37 @@ export class GameScene extends Phaser.Scene {
 
     /** @type {Phaser.GameObjects.Container | null} */
     this.scoringTooltip = null;
+
+    /**
+     * AI config per player slot: null = human, string = AI difficulty.
+     * @type {(string | null)[]}
+     */
+    this.aiConfig = [];
+  }
+
+  // ── Color mapping helpers ──────────────────────────────────────────
+
+  /** @type {string[]} */
+  static USHER_KEYS = ['usher_blue', 'usher_red', 'usher_green', 'usher_orange'];
+
+  /** Get the color index for a player slot. */
+  colorOf(/** @type {number} */ p) {
+    return this.playerColorMap?.[p] ?? p;
+  }
+
+  /** Get the CSS color string for a player. */
+  playerColor(/** @type {number} */ p) {
+    return PlayerColors[this.colorOf(p)];
+  }
+
+  /** Get the hex color number for a player. */
+  playerColorHex(/** @type {number} */ p) {
+    return PlayerColorsHex[this.colorOf(p)];
+  }
+
+  /** Get the usher texture key for a player. */
+  usherKey(/** @type {number} */ p) {
+    return GameScene.USHER_KEYS[this.colorOf(p)];
   }
 
   preload() {
@@ -200,7 +232,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   /**
-   * @param {{ playerCount?: number, layoutId?: string }} data
+   * @param {{ playerCount?: number, layoutId?: string, aiConfig?: (string | null)[], playerColorMap?: number[] }} data
    */
   init(data) {
     this.layout = (data.layoutId && Layouts[data.layoutId]) ||
@@ -213,6 +245,9 @@ export class GameScene extends Phaser.Scene {
     this.deck = createDeck();
     this.handCards = [];
     this.seatLabels = [];
+    this.aiConfig = data.aiConfig || Array.from({ length: this.playerCount }, () => null);
+    /** @type {number[]} */
+    this.playerColorMap = data.playerColorMap || Array.from({ length: this.playerCount }, (_, i) => i);
 
     const { rows, cols } = this.layout;
 
@@ -748,13 +783,7 @@ export class GameScene extends Phaser.Scene {
     for (let p = 0; p < this.playerCount; p++) {
       const panel = this.add.container(s(15), scoreStartY + p * s(48));
 
-      const usherKeys = [
-        "usher_blue",
-        "usher_red",
-        "usher_green",
-        "usher_orange",
-      ];
-      const usherKey = usherKeys[p];
+      const usherKey = this.usherKey(p);
 
       if (this.textures.exists(usherKey)) {
         const avatar = this.add.image(s(18), s(18), usherKey);
@@ -771,7 +800,7 @@ export class GameScene extends Phaser.Scene {
         avatar.setMask(mask.createGeometryMask());
 
         const ring = this.add.circle(s(18), s(18), s(16), 0x000000, 0)
-          .setStrokeStyle(s(2), PlayerColorsHex[p]);
+          .setStrokeStyle(s(2), this.playerColorHex(p));
         panel.add([avatar, ring]);
       }
 
@@ -779,7 +808,7 @@ export class GameScene extends Phaser.Scene {
         .text(s(46), s(18), "", {
           fontSize: px(15),
           fontFamily: "Georgia, serif",
-          color: PlayerColors[p],
+          color: this.playerColor(p),
           fontStyle: "bold",
         })
         .setOrigin(0, 0.5);
@@ -794,7 +823,7 @@ export class GameScene extends Phaser.Scene {
     // ── Active Player Large Avatar ──────────────────────────────────
     this.localPlayerContainer = this.add.container(s(90), height - s(90))
       .setDepth(5);
-    this.localPlayerAvatar = this.add.image(0, 0, "usher_blue");
+    this.localPlayerAvatar = this.add.image(0, 0, this.usherKey(0));
     this.localPlayerAvatar.setDisplaySize(s(140), s(140));
 
     this.localPlayerMask = this.make.graphics();
@@ -803,7 +832,7 @@ export class GameScene extends Phaser.Scene {
     this.localPlayerAvatar.setMask(this.localPlayerMask.createGeometryMask());
 
     this.localPlayerRing = this.add.circle(0, 0, s(70), 0x000000, 0)
-      .setStrokeStyle(s(6), PlayerColorsHex[0]);
+      .setStrokeStyle(s(6), this.playerColorHex(0));
 
     this.localPlayerNumberBg = this.add.circle(
       -s(50),
@@ -811,7 +840,7 @@ export class GameScene extends Phaser.Scene {
       s(22),
       0x0a0a1a,
       1,
-    ).setStrokeStyle(s(3), PlayerColorsHex[0]);
+    ).setStrokeStyle(s(3), this.playerColorHex(0));
     this.localPlayerNumberText = this.add.text(-s(50), -s(50), "1", {
       fontSize: px(24),
       fontFamily: "Georgia, serif",
@@ -858,9 +887,17 @@ export class GameScene extends Phaser.Scene {
 
   showPassScreen() {
     this.turnPhase = "pass-screen";
+
+    // AI players skip the pass screen entirely
+    if (this.aiConfig[this.currentPlayer]) {
+      this.clearHandVisuals();
+      this.time.delayedCall(400, () => this.startTurn());
+      return;
+    }
+
     const { width, height } = this.scale;
-    const color = PlayerColors[this.currentPlayer];
-    const colorHex = PlayerColorsHex[this.currentPlayer];
+    const color = this.playerColor(this.currentPlayer);
+    const colorHex = this.playerColorHex(this.currentPlayer);
     const name = PlayerNames[this.currentPlayer];
 
     // Remove old overlay
@@ -879,13 +916,7 @@ export class GameScene extends Phaser.Scene {
     container.add(bg);
 
     // Player usher avatar
-    const usherKeys = [
-      "usher_blue",
-      "usher_red",
-      "usher_green",
-      "usher_orange",
-    ];
-    const usherKey = usherKeys[this.currentPlayer];
+    const usherKey = this.usherKey(this.currentPlayer);
 
     // Shift avatar origin up to avoid text
     const avatarY = height / 2 - s(130);
@@ -1005,10 +1036,148 @@ export class GameScene extends Phaser.Scene {
 
     // Render the current player's theater and hand
     this.renderTheater();
-    this.renderHand();
     this.updateUI();
     this.updateScoreboard();
+
+    // AI players: auto-play their turn
+    if (this.aiConfig[this.currentPlayer]) {
+      this.turnPhase = "play";
+      this.time.delayedCall(600, () => this.playAITurn());
+      return;
+    }
+
+    this.renderHand();
     this.turnPhase = "play";
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  // AI TURN — automatic card selection and placement
+  // ══════════════════════════════════════════════════════════════════
+
+  /**
+   * Execute an AI player's turn automatically.
+   * Picks the best card and seat, then animates the placement.
+   */
+  playAITurn() {
+    const difficulty = this.aiConfig[this.currentPlayer];
+    if (!difficulty) return;
+
+    const hand = this.playerHands[this.currentPlayer];
+    const grid = this.placedPatrons[this.currentPlayer];
+
+    if (hand.length === 0) {
+      this.advanceTurn();
+      return;
+    }
+
+    // For 2-player mode (multiple cards in hand): pick best card + seat, discard the rest
+    if (this.playerCount === 2 && hand.length >= 2) {
+      const decision = pickCardAndSeat(grid, hand, this.layout, difficulty);
+      if (!decision) {
+        this.advanceTurn();
+        return;
+      }
+
+      // Place the chosen card
+      const { play, discard } = decision;
+      this.placedPatrons[this.currentPlayer][play.row][play.col] = play.card;
+
+      // Remove played card from hand
+      const playIdx = hand.indexOf(play.card);
+      if (playIdx >= 0) hand.splice(playIdx, 1);
+
+      // Remove discarded card from hand
+      const discardIdx = hand.indexOf(discard);
+      if (discardIdx >= 0) hand.splice(discardIdx, 1);
+
+      // Animate the placement on the seat
+      this.animateAIPlacement(play.row, play.col, play.card);
+      return;
+    }
+
+    // Single card: pick the best seat
+    const cardToPlay = hand[0];
+    const seat = pickSeat(grid, cardToPlay, this.layout, difficulty);
+    if (!seat) {
+      this.advanceTurn();
+      return;
+    }
+
+    // Place the card
+    this.placedPatrons[this.currentPlayer][seat.row][seat.col] = cardToPlay;
+    hand.splice(0, 1);
+
+    // Animate the placement
+    this.animateAIPlacement(seat.row, seat.col, cardToPlay);
+  }
+
+  /**
+   * Animate an AI card placement on the grid, then advance.
+   * @param {number} row
+   * @param {number} col
+   * @param {import('../types.js').CardData} cardData
+   */
+  animateAIPlacement(row, col, cardData) {
+    const seat = this.seatGrid[row]?.[col];
+    if (!seat) {
+      this.renderTheater();
+      this.updateScoreboard();
+      this.time.delayedCall(300, () => this.advanceTurn());
+      return;
+    }
+
+    // Update seat visual
+    seat.setFillStyle(0x000000, 0);
+    seat.setStrokeStyle(
+      s(2),
+      cardData.trait ? TraitColors[cardData.trait] || 0xffffff : 0x4a4a6a,
+      0.8,
+    );
+
+    // Base patron image
+    const baseImgKey = `patron_${cardData.type.toLowerCase()}`;
+    const baseImg = this.add.image(seat.x, seat.y, baseImgKey);
+    const seatImgW = SEAT_SIZE * 0.9;
+    const seatImgH = seatImgW * (140 / 105);
+    baseImg.setDisplaySize(seatImgW, seatImgH);
+    baseImg.setOrigin(0.5, 1);
+    baseImg.setPosition(seat.x, seat.y + SEAT_SIZE / 2 - s(4));
+    this.seatLabels.push(baseImg);
+
+    const childrenForAnim = [seat, baseImg];
+
+    // Trait badge
+    if (cardData.trait) {
+      const badgeKey = `badge_${cardData.trait.toLowerCase()}`;
+      const badge = this.add.image(
+        seat.x + SEAT_SIZE / 2 - s(6),
+        seat.y - SEAT_SIZE / 2 + s(14),
+        badgeKey,
+      );
+      badge.setDisplaySize(s(30), s(30));
+      this.seatLabels.push(badge);
+      childrenForAnim.push(badge);
+    }
+
+    // Animate placement
+    baseImg.setAlpha(0);
+    this.tweens.add({
+      targets: childrenForAnim,
+      alpha: 1,
+      duration: 150,
+    });
+    this.tweens.add({
+      targets: childrenForAnim,
+      scaleX: 1.05,
+      scaleY: 1.05,
+      duration: 150,
+      yoyo: true,
+    });
+
+    this.updateScoreboard();
+
+    // Advance after animation
+    this.time.delayedCall(500, () => this.advanceTurn());
   }
 
   // ══════════════════════════════════════════════════════════════════
@@ -1379,7 +1548,8 @@ export class GameScene extends Phaser.Scene {
       const text = panel.getData("text");
 
       const { total } = scorePlayer(this.placedPatrons[p], this.layout);
-      const name = PlayerNames[p];
+      const isAI = !!this.aiConfig[p];
+      const name = isAI ? `${PlayerNames[p]} \uD83E\uDD16` : PlayerNames[p];
 
       if (showAll || p === this.currentPlayer) {
         text.setText(`${name}: ${total} VP`);
@@ -1396,8 +1566,8 @@ export class GameScene extends Phaser.Scene {
   // ══════════════════════════════════════════════════════════════════
 
   updateUI() {
-    const color = PlayerColors[this.currentPlayer];
-    const colorHex = PlayerColorsHex[this.currentPlayer];
+    const color = this.playerColor(this.currentPlayer);
+    const colorHex = this.playerColorHex(this.currentPlayer);
 
     if (this.turnText) {
       this.turnText.setText(`Round ${this.round} / ${this.totalRounds}`);
@@ -1416,13 +1586,7 @@ export class GameScene extends Phaser.Scene {
 
     // Update local player avatar
     if (this.localPlayerAvatar && this.localPlayerRing) {
-      const usherKeys = [
-        "usher_blue",
-        "usher_red",
-        "usher_green",
-        "usher_orange",
-      ];
-      const usherKey = usherKeys[this.currentPlayer];
+      const usherKey = this.usherKey(this.currentPlayer);
       if (this.textures.exists(usherKey)) {
         this.localPlayerAvatar.setTexture(usherKey);
         this.localPlayerRing.setStrokeStyle(s(6), colorHex);
@@ -1449,6 +1613,8 @@ export class GameScene extends Phaser.Scene {
       playerCount: this.playerCount,
       layout: this.layout,
       placedPatrons: this.placedPatrons,
+      playerColorMap: this.playerColorMap,
+      aiConfig: this.aiConfig,
     });
   }
 
