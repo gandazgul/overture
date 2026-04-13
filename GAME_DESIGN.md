@@ -36,13 +36,18 @@
 ## Overview
 
 Each player is a theater usher with their own theater grid (layout varies by
-Theater card). On each turn you draw a patron card from the deck or take one
+Theater card). At the start each player is dealt 1 card. On each turn you draw a patron card from the deck or take one
 from the **Lobby** (a shared face-up market), then place it in your theater-or
 "gift" a disruptive card to an opponent's theater. The game ends when the
 56-card patron deck is exhausted. Each player then tallies victory points (VP)
 based on how well their patrons are seated.
 
-**Player count:** 2-4 players **Game setup:** Draw 1 Theater card + 1 Play card
+**Player count:** 2-4 players
+With 2 okayers, during setup players get 2 cards, on their turn they play a card then discard a card.
+
+With 3 players after each round discard a 4th card to simulate a 4th player. Or remove ramdomly 14 cards from the deck.
+
+**Game setup:** Draw 1 Theater card + 1 Play card
 from the Season Deck. The Theater defines your grid layout and house rule; the
 Play defines the session's scoring twist and any extra cards shuffled into the
 patron deck.
@@ -76,7 +81,7 @@ patron deck.
    face-up in a row beside the deck.
 6. Place the **Manager's Attention** token to one side-it enters play when the
    first gift occurs.
-7. The first player takes their turn and play proceeds clockwise.
+7. The first player is whoever went to the theater last. They take their turn and play proceeds clockwise until the Patrons run out.
 
 ---
 
@@ -118,9 +123,9 @@ placement. The Lobby adds:
 
 ### Lobby Rules
 
-1. The Lobby always starts with 3 face-up cards (dealt during setup).
+1. The Lobby always starts with 3 face-up cards (dealt during setup). The card next to the deck cant be taken.
 2. On your turn, you may take one Lobby card instead of drawing from the deck.
-3. After taking from the Lobby, immediately refill to 3 from the deck.
+3. After taking from the Lobby, immediately refill, put the new card next to the deck.
 4. Cards taken from the Lobby follow the same Place or Gift rules as drawn
    cards.
 5. If the patron deck is empty, the Lobby cannot refill. Players may still take
@@ -683,10 +688,9 @@ contested.
 
 ### 🎬 The Double Feature
 
-**Rule:** The game is played in two halves. After round 7, each player gets a
-**second theater board** (same layout as their first). For the remaining 7
-rounds, you place into either theater. At end-game, score both theaters
-separately; your final score is the **lower** of the two.
+**Rule:** each player gets a
+**second theater board** (same layout) on your turn you place into either theater. At end-game, score both theaters
+separately; your final score is the **lower** of the two. (what about Between Two Cities style play?)
 
 **Extra cards:** None.
 
@@ -741,8 +745,7 @@ referenced by specific Plays.
    - Phase 4: Theater house rule bonuses (if any).
    - Phase 5: Play card bonuses (Demand cards, Role card passives, etc.).
 3. The player with the **highest total VP** wins.
-4. **Tiebreaker:** The player with the most occupied seats wins. If still tied,
-   the player with the fewest gifted cards in their theater wins.
+4. **Tiebreaker:** ???
 
 ---
 
