@@ -29,7 +29,7 @@ jobs:
             echo "tags=latest ${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
           else
             SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
-            echo "tags=sha-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+            echo "tags=dev sha-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Build image with Buildah
