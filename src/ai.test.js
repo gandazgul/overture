@@ -170,6 +170,15 @@ Deno.test("pickSeat medium — Lovebirds next to existing Lovebirds", () => {
     assert(isAdjacent, `Medium AI should place Lovebirds adjacent to existing one, got (${seat.row}, ${seat.col})`);
 });
 
+Deno.test("pickSeat medium — Friends next to existing Friends", () => {
+    const grid = emptyGrid(GrandEmpressLayout);
+    grid[2][2] = card(PatronType.FRIENDS);
+    const seat = pickSeat(grid, card(PatronType.FRIENDS), GrandEmpressLayout, AIDifficulty.MEDIUM);
+    assert(seat !== null);
+    const isAdjacent = (Math.abs(seat.row - 2) + Math.abs(seat.col - 2)) === 1;
+    assert(isAdjacent, `Medium AI should place Friends adjacent to existing one, got (${seat.row}, ${seat.col})`);
+});
+
 // ══════════════════════════════════════════════════════════════════════
 // pickSeat — Hard (greedy + heuristics)
 // ══════════════════════════════════════════════════════════════════════

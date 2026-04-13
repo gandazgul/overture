@@ -384,6 +384,20 @@ export function scoreSeat(grid, row, col, layout, cappedKids, lovebirdsPairs) {
       }
       break;
     }
+
+    case PatronType.FRIENDS: {
+      // +1 VP per orthogonally adjacent Friends
+      if (scoring.perNeighborMatchBonus) {
+        const neighbors = getOrthogonalNeighbors(row, col, rows, cols, layout);
+        for (const n of neighbors) {
+          const neighbor = grid[n.row][n.col];
+          if (neighbor && neighbor.type === PatronType.FRIENDS) {
+            vp += scoring.perNeighborMatchBonus;
+          }
+        }
+      }
+      break;
+    }
   }
 
   // ── Phase 2: Trait scoring ──────────────────────────────────────

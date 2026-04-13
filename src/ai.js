@@ -193,6 +193,18 @@ export function applyHeuristics(grid, card, row, col, layout) {
             // No special heuristic — Standards are flexible
             break;
         }
+
+        case PatronType.FRIENDS: {
+            // Prefer seats adjacent to existing Friends
+            const friendNeighbors = neighbors.filter(
+                (n) => grid[n.row]?.[n.col]?.type === PatronType.FRIENDS,
+            );
+            bonus += friendNeighbors.length * 1.5;
+            // Bonus for empty seats nearby (future Friends can cluster)
+            const emptyNearby = neighbors.filter((n) => !grid[n.row][n.col]);
+            bonus += emptyNearby.length * 0.3;
+            break;
+        }
     }
 
     // ── Trait-specific heuristics ──────────────────────────────────

@@ -28,7 +28,8 @@
 12. [Play Cards](#play-cards)
 13. [Season Deck](#season-deck)
 14. [End of Game](#end-of-game)
-15. [Design Principles](#design-principles)
+15. [Art Direction & Visual Style](#art-direction--visual-style)
+16. [Design Principles](#design-principles)
 
 ---
 
@@ -133,25 +134,26 @@ Every card has exactly **one primary type** and **zero or one secondary trait**.
 The primary type defines the card's core identity and scoring rules. The
 optional trait adds a modifier on top.
 
-### Primary Types (6)
+### Primary Types (7)
 
-| Type          | Emoji | Base VP | Core Mechanic                                                          |
-| ------------- | ----- | ------- | ---------------------------------------------------------------------- |
-| **Standard**  | 🧑    | 3       | Reliable points anywhere. No special conditions.                       |
-| **VIP**       | ⭐    | 3       | +3 VP in front 2 rows. −3 per adjacent Kid or Noisy-trait patron.      |
-| **Lovebirds** | 💕    | 1       | +3 VP if horizontally paired. +2 VP in back row. Pairs only.           |
-| **Kid**       | 👦    | 1       | 1 VP uncapped; 3 VP when capped.                                       |
-| **Teacher**   | 👩‍🏫  | 3       | +1 VP per adjacent capped Kid.                                         |
-| **Critic**    | 🎩    | 3       | +3 VP in aisle seat. Noisy neighbors nullify the bonus.                |
+| Type          | Base VP | Core Mechanic                                                     |
+| ------------- | ------- | ----------------------------------------------------------------- |
+| **Standard**  | 3       | Reliable points anywhere. No special conditions.                  |
+| **VIP**       | 3       | +3 VP in front 2 rows. −3 per adjacent Kid or Noisy-trait patron. |
+| **Lovebirds** | 1       | +3 VP if horizontally paired. +2 VP in back row. Pairs only.      |
+| **Kid**       | 1       | 1 VP uncapped; 3 VP when capped.                                  |
+| **Teacher**   | 3       | +1 VP per adjacent capped Kid.                                    |
+| **Critic**    | 3       | +3 VP in aisle seat. Noisy neighbors nullify the bonus.           |
+| **Friends**   | 3       | +1 VP per orthogonally adjacent Friend.                           |
 
 ### Secondary Traits (4)
 
-| Trait            | Emoji | Effect                                                                                   |
-| ---------------- | ----- | ---------------------------------------------------------------------------------------- |
-| **Tall**         | 🦒    | Patron directly behind gets -2 VP.                                                       |
-| **Short**        | 🧒    | +2 VP if no one is directly in front. -3 VP if a Tall-trait patron is directly in front. |
-| **Bespectacled** | 🤓    | +2 VP unless seated in the back row.                                                     |
-| **Noisy**        | 📢    | Each orthogonally adjacent patron gets -1 VP (all types, not just Standard).             |
+| Trait            | Effect                                                                                   |
+| ---------------- | ---------------------------------------------------------------------------------------- |
+| **Tall**         | Patron directly behind gets -2 VP.                                                       |
+| **Short**        | +2 VP if no one is directly in front. -3 VP if a Tall-trait patron is directly in front. |
+| **Bespectacled** | +2 VP unless seated in the back row.                                                     |
+| **Noisy**        | Each orthogonally adjacent patron gets -1 VP (all types, not just Standard).             |
 
 ### Trait Assignment Rules
 
@@ -164,33 +166,38 @@ optional trait adds a modifier on top.
   - No **Noisy VIP** - VIPs already penalize _themselves_ for adjacent
     Noisy-trait patrons. A self-penalizing combo would be confusing and
     incoherent.
+  - No **Noisy Friends** - Friends gain +1 VP per adjacent Friend, but Noisy
+    inflicts -1 VP on each adjacent patron. The bonus and penalty cancel out,
+    making the card pointless.
 
 ---
 
 ## Deck Composition
 
-**56 cards total:** 35 clean (no trait) + 21 with traits.
+**56 cards total:** 27 clean (no trait) + 24 with traits.
 
 | Primary Type | Clean  | Tall  | Short | Bespectacled | Noisy | **Total** |
 | ------------ | :----: | :---: | :---: | :----------: | :---: | :-------: |
-| Standard     |   13   |   2   |   2   |      2       |   2   |  **21**   |
+| Standard     |   5    |   2   |   2   |      2       |   2   |  **13**   |
 | VIP          |   3    |   -   |   -   |      1       |   -   |   **4**   |
 | Lovebirds    |   8    |   1   |   -   |      -       |   1   |  **10**   |
 | Kid          |   5    |   1   |   1   |      -       |   1   |   **8**   |
 | Teacher      |   3    |   1   |   1   |      1       |   -   |   **6**   |
 | Critic       |   3    |   1   |   2   |      1       |   -   |   **7**   |
-| **Totals**   | **35** | **6** | **6** |    **5**     | **4** |  **56**   |
+| Friends      |   5    |   1   |   1   |      1       |   -   |   **8**   |
+| **Totals**   | **32** | **7** | **7** |    **6**     | **4** |  **56**   |
 
 **Design rationale:**
 
-- **Standard (21)** - Most common; reliable filler that keeps hands playable.
+- **Standard (13)** - Most common; reliable filler that keeps hands playable.
 - **Lovebirds (10)** - Enough density for pairs to be a viable strategy.
+- **Friends (8)** - Rewards clustering in any direction. Safe 3 VP floor when isolated.
 - **Kid (8) vs Teacher (6)** - Fewer Teachers than Kids creates tension around
   capping.
 - **VIP (4)** - Rare, high-value prize cards. Seeing one is an event.
 - **Critic (7)** - Competes for scarce aisle seats. Extra Short Critics reward
   corner aisle placement.
-- **Trait distribution (21/56 ≈ 37.5%)** - Roughly one in three cards has a
+- **Trait distribution (24/56 ≈ 43%)** - Nearly half the cards have a
   trait, keeping combos interesting without overwhelming the primary scoring.
 
 ---
@@ -239,17 +246,24 @@ Scoring is computed in two phases, then cross-type modifiers are applied.
   layout), **unless** any orthogonally adjacent patron has the **Noisy** trait.
   A Noisy neighbor nullifies the aisle bonus entirely.
 
+#### Friends
+
+- **3 VP** base.
+- **+1 VP** per orthogonally adjacent **Friends**. Counts all four directions
+  (left, right, front, back). A Friends in a 2×2 block gets +2 VP (5 total).
+  Maximum possible: +4 VP with 4 adjacent Friends (7 total, very rare).
+
 ### Trait Scoring
 
 Traits modify the card's VP _on top of_ primary type scoring.
 
-#### Tall 🦒
+#### Tall
 
 - The patron seated **directly behind** (one row back, same column) receives
   **-2 VP**.
 - The Tall patron itself has no self-modifier.
 
-#### Short 🧒
+#### Short
 
 - **+2 VP** if the seat directly in front is **empty** (or the patron is in row
   0).
@@ -257,11 +271,11 @@ Traits modify the card's VP _on top of_ primary type scoring.
 - _(If a non-Short patron is behind a Tall patron, the standard Tall
   behind-penalty of -2 VP applies instead.)_
 
-#### Bespectacled 🤓
+#### Bespectacled
 
 - **+2 VP** unless seated in the **back row**.
 
-#### Noisy 📢
+#### Noisy
 
 - Each **orthogonally adjacent patron** (any type) receives **-1 VP**.
 - This affects _all_ patron types-not only Standard.
@@ -292,6 +306,9 @@ The trait system creates cards with layered strategic identities:
 | **Noisy Kid**            | Worth 1 VP uncapped _and_ hurts neighbors. The ultimate gift card. Noisy also nullifies any adjacent Critic's aisle bonus. |
 | **Tall Lovebirds**       | Wants the back row for +2 bonus but blocks whoever sits behind. In the back row, no one is behind—safe spot.            |
 | **Short Kid**            | Front-row bonus if uncapped feels wasted; capping in the front row means Teachers compete with VIPs for premium seats.  |
+| **Tall Friends**         | Blocks the patron behind, but great in the back row where there's no one behind and the Friends cluster grows safely.   |
+| **Short Friends**        | +2 VP if no one is in front. Place at the front edge of a Friends cluster for the Short bonus on top of group VP.       |
+| **Bespectacled Friends** | +2 VP unless in the back row. Encourages Friends clusters in the front/middle rows rather than the back.                |
 
 ---
 
@@ -726,6 +743,61 @@ referenced by specific Plays.
 3. The player with the **highest total VP** wins.
 4. **Tiebreaker:** The player with the most occupied seats wins. If still tied,
    the player with the fewest gifted cards in their theater wins.
+
+---
+
+## Art Direction & Visual Style
+
+The game uses a **1920s Art Deco theater** aesthetic throughout.
+
+### Color Palette
+
+| Role           | Hex / Value   | Usage                                       |
+| -------------- | ------------- | ------------------------------------------- |
+| Gold bright    | `#DAA520`     | Primary accent, borders, icons, crown motifs |
+| Gold light     | `#F5C518`     | Highlights, hover states, house-rule text    |
+| Gold dark      | `#B48214`     | Secondary accents, inner details             |
+| Navy deep      | `#0F0F1C`     | Panel backgrounds (95 % opacity)             |
+| Navy mid       | `#1A1A2E`     | Seat fills (regular), UI circles             |
+| Navy seat      | `#1A1A3E`     | Seat fills (default empty)                   |
+| Navy aisle     | `#1E1E38`     | Aisle seat fills                             |
+| Purple box     | `#2A2040`     | Royal Box seat fills                         |
+| Stroke default | `#3A3A5E`     | Regular seat border                          |
+| Stroke aisle   | `#8A7A3E`     | Aisle seat border (gold-tinted)              |
+| Hover fill     | `#2A2A5E`     | Seat hover highlight                         |
+| Heading gold   | `#D4AF37`     | HUD headings, stage border stroke            |
+| Subtext        | `#AAAACC`     | Muted lavender for secondary info            |
+
+### Patron Card Art
+
+Illustrated character portraits in a semi-realistic cartoon style with muted
+theatrical colors and dark, moody lighting. Each primary type has a distinct
+silhouette (e.g., VIP in furs and pearls, Critic in tuxedo with notepad, Kid in
+cap and suspenders). Cards are rendered at display size ~100 × 100 px in-game.
+
+### Badges & Tags (64 × 64 PNG)
+
+Small overlay icons placed on cards or seats:
+
+- **Trait badges** — dark semi-transparent _circular_ background with gold
+  iconography (top hat for Tall, glasses for Bespectacled, megaphone for Noisy,
+  red suitcase for Short).
+- **Seat tags** — dark semi-transparent _pill-shaped_ or circular background
+  with gold icon or text (crown for Royal Box, "AISLE" text for aisle seats).
+
+All badges/tags use the same gold-on-dark palette and share a consistent 64 × 64
+canvas size with transparent outer region for clean compositing.
+
+### UI Elements
+
+- **Font:** Georgia, serif throughout (headings bold, body regular, rules
+  italic).
+- **Panels:** Dark navy rectangles (`#0F0F1C` at 95 % opacity) with gold border
+  stroke (`#D4AF37`, 3 px).
+- **Stage banner:** Ornate Art Deco geometric patterns in gold and dark mahogany,
+  wide horizontal strip above the seating grid.
+- **Player colors:** Light blue `#4FC3F7`, Red `#EF5350`, Green `#66BB6A`,
+  Orange `#FFA726`.
 
 ---
 

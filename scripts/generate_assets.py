@@ -49,6 +49,11 @@ ASSETS_TO_GENERATE = [
         "prompt": "A charming, stylized 2D digital illustration of a snooty, older theater critic in a tuxedo, holding up a notepad and pen, looking skeptical. Warm theater lighting. Art Deco illustration style, clean lines, expressive character design, centered portrait, plain dark background.",
         "aspect_ratio": "3:4"
     },
+    {
+        "filename": "patron_friends.png",
+        "prompt": "A charming, stylized 2D digital illustration of two friendly 1920s theater-goers, arm in arm, laughing together. Warm theater lighting. Art Deco illustration style, clean lines, expressive character design, centered portrait, plain dark background.",
+        "aspect_ratio": "3:4"
+    },
 
     # 2. Secondary Trait Badges (UI Icons) - Aspect Ratio: 1:1
     {

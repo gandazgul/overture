@@ -209,12 +209,17 @@ export class GameScene extends Phaser.Scene {
     loadIfMissing("patron_kid", "assets/patron_kid.png");
     loadIfMissing("patron_teacher", "assets/patron_teacher.png");
     loadIfMissing("patron_critic", "assets/patron_critic.png");
+    loadIfMissing("patron_friends", "assets/patron_friends.png");
 
     // ── Trait badges ────────────────────────────────────────────────
     loadIfMissing("badge_tall", "assets/badge_tall.png");
     loadIfMissing("badge_short", "assets/badge_short.png");
     loadIfMissing("badge_bespectacled", "assets/badge_bespectacled.png");
     loadIfMissing("badge_noisy", "assets/badge_noisy.png");
+
+    // ── Seat tags ──────────────────────────────────────────────────────────
+    loadIfMissing("tag_royal_box", "assets/tag_royal_box.png");
+    loadIfMissing("tag_aisle", "assets/tag_aisle.png");
 
     // ── Only the selected theater background (JPEG) ─────────────────
     const bgKey = `bg_${this.layout.id}`;
@@ -666,8 +671,8 @@ export class GameScene extends Phaser.Scene {
           strokeWidth = s(3);
         } else if (isAisle) {
           emptyFill = 0x1e1e38;
-          emptyStroke = 0x8a7a3e;
-          strokeWidth = s(2.5);
+          emptyStroke = 0xb89a3e;
+          strokeWidth = s(3);
         }
 
         const seat = this.add
@@ -705,14 +710,18 @@ export class GameScene extends Phaser.Scene {
           }
         });
 
-        // Royal Box label
-        if (isRoyalBox) {
-          const boxLabel = this.add
-            .text(x, y + SEAT_SIZE / 2 + s(4), "👑", {
-              fontSize: px(10),
-            })
-            .setOrigin(0.5, 0);
-          this.seatLabels.push(boxLabel);
+        // Royal Box tag (centered on empty seat)
+        if (isRoyalBox && this.textures.exists("tag_royal_box")) {
+          const tag = this.add.image(x, y, "tag_royal_box")
+            .setDisplaySize(s(32), s(32)).setAlpha(0.85);
+          this.seatLabels.push(tag);
+        }
+
+        // Aisle tag (below seat)
+        if (isAisle && !isRoyalBox && this.textures.exists("tag_aisle")) {
+          const tag = this.add.image(x, y + SEAT_SIZE / 2 + s(10), "tag_aisle")
+            .setDisplaySize(s(36), s(18)).setAlpha(0.7);
+          this.seatLabels.push(tag);
         }
 
         this.seatGrid[row][col] = seat;
@@ -1267,17 +1276,20 @@ export class GameScene extends Phaser.Scene {
           seat.setFillStyle(emptyFill);
           seat.setStrokeStyle(sw, emptyStroke);
 
-          // Re-add Royal Box label for empty seats
+          // Re-add seat tags for empty seats
           const isRoyalBox = this.layout.royalBoxes?.some(
             (b) => b.row === row && b.col === col,
           );
-          if (isRoyalBox) {
-            const boxLabel = this.add
-              .text(seat.x, seat.y + SEAT_SIZE / 2 + s(4), "👑", {
-                fontSize: px(10),
-              })
-              .setOrigin(0.5, 0);
-            this.seatLabels.push(boxLabel);
+          if (isRoyalBox && this.textures.exists("tag_royal_box")) {
+            const tag = this.add.image(seat.x, seat.y, "tag_royal_box")
+              .setDisplaySize(s(32), s(32)).setAlpha(0.85);
+            this.seatLabels.push(tag);
+          }
+          const isAisle = hasSeatLabel(row, col, "aisle", this.layout);
+          if (isAisle && !isRoyalBox && this.textures.exists("tag_aisle")) {
+            const tag = this.add.image(seat.x, seat.y + SEAT_SIZE / 2 + s(10), "tag_aisle")
+              .setDisplaySize(s(36), s(18)).setAlpha(0.7);
+            this.seatLabels.push(tag);
           }
         }
       }

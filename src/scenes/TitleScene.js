@@ -225,14 +225,14 @@ export class TitleScene extends Phaser.Scene {
 
         // ── Header ──────────────────────────────────────────────────
         if (this.textures.exists('ui_logo')) {
-            const logo = this.add.image(width / 2, s(70), 'ui_logo');
+            const logo = this.add.image(width / 2, s(90), 'ui_logo');
             const logoRatio = 0.3643695015;
-            const logoWidth = 280;
+            const logoWidth = 320;
             logo.setDisplaySize(s(logoWidth), s(logoWidth * logoRatio));
         }
 
         this.add
-            .text(width / 2, s(148), 'Player Setup', {
+            .text(width / 2, s(175), 'Player Setup', {
                 fontSize: px(26),
                 fontFamily: 'Georgia, serif',
                 color: '#ffd700',
@@ -244,7 +244,7 @@ export class TitleScene extends Phaser.Scene {
         const rowH = s(68);
         const headerH = s(34);
         const tableX = (width - tableW) / 2;
-        const tableY = s(185);
+        const tableY = s(205);
 
         // Column X positions (center-based, relative to tableX)
         const colAvatar = s(38);

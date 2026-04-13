@@ -156,6 +156,68 @@ Deno.test("Critic on non-aisle seat scores 3 VP", () => {
   assertEquals(result.perSeat[1][2], 3);
 });
 
+// ── Primary Type: Friends ────────────────────────────────────────────
+
+Deno.test("Friends alone scores 3 VP (base)", () => {
+  const grid = emptyGrid();
+  place(grid, 2, 2, PatronType.FRIENDS);
+  const result = scorePlayer(grid, DefaultLayout);
+  assertEquals(result.perSeat[2][2], 3);
+});
+
+Deno.test("Friends horizontal pair scores 4 VP each", () => {
+  const grid = emptyGrid();
+  place(grid, 1, 2, PatronType.FRIENDS);
+  place(grid, 1, 3, PatronType.FRIENDS);
+  const result = scorePlayer(grid, DefaultLayout);
+  assertEquals(result.perSeat[1][2], 4);
+  assertEquals(result.perSeat[1][3], 4);
+});
+
+Deno.test("Friends vertical pair scores 4 VP each", () => {
+  const grid = emptyGrid();
+  place(grid, 1, 2, PatronType.FRIENDS);
+  place(grid, 2, 2, PatronType.FRIENDS);
+  const result = scorePlayer(grid, DefaultLayout);
+  assertEquals(result.perSeat[1][2], 4);
+  assertEquals(result.perSeat[2][2], 4);
+});
+
+Deno.test("Friends 2×2 block scores 5 VP each", () => {
+  const grid = emptyGrid();
+  place(grid, 1, 1, PatronType.FRIENDS);
+  place(grid, 1, 2, PatronType.FRIENDS);
+  place(grid, 2, 1, PatronType.FRIENDS);
+  place(grid, 2, 2, PatronType.FRIENDS);
+  const result = scorePlayer(grid, DefaultLayout);
+  assertEquals(result.perSeat[1][1], 5);
+  assertEquals(result.perSeat[1][2], 5);
+  assertEquals(result.perSeat[2][1], 5);
+  assertEquals(result.perSeat[2][2], 5);
+});
+
+Deno.test("Friends: line of 3 horizontal — middle gets +2, edges get +1", () => {
+  const grid = emptyGrid();
+  place(grid, 1, 1, PatronType.FRIENDS);
+  place(grid, 1, 2, PatronType.FRIENDS);
+  place(grid, 1, 3, PatronType.FRIENDS);
+  const result = scorePlayer(grid, DefaultLayout);
+  assertEquals(result.perSeat[1][1], 4); // 3+1
+  assertEquals(result.perSeat[1][2], 5); // 3+2
+  assertEquals(result.perSeat[1][3], 4); // 3+1
+});
+
+Deno.test("Friends isolated among other types scores 3 VP", () => {
+  const grid = emptyGrid();
+  place(grid, 1, 2, PatronType.FRIENDS);
+  place(grid, 1, 1, PatronType.STANDARD);
+  place(grid, 1, 3, PatronType.VIP);
+  place(grid, 0, 2, PatronType.KID);
+  place(grid, 2, 2, PatronType.CRITIC);
+  const result = scorePlayer(grid, DefaultLayout);
+  assertEquals(result.perSeat[1][2], 3); // no same-type neighbors
+});
+
 // ── Primary Type: Kid & Teacher ─────────────────────────────────────
 
 Deno.test("findHorizontalKidGroups - single uncapped Kid", () => {
@@ -462,21 +524,22 @@ Deno.test("createDeck includes correct count per primary type", () => {
   for (const c of deck) {
     counts[c.type] = (counts[c.type] ?? 0) + 1;
   }
-  assertEquals(counts[PatronType.STANDARD], 21);
+  assertEquals(counts[PatronType.STANDARD], 13);
   assertEquals(counts[PatronType.VIP], 4);
   assertEquals(counts[PatronType.LOVEBIRDS], 10);
   assertEquals(counts[PatronType.KID], 8);
   assertEquals(counts[PatronType.TEACHER], 6);
   assertEquals(counts[PatronType.CRITIC], 7);
+  assertEquals(counts[PatronType.FRIENDS], 8);
 });
 
-Deno.test("createDeck has 21 cards with traits", () => {
+Deno.test("createDeck has 24 cards with traits", () => {
   const deck = createDeck();
   const withTraits = deck.filter((c) => c.trait);
-  assertEquals(withTraits.length, 21);
+  assertEquals(withTraits.length, 24);
 });
 
-Deno.test("createDeck trait distribution: 5 Tall, 4 Short, 5 Bespectacled, 4 Noisy", () => {
+Deno.test("createDeck trait distribution: 7 Tall, 7 Short, 6 Bespectacled, 4 Noisy", () => {
   const deck = createDeck();
   /** @type {Record<string, number>} */
   const traitCounts = {};
@@ -485,9 +548,9 @@ Deno.test("createDeck trait distribution: 5 Tall, 4 Short, 5 Bespectacled, 4 Noi
       traitCounts[c.trait] = (traitCounts[c.trait] ?? 0) + 1;
     }
   }
-  assertEquals(traitCounts[Trait.TALL], 6);
-  assertEquals(traitCounts[Trait.SHORT], 6);
-  assertEquals(traitCounts[Trait.BESPECTACLED], 5);
+  assertEquals(traitCounts[Trait.TALL], 7);
+  assertEquals(traitCounts[Trait.SHORT], 7);
+  assertEquals(traitCounts[Trait.BESPECTACLED], 6);
   assertEquals(traitCounts[Trait.NOISY], 4);
 });
 
@@ -504,7 +567,7 @@ Deno.test("createDeck cards have emoji and description", () => {
   }
 });
 
-Deno.test("createDeck: no excluded combos (no Bespectacled/Short Lovebirds, no Noisy VIP)", () => {
+Deno.test("createDeck: no excluded combos (no Bespectacled/Short Lovebirds, no Noisy VIP, no Noisy Friends)", () => {
   const deck = createDeck();
   for (const c of deck) {
     if (c.type === PatronType.LOVEBIRDS) {
@@ -513,6 +576,9 @@ Deno.test("createDeck: no excluded combos (no Bespectacled/Short Lovebirds, no N
       }
     }
     if (c.type === PatronType.VIP && c.trait === Trait.NOISY) {
+      throw new Error(`Excluded combo found: ${c.label}`);
+    }
+    if (c.type === PatronType.FRIENDS && c.trait === Trait.NOISY) {
       throw new Error(`Excluded combo found: ${c.label}`);
     }
   }

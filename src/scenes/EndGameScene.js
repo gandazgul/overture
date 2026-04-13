@@ -22,6 +22,7 @@ const TYPE_ORDER = [
   PatronType.KID,
   PatronType.TEACHER,
   PatronType.CRITIC,
+  PatronType.FRIENDS,
 ];
 
 /**

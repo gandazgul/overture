@@ -16,6 +16,7 @@ export const PatronType = /** @type {const} */ ({
   KID: "Kid",
   TEACHER: "Teacher",
   CRITIC: "Critic",
+  FRIENDS: "Friends",
 });
 Object.freeze(PatronType);
 
@@ -50,6 +51,7 @@ export const PatronColors = {
   [PatronType.KID]: 0x4caf50, // Green
   [PatronType.TEACHER]: 0x8bc34a, // Light green
   [PatronType.CRITIC]: 0x9c27b0, // Purple
+  [PatronType.FRIENDS]: 0x00bcd4, // Teal/Cyan
 };
 Object.freeze(PatronColors);
 
@@ -130,6 +132,10 @@ export const PatronInfo = {
     emoji: "🎩",
     description: "+3 VP in aisle seat. Noisy neighbors nullify the bonus!",
   },
+  [PatronType.FRIENDS]: {
+    emoji: "🤝",
+    description: "3 VP base. +1 VP per adjacent Friend.",
+  },
 };
 Object.freeze(PatronInfo);
 
@@ -176,6 +182,7 @@ Object.freeze(TraitInfo);
  * @property {number} [adjacentMatchBonus] - VP if orthogonally adjacent to same type (Lovebirds)
  * @property {number} [backRowBonus] - Extra VP if in the designated back row (additive)
  * @property {number[]} [backRows] - Row indices that count as "back" for multiplier
+ * @property {number} [perNeighborMatchBonus] - VP bonus per orthogonally adjacent patron of the same type (Friends)
  */
 
 /**
@@ -210,6 +217,10 @@ export const PatronScoring = {
   [PatronType.CRITIC]: {
     base: 3, // (was 2)
     aisleBonus: 3, // additive bonus in aisle seat (was aisleMultiplier: 3)
+  },
+  [PatronType.FRIENDS]: {
+    base: 3,
+    perNeighborMatchBonus: 1, // +1 VP per orthogonally adjacent Friends
   },
 };
 Object.freeze(PatronScoring);
@@ -637,8 +648,8 @@ export function createDeck() {
    * @type {Array<[string, string | null, number]>}
    */
   const deckSpec = [
-    // Standard (21 total: 13 clean + 8 with traits)
-    [PatronType.STANDARD, null, 13],
+    // Standard (13 total: 5 clean + 8 with traits)
+    [PatronType.STANDARD, null, 5],
     [PatronType.STANDARD, Trait.TALL, 2],
     [PatronType.STANDARD, Trait.SHORT, 2],
     [PatronType.STANDARD, Trait.BESPECTACLED, 2],
@@ -670,6 +681,12 @@ export function createDeck() {
     [PatronType.CRITIC, Trait.TALL, 1],
     [PatronType.CRITIC, Trait.SHORT, 2],
     [PatronType.CRITIC, Trait.BESPECTACLED, 1],
+
+    // Friends (8 total: 5 clean + 1 Tall + 1 Short + 1 Bespectacled)
+    [PatronType.FRIENDS, null, 5],
+    [PatronType.FRIENDS, Trait.TALL, 1],
+    [PatronType.FRIENDS, Trait.SHORT, 1],
+    [PatronType.FRIENDS, Trait.BESPECTACLED, 1],
   ];
 
   /** @type {CardData[]} */
