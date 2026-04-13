@@ -12,11 +12,16 @@
         "check": "deno check --doc src/**/*.js",
         "lint": "deno lint src/",
         "test": "deno test src/",
-        "ci": "deno task check && deno task lint && deno task test"
+        "ci": "deno task check && deno task lint && deno task test",
+        "generate": "deno run -A scripts/generate-assets.js",
+        "optimize": "deno run -A scripts/optimize-assets.js"
     },
     "imports": {
-        "phaser": "npm:phaser@^3.86.0"
+        "phaser": "npm:phaser@^3.86.0",
+        "sharp": "npm:sharp@^0.34.5",
+        "@google/genai": "npm:@google/genai@^1.49.0"
     },
+
     "fmt": {
         "useTabs": false,
         "lineWidth": 120,

@@ -568,21 +568,19 @@ export class GameScene extends Phaser.Scene {
       }
     };
 
-    // Left aisle walkway
-    if (leftAisle) {
-      drawAisleStrip(gridStartX + AISLE_GAP / 2, AISLE_GAP - s(4));
-    }
-
-    // Right aisle walkway
-    if (rightAisle) {
-      drawAisleStrip((floorLeft + floorW) - AISLE_GAP / 2, AISLE_GAP - s(4));
-    }
-
-    // Center aisle walkways
-    for (const gapAfterCol of centerAisleGaps) {
-      const leftEdge = colX[gapAfterCol] + SEAT_SIZE / 2;
-      const rightEdge = colX[gapAfterCol + 1] - SEAT_SIZE / 2;
-      drawAisleStrip((leftEdge + rightEdge) / 2, rightEdge - leftEdge);
+    // Only draw walkway strips for Blackbox (center aisle is the defining feature)
+    if (this.layout.id === "blackbox") {
+      if (leftAisle) {
+        drawAisleStrip(gridStartX + AISLE_GAP / 2, AISLE_GAP - s(4));
+      }
+      if (rightAisle) {
+        drawAisleStrip((floorLeft + floorW) - AISLE_GAP / 2, AISLE_GAP - s(4));
+      }
+      for (const gapAfterCol of centerAisleGaps) {
+        const leftEdge = colX[gapAfterCol] + SEAT_SIZE / 2;
+        const rightEdge = colX[gapAfterCol + 1] - SEAT_SIZE / 2;
+        drawAisleStrip((leftEdge + rightEdge) / 2, rightEdge - leftEdge);
+      }
     }
 
     // ── Stage platform ───────────────────────────────────────────
