@@ -131,7 +131,7 @@ overture/
 - **8 Unique Theaters** — Each with its own layout, background art, and house rule:
   - **The Grand Empress** — Classic 5×6 grid
   - **The Blackbox** — Compact 4×4 intimate space
-  - **The Royal Theatre** — Features isolated Royal Box seats with crown tags
+  - **The Royal Theater** — Features isolated Royal Box seats with crown tags
   - **The Promenade** — Wide 7×4 layout with center aisle
   - **The Amphitheater** — Expanding rows (3→4→5→6), narrow front to wide back
   - **The Cabaret** — Table-style seating with gaps between groups
@@ -194,8 +194,7 @@ straightforward to test in isolation.
 
 ## 🚧 Roadmap
 
+- [ ] **Lobby** - Implement the lobby feature where players can draw from a market of available patrons instead of a random hand
+- [ ] **Online Multiplayer** — Play with friends remotely
 - [ ] **Play Variants** — Different "plays" with special rules
 - [ ] **Audio** — Ambient theater sounds and placement effects
-- [ ] **Online Multiplayer** — Play with friends remotely
-
-
