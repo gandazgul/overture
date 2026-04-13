@@ -376,8 +376,7 @@ export class GameScene extends Phaser.Scene {
     }
     const totalGridH = yCursor;
 
-    const labelPad = s(75); // space for row letter labels on the left
-    const floorW = totalGridW + labelPad; // total floor width including labels
+    const floorW = totalGridW; // grid centered on screen
     const stageAscpectRatio = 222 / 978;
     const stageRenderWidth = floorW + s(115);
     const actualStageH = stageRenderWidth * stageAscpectRatio;
@@ -429,7 +428,7 @@ export class GameScene extends Phaser.Scene {
 
     // Center the entire floor (label pad + grid) on screen
     const floorLeft = (width - floorW) / 2;
-    const gridStartX = floorLeft + labelPad;
+    const gridStartX = floorLeft;
 
     // Offset colX and rowY so they're relative to gridStartX/gridStartY
     for (let c = 0; c < COLS; c++) colX[c] += gridStartX;
@@ -527,11 +526,6 @@ export class GameScene extends Phaser.Scene {
       drawAisleStrip((leftEdge + rightEdge) / 2, rightEdge - leftEdge);
     }
 
-    // Gap-column aisle walkways (Cabaret table gaps)
-    for (const gc of gapCols) {
-      drawAisleStrip(colX[gc], GAP_COL_WIDTH - s(4));
-    }
-
     // ── Stage platform ───────────────────────────────────────────
     const stageY = topBarBottom + actualStageH / 2;
 
@@ -589,34 +583,7 @@ export class GameScene extends Phaser.Scene {
     for (let row = 0; row < ROWS; row++) {
       this.seatGrid[row] = [];
       const y = rowY[row];
-
-      // Row label: position relative to the first valid seat in the row
       const rowStagger = staggerRowOffsets[row] || 0;
-      let firstValidCol = 0;
-      if (this.layout.seatMask) {
-        while (
-          firstValidCol < COLS && !this.layout.seatMask[row][firstValidCol]
-        ) firstValidCol++;
-      }
-      const firstValidX = firstValidCol < COLS ? colX[firstValidCol] : colX[0];
-      const labelContainer = this.add.container(
-        firstValidX + rowStagger - s(75),
-        y,
-      );
-      const circle = this.add.circle(0, 0, s(16), 0x1a1a2e).setStrokeStyle(
-        s(2),
-        0xd4af37,
-        0.8,
-      );
-
-      const text = this.add.text(0, 0, String.fromCharCode(65 + row), {
-        fontSize: px(16),
-        fontFamily: "Georgia, serif",
-        color: "#eedd99",
-        fontStyle: "bold",
-      }).setOrigin(0.5, 0.5);
-
-      labelContainer.add([circle, text]);
 
       for (let col = 0; col < COLS; col++) {
         // Skip non-existent seats (seatMask or gap columns)
