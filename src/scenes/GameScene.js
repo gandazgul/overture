@@ -1212,7 +1212,7 @@ export class GameScene extends Phaser.Scene {
           );
           if (isRoyalBox && this.textures.exists("tag_royal_box")) {
             const tag = this.add.image(seat.x, seat.y, "tag_royal_box")
-              .setDisplaySize(s(32), s(32)).setAlpha(0.85);
+              .setDisplaySize(s(64), s(64)).setAlpha(0.85);
             this.seatLabels.push(tag);
           }
         }
