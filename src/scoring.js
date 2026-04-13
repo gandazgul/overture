@@ -191,7 +191,7 @@ function buildLovebirdsPairMap(grid, rows, cols, layout) {
       if (layout?.seatMask && !layout.seatMask[r][c]) { c++; continue; }
       if (grid[r][c]?.type === PatronType.LOVEBIRDS) {
         // Look for adjacent Lovebirds to the right (skip gap columns)
-        let next = c + 1;
+        const next = c + 1;
         // If next col doesn't have a seat, it's a gap — no pair
         if (layout?.seatMask && !layout.seatMask[r][next]) { c++; continue; }
         // Royal Box isolation: box and non-box seats are not adjacent

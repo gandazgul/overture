@@ -14,7 +14,7 @@
 4. [Turn Structure](#turn-structure)
 5. [The Lobby](#the-lobby)
 6. [Patron Cards](#patron-cards)
-   - [Primary Types](#primary-types-6)
+   - [Primary Types](#primary-types-7)
    - [Secondary Traits](#secondary-traits-4)
    - [Trait Assignment Rules](#trait-assignment-rules)
 7. [Deck Composition](#deck-composition)

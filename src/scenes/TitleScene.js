@@ -34,6 +34,9 @@ export class TitleScene extends Phaser.Scene {
 
         /** @type {boolean} Whether to jump straight to player setup on create */
         this._returnToSetup = false;
+
+        /** @type {'menu' | 'setup'} Tracks which screen is showing (for debug skip) */
+        this._currentScreen = 'menu';
     }
 
     /**
@@ -55,10 +58,25 @@ export class TitleScene extends Phaser.Scene {
         loadSettings(this.registry);
 
         // ── DEV DEBUG SKIP (Shift+D) ────────────────────────────────────
+        // Press once from main menu → player setup (4p). Press again → theater select.
         this.input.keyboard?.on('keydown-D', (/** @type {KeyboardEvent} */ e) => {
             if (!e.shiftKey) return;
-            console.log('DEBUG: Skipping to TheaterSelectionScene');
-            this.scene.start('TheaterSelectionScene', { playerCount: 2 });
+            if (this._currentScreen === 'menu') {
+                console.log('DEBUG: Skipping to Player Setup (4 players)');
+                this.selectedPlayerCount = 4;
+                this.aiConfig = Array.from({ length: 4 }, (_, i) =>
+                    i === 0 ? null : AIDifficulty.MEDIUM
+                );
+                this.showAISetup();
+            } else if (this._currentScreen === 'setup') {
+                console.log('DEBUG: Skipping to Theater Selection');
+                const count = this.selectedPlayerCount;
+                this.scene.start('TheaterSelectionScene', {
+                    playerCount: count,
+                    aiConfig: this.aiConfig.slice(0, count),
+                    playerColorMap: this.playerColorMap.slice(0, count),
+                });
+            }
         });
 
         if (this._returnToSetup) {
@@ -74,6 +92,7 @@ export class TitleScene extends Phaser.Scene {
     // ══════════════════════════════════════════════════════════════════
 
     showMainMenu() {
+        this._currentScreen = 'menu';
         this.children.removeAll(true);
         this.tweens.killAll();
 
@@ -222,6 +241,7 @@ export class TitleScene extends Phaser.Scene {
     // ══════════════════════════════════════════════════════════════════
 
     showAISetup() {
+        this._currentScreen = 'setup';
         this.children.removeAll(true);
         this.tweens.killAll();
 
@@ -438,7 +458,7 @@ export class TitleScene extends Phaser.Scene {
 
             // Cycle difficulty
             diffBtn.on('pointerdown', () => {
-                const idx = difficulties.indexOf(/** @type {string} */ (this.aiConfig[p]));
+                const idx = difficulties.indexOf(/** @type {typeof difficulties[number]} */ (this.aiConfig[p]));
                 const next = difficulties[(idx + 1) % difficulties.length];
                 this.aiConfig[p] = next;
                 this.showAISetup();

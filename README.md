@@ -10,6 +10,8 @@ maximize victory points and manage theater chaos.
 Seat patrons strategically to earn victory points. Different patron types have
 special placement rules and synergies!
 
+📖 **[Read the full Rule Book](./docs/RULE_BOOK.md)** — covers all patrons, traits, theaters, and scoring in detail.
+
 ## 🚀 Play the Game
 
 ```bash
@@ -108,7 +110,10 @@ overture/
 ├── index.html             # HTML entry point
 ├── deno.json              # Deno config, tasks & import map
 ├── vite.config.js         # Vite configuration
-├── GAME_DESIGN.md         # Full game design document
+├── docs/
+│   ├── GAME_DESIGN.md     # Full game design document
+│   ├── RULE_BOOK.md       # Illustrated rule book for players
+│   └── images/            # Screenshots & art for the rule book
 └── README.md              # This file
 ```
 
@@ -191,6 +196,11 @@ straightforward to test in isolation.
 - **No audio** — Sound effects not yet added
 - **JSDoc types** — All type annotations via JSDoc; `deno task check` validates
   them including code blocks in doc comments
+
+## 📚 Documentation
+
+- **[Rule Book](./docs/RULE_BOOK.md)** — Learn how to play: all patron types, traits, scoring rules, and 8 theaters explained with screenshots.
+- **[Game Design Document](./docs/GAME_DESIGN.md)** — Full design spec including planned features (lobby, gifting, play cards, season deck).
 
 ## 🚧 Roadmap
 

@@ -1317,6 +1317,20 @@ export class GameScene extends Phaser.Scene {
         }
       });
 
+      // Show scoring tooltip on hover
+      card.on("pointerover", () => {
+        this.showScoringTooltip(card);
+      });
+
+      card.on("pointerout", () => {
+        // Restore selected card's tooltip, or hide if nothing selected
+        if (this.selectedCard) {
+          this.showScoringTooltip(this.selectedCard);
+        } else {
+          this.hideScoringTooltip();
+        }
+      });
+
       // Animate in
       const targetY = card.y;
       card.y = targetY + s(150);
