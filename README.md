@@ -89,15 +89,22 @@ overture/
 ├── src/
 │   ├── main.js            # Game entry point & Phaser config
 │   ├── config.js          # Layout constants & responsive scaling
-│   ├── types.js           # Card data, patron types, deck creation
+│   ├── types.js           # Card data, patron types, theater layouts, deck creation
 │   ├── scoring.js         # Scoring engine — pure functions, no Phaser dependency
 │   ├── scoring.test.js    # Unit tests for scoring & deck logic
+│   ├── ai.js              # AI engine — pure functions, no Phaser dependency
+│   ├── ai.test.js         # Unit tests for AI decision-making
 │   ├── settings.js        # Runtime game settings
 │   ├── scenes/
-│   │   ├── TitleScene.js  # Title/menu screen
-│   │   └── GameScene.js   # Main gameplay
+│   │   ├── BootScene.js   # Asset preloader with progress bar
+│   │   ├── TitleScene.js  # Title screen & player setup
+│   │   ├── TheaterSelectionScene.js  # Theater picker with previews
+│   │   ├── GameScene.js   # Main gameplay
+│   │   └── EndGameScene.js # Scorecard, winner & play-again
 │   └── objects/
-│       └── Card.js        # Card game object (Container)
+│       ├── Button.js      # Shared button helper
+│       ├── Card.js        # Card game object (Container)
+│       └── SpeechBubble.js # Tooltip that follows cards
 ├── index.html             # HTML entry point
 ├── deno.json              # Deno config, tasks & import map
 ├── vite.config.js         # Vite configuration
@@ -105,21 +112,53 @@ overture/
 └── README.md              # This file
 ```
 
-## 🎮 Current Features
+## 🎮 Features
 
-- ✅ **Title Screen** — Animated start button with hover effects
-- ✅ **Game Grid** — 4×5 theater seating layout with row labels
-- ✅ **Card Hand** — Draw 3 cards per turn, visual selection
-- ✅ **Turn System** — 2-player pass-and-play supported
-- ✅ **Card Placement** — Click seat to place selected card
-- ✅ **Visual Feedback** — Tweens, hover effects, color changes
-- ✅ **Game Over** — End screen with "Play Again" button
-- ✅ **Full Deck** — 56 cards with all 6 patrons and 4 traits implemented
-- ✅ **Responsive** — Scales to fit browser window
-- ✅ **Scoring Engine** — Implement VIP bonuses, Teacher/Kid capping, adjacency
-  debuffs
-- ✅ **Victory Points Display** — Show running score during gameplay, with
-  settings to toggle on/off
+### Core Gameplay
+- **Full Deck** — 56 cards with 6 patron types and 4 secondary traits
+- **Card Hand** — Draw 3 cards per turn with visual selection and speech-bubble tooltips
+- **Turn System** — 2-player pass-and-play with hand passing screen
+- **Card Placement** — Click a seat to place the selected patron with animated feedback
+- **Scoring Engine** — VIP front-row bonuses, Teacher/Kid capping, Lovebird pairing, Critic aisle multipliers, adjacency debuffs, and all trait interactions
+- **Victory Points Display** — Running score during gameplay, toggleable in settings
+
+### AI Opponents
+- **3 Difficulty Levels** — Easy (random), Medium (greedy best-score), Hard (greedy + positional heuristics with jitter)
+- **Player Setup Screen** — Choose human or AI per slot, pick difficulty, and swap player colors with a color picker
+- **Seamless Integration** — AI turns auto-play with pacing delays; robot emoji marks AI players on the scoreboard
+
+### Theaters
+- **8 Unique Theaters** — Each with its own layout, background art, and house rule:
+  - **The Grand Empress** — Classic 5×6 grid
+  - **The Blackbox** — Compact 4×4 intimate space
+  - **The Royal Theatre** — Features isolated Royal Box seats with crown tags
+  - **The Promenade** — Wide 7×4 layout with center aisle
+  - **The Amphitheater** — Expanding rows (3→4→5→6), narrow front to wide back
+  - **The Cabaret** — Table-style seating with gaps between groups
+  - **The Balcony** — Two-tier layout with balcony and main floor
+  - **The Rotunda** — 5×5 hollow ring, theater-in-the-round (16 seats, no back row)
+- **Theater Selection Screen** — Preview thumbnails with zoom animation and random theater option
+- **Seat Label System** — Front row, back row, aisle, and Royal Box seats are tagged and scored automatically per layout
+
+### Visual Design
+- **1920s Art Deco Aesthetic** — Gold and deep purple palette throughout
+- **Custom Patron Art** — Unique card art for all patron types and traits
+- **Theater Backgrounds** — Hand-crafted AI-generated art for each venue
+- **Art Deco Seat Tags** — Crown tags for Royal Boxes, gold borders for aisle seats, visible walkway strips between sections
+- **House Rule Reminder** — Active house rule stays visible in the HUD all game
+
+### Scenes & UI
+- **Title Screen** — Animated logo with fullscreen toggle
+- **Boot Screen** — Asset preloader with progress bar
+- **End Game Screen** — Winner announcement, per-type scoring breakdown, and play-again option
+- **Responsive Scaling** — DPR-aware, adapts to viewport aspect ratio, works on mobile
+
+### Technical
+- **Pure Scoring Engine** — No Phaser dependency, fully unit-tested (144 tests)
+- **Pure AI Engine** — No Phaser dependency, fully unit-tested
+- **Modular Scenes** — Boot → Title → Theater Selection → Game → End Game
+- **Reusable Components** — Shared Button, Card, and SpeechBubble objects
+- **CI Pipeline** — Type-check, lint, and test in one command
 
 ## 🧪 Testing
 
@@ -130,20 +169,22 @@ needed.
 deno task test
 ```
 
-**Coverage**: 93.5% branch / 99.2% line across `scoring.js` and `types.js` (39
+**144 tests passing** across `scoring.test.js` (122 tests) and `ai.test.js` (22
 tests).
 
-Tests live alongside source files (`src/scoring.test.js`) and cover:
+Tests live alongside source files and cover:
 
-- All 6 patron types and 4 traits scoring rules (Standard, VIP, Lovebirds,
-  Kid/Teacher capping, Critic; plus Tall, Short, Bespectacled, and Noisy
-  modifiers)
+- All 6 patron types and 4 traits scoring rules across all 8 theater layouts
+- Theater-specific mechanics: Royal Box isolation, seat labels, house rules
 - Edge cases: empty grids, unknown types, overlapping debuffs, back-row
   multipliers
 - Deck creation: correct card count, patron distribution, and metadata
+- AI decision-making: all 3 difficulty levels, card selection, and 2-player
+  discard logic
 
-The scoring engine (`src/scoring.js`) is intentionally kept as **pure functions
-with no Phaser dependency**, making it straightforward to test in isolation.
+Both the scoring engine (`src/scoring.js`) and AI engine (`src/ai.js`) are
+intentionally kept as **pure functions with no Phaser dependency**, making them
+straightforward to test in isolation.
 
 ## 📝 Notes
 
@@ -153,9 +194,8 @@ with no Phaser dependency**, making it straightforward to test in isolation.
 
 ## 🚧 Roadmap
 
-### Next Up
-
 - [ ] **Play Variants** — Different "plays" with special rules
 - [ ] **Audio** — Ambient theater sounds and placement effects
+- [ ] **Online Multiplayer** — Play with friends remotely
 
 
