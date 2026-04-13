@@ -112,23 +112,23 @@ export const PatronInfo = {
   },
   [PatronType.VIP]: {
     emoji: "⭐",
-    description: "High VP in front rows. Penalty near Kids or Noisy patrons.",
+    description: "3 VP base. +3 VP in front rows. −3 per adjacent Kid or Noisy.",
   },
   [PatronType.LOVEBIRDS]: {
     emoji: "💕",
-    description: "Score only if adjacent to another Lovebirds. ×2 in back row.",
+    description: "1 VP alone. +3 if horizontally paired. +2 in back row.",
   },
   [PatronType.KID]: {
     emoji: "👦",
-    description: "0 VP unless capped by Teachers on both ends!",
+    description: "1 VP uncapped. 3 VP when capped by Teachers!",
   },
   [PatronType.TEACHER]: {
     emoji: "👩‍🏫",
-    description: "Scores VP for each adjacent capped Kid.",
+    description: "3 VP base. +1 VP per adjacent capped Kid.",
   },
   [PatronType.CRITIC]: {
     emoji: "🎩",
-    description: "Triple VP if in an aisle seat!",
+    description: "+3 VP in aisle seat. Noisy neighbors nullify the bonus!",
   },
 };
 Object.freeze(PatronInfo);
@@ -167,14 +167,14 @@ Object.freeze(TraitInfo);
  * @property {number} base - Base VP awarded for placing this patron
  * @property {number} [rowBonusValue] - Extra VP per qualifying row
  * @property {number[]} [rowBonusRows] - Row indices that grant the bonus (0 = front)
- * @property {number} [aisleMultiplier] - Multiply total VP if seated in an aisle seat
+ * @property {number} [aisleBonus] - Extra VP if seated in an aisle seat (additive)
  * @property {number} [adjacencyPenaltyPer] - VP penalty per adjacent patron of a triggering type
  * @property {string[]} [adjacencyPenaltyTypes] - Patron types that trigger the adjacency penalty
  * @property {boolean} [adjacencyPenaltyNoisyTrait] - Also penalized by adjacent Noisy-trait patrons
  * @property {number} [cappedValue] - VP when this patron is "capped" (Kid-specific)
  * @property {number} [perCappedKidBonus] - VP bonus per adjacent capped Kid (Teacher-specific)
  * @property {number} [adjacentMatchBonus] - VP if orthogonally adjacent to same type (Lovebirds)
- * @property {number} [backRowMultiplier] - Multiply total VP if in the designated back row
+ * @property {number} [backRowBonus] - Extra VP if in the designated back row (additive)
  * @property {number[]} [backRows] - Row indices that count as "back" for multiplier
  */
 
@@ -187,7 +187,7 @@ export const PatronScoring = {
     base: 3,
   },
   [PatronType.VIP]: {
-    base: 5,
+    base: 3, // (was 5)
     rowBonusValue: 3,
     rowBonusRows: [0, 1], // front 2 rows
     adjacencyPenaltyPer: -3,
@@ -195,22 +195,21 @@ export const PatronScoring = {
     adjacencyPenaltyNoisyTrait: true, // also penalized by Noisy-trait neighbors
   },
   [PatronType.LOVEBIRDS]: {
-    base: 0,
-    adjacentMatchBonus: 3, // VP if adjacent to another Lovebirds
-    backRowMultiplier: 2,
-    // backRows is determined by the layout, not hardcoded here
+    base: 1, // (was 0)
+    adjacentMatchBonus: 3, // VP if horizontally paired with another Lovebirds
+    backRowBonus: 2, // flat back-row bonus (was backRowMultiplier: 2)
   },
   [PatronType.KID]: {
-    base: 0, // uncapped
-    cappedValue: 2, // when capped by Teachers
+    base: 1, // uncapped (was 0)
+    cappedValue: 3, // when capped by Teachers (was 2)
   },
   [PatronType.TEACHER]: {
-    base: 1,
+    base: 3, // (was 1) — safe solo, rewarding in chains
     perCappedKidBonus: 1,
   },
   [PatronType.CRITIC]: {
-    base: 2,
-    aisleMultiplier: 3,
+    base: 3, // (was 2)
+    aisleBonus: 3, // additive bonus in aisle seat (was aisleMultiplier: 3)
   },
 };
 Object.freeze(PatronScoring);
@@ -335,12 +334,14 @@ function buildSeatLabels(layout) {
         labels[r][c].push("aisle");
       }
 
-      // Royal boxes also get "front" if not already
+      // Royal boxes also get "front" if not already, and always get "box"
       if (
-        layout.royalBoxes?.some((b) => b.row === r && b.col === c) &&
-        !labels[r][c].includes("front")
+        layout.royalBoxes?.some((b) => b.row === r && b.col === c)
       ) {
-        labels[r][c].push("front");
+        if (!labels[r][c].includes("front")) {
+          labels[r][c].push("front");
+        }
+        labels[r][c].push("box");
       }
     }
   }

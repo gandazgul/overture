@@ -93,6 +93,12 @@ export function getOrthogonalNeighbors(row, col, rows, cols, layout) {
     }
     // Check seatMask
     if (layout && layout.seatMask && !layout.seatMask[c.row][c.col]) continue;
+    // Royal Box isolation: box seats are not adjacent to non-box seats
+    if (layout) {
+      const srcIsBox = hasSeatLabel(row, col, "box", layout);
+      const dstIsBox = hasSeatLabel(c.row, c.col, "box", layout);
+      if (srcIsBox !== dstIsBox) continue;
+    }
     neighbors.push(c);
   }
   return neighbors;
@@ -164,14 +170,50 @@ export function findHorizontalKidGroups(rowData, cols) {
 }
 
 /**
- * Build a lookup of which Kid columns are capped in each row.
- * Returns a Set for each row containing the column indices of capped Kids.
+ * Build a lookup of which Lovebirds are part of a valid horizontal pair.
+ * Scans each row left-to-right, greedily pairing adjacent Lovebirds.
+ * L-L → pair. L-L-L → first two pair, third unpaired. L-L-L-L → two pairs.
  *
  * @param {(CardData | null)[][]} grid
  * @param {number} rows
  * @param {number} cols
- * @returns {Set<number>[]} - cappedKids[row] is a Set of capped col indices
+ * @param {LayoutMeta} [layout]
+ * @returns {Set<string>} Set of "row,col" keys for paired Lovebirds
  */
+function buildLovebirdsPairMap(grid, rows, cols, layout) {
+  /** @type {Set<string>} */
+  const paired = new Set();
+
+  for (let r = 0; r < rows; r++) {
+    let c = 0;
+    while (c < cols - 1) {
+      // Check seatMask
+      if (layout?.seatMask && !layout.seatMask[r][c]) { c++; continue; }
+      if (grid[r][c]?.type === PatronType.LOVEBIRDS) {
+        // Look for adjacent Lovebirds to the right (skip gap columns)
+        let next = c + 1;
+        // If next col doesn't have a seat, it's a gap — no pair
+        if (layout?.seatMask && !layout.seatMask[r][next]) { c++; continue; }
+        // Royal Box isolation: box and non-box seats are not adjacent
+        if (layout) {
+          const srcIsBox = hasSeatLabel(r, c, "box", layout);
+          const dstIsBox = hasSeatLabel(r, next, "box", layout);
+          if (srcIsBox !== dstIsBox) { c++; continue; }
+        }
+        if (next < cols && grid[r][next]?.type === PatronType.LOVEBIRDS) {
+          paired.add(`${r},${c}`);
+          paired.add(`${r},${next}`);
+          c = next + 1; // skip past the pair
+          continue;
+        }
+      }
+      c++;
+    }
+  }
+
+  return paired;
+}
+
 /**
  * @param {(CardData | null)[][]} grid
  * @param {number} rows
@@ -225,9 +267,10 @@ function buildCappedKidMap(grid, rows, cols, layout) {
  * @param {number} col
  * @param {LayoutMeta} layout
  * @param {Set<number>[]} cappedKids - precomputed capped Kid positions
+ * @param {Set<string>} lovebirdsPairs - precomputed paired Lovebirds positions
  * @returns {number} VP for this seat
  */
-export function scoreSeat(grid, row, col, layout, cappedKids) {
+export function scoreSeat(grid, row, col, layout, cappedKids, lovebirdsPairs) {
   const card = grid[row][col];
   if (!card) return 0;
 
@@ -280,26 +323,18 @@ export function scoreSeat(grid, row, col, layout, cappedKids) {
     }
 
     case PatronType.LOVEBIRDS: {
-      // Score only if adjacent to another Lovebirds
-      const neighbors = getOrthogonalNeighbors(row, col, rows, cols, layout);
-      let hasAdjacentMatch = false;
-      for (const n of neighbors) {
-        const neighbor = grid[n.row][n.col];
-        if (neighbor && neighbor.type === PatronType.LOVEBIRDS) {
-          hasAdjacentMatch = true;
-          break;
-        }
-      }
-      if (hasAdjacentMatch && scoring.adjacentMatchBonus) {
+      // Score pair bonus only if this Lovebird is part of a valid horizontal pair
+      const isPaired = lovebirdsPairs.has(`${row},${col}`);
+      if (isPaired && scoring.adjacentMatchBonus) {
         vp += scoring.adjacentMatchBonus;
       }
-      // Back row multiplier
+      // Back row bonus (additive)
       if (
-        hasAdjacentMatch &&
+        isPaired &&
         hasSeatLabel(row, col, "back", layout) &&
-        scoring.backRowMultiplier
+        scoring.backRowBonus
       ) {
-        vp *= scoring.backRowMultiplier;
+        vp += scoring.backRowBonus;
       }
       break;
     }
@@ -331,8 +366,21 @@ export function scoreSeat(grid, row, col, layout, cappedKids) {
     }
 
     case PatronType.CRITIC: {
-      if (isAisleSeat(row, col, layout) && scoring.aisleMultiplier) {
-        vp *= scoring.aisleMultiplier;
+      // Aisle bonus (additive), but nullified by adjacent Noisy
+      if (isAisleSeat(row, col, layout) && scoring.aisleBonus) {
+        // Check if any adjacent patron has the Noisy trait
+        const neighbors = getOrthogonalNeighbors(row, col, rows, cols, layout);
+        let hasNoisyNeighbor = false;
+        for (const n of neighbors) {
+          const neighbor = grid[n.row][n.col];
+          if (neighbor && neighbor.trait === Trait.NOISY) {
+            hasNoisyNeighbor = true;
+            break;
+          }
+        }
+        if (!hasNoisyNeighbor) {
+          vp += scoring.aisleBonus;
+        }
       }
       break;
     }
@@ -359,7 +407,12 @@ export function scoreSeat(grid, row, col, layout, cappedKids) {
         const frontBlocked = frontRow < 0 ||
           (layout && isAdjacencyBroken(row, frontRow, layout)) ||
           (layout?.seatMask && !layout.seatMask[frontRow]?.[col]);
-        if (frontBlocked || !grid[frontRow]?.[col]) {
+        // Royal Box isolation: box ↔ non-box are not adjacent
+        const boxBlocked = layout
+          ? hasSeatLabel(row, col, "box", layout) !==
+            hasSeatLabel(frontRow, col, "box", layout)
+          : false;
+        if (frontBlocked || boxBlocked || !grid[frontRow]?.[col]) {
           // No one in front (or adjacency broken) — bonus
           vp += traitScoring.emptyFrontBonus ?? 0;
         } else if (grid[frontRow][col]?.trait === Trait.TALL) {
@@ -380,8 +433,12 @@ export function scoreSeat(grid, row, col, layout, cappedKids) {
     const frontAccessible = frontRow >= 0 &&
       !(layout && isAdjacencyBroken(row, frontRow, layout)) &&
       !(layout?.seatMask && !layout.seatMask[frontRow]?.[col]);
+    // Royal Box isolation: box ↔ non-box are not adjacent
+    const boxAccessible = !layout ||
+      hasSeatLabel(row, col, "box", layout) ===
+        hasSeatLabel(frontRow, col, "box", layout);
     if (
-      frontAccessible &&
+      frontAccessible && boxAccessible &&
       grid[frontRow][col] &&
       grid[frontRow][col]?.trait === Trait.TALL
     ) {
@@ -551,6 +608,9 @@ export function scorePlayer(grid, layout = DefaultLayout) {
   // Precompute capped Kids for all rows
   const cappedKids = buildCappedKidMap(grid, rows, cols, layout);
 
+  // Precompute Lovebirds horizontal pairs
+  const lovebirdsPairs = buildLovebirdsPairMap(grid, rows, cols, layout);
+
   /** @type {number[][]} */
   const perSeat = [];
   let total = 0;
@@ -558,7 +618,7 @@ export function scorePlayer(grid, layout = DefaultLayout) {
   for (let r = 0; r < rows; r++) {
     perSeat[r] = [];
     for (let c = 0; c < cols; c++) {
-      const vp = scoreSeat(grid, r, c, layout, cappedKids);
+      const vp = scoreSeat(grid, r, c, layout, cappedKids, lovebirdsPairs);
       perSeat[r][c] = vp;
       total += vp;
     }

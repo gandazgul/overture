@@ -84,10 +84,10 @@ Deno.test("evaluateSeat — Standard always gives +3 VP", () => {
     assertEquals(delta, 3);
 });
 
-Deno.test("evaluateSeat — VIP in front row gives +8 VP", () => {
+Deno.test("evaluateSeat — VIP in front row gives +6 VP", () => {
     const grid = emptyGrid(GrandEmpressLayout);
     const delta = evaluateSeat(grid, card(PatronType.VIP), 0, 2, GrandEmpressLayout);
-    assertEquals(delta, 8); // 5 base + 3 front row
+    assertEquals(delta, 6); // 3 base + 3 front row
 });
 
 Deno.test("evaluateSeat — Critic in aisle gives +6 VP", () => {
@@ -96,10 +96,10 @@ Deno.test("evaluateSeat — Critic in aisle gives +6 VP", () => {
     assertEquals(delta, 6); // 2 × 3 aisle
 });
 
-Deno.test("evaluateSeat — Critic in non-aisle gives +2 VP", () => {
+Deno.test("evaluateSeat — Critic in non-aisle gives +3 VP", () => {
     const grid = emptyGrid(GrandEmpressLayout);
     const delta = evaluateSeat(grid, card(PatronType.CRITIC), 0, 2, GrandEmpressLayout);
-    assertEquals(delta, 2);
+    assertEquals(delta, 3);
 });
 
 // ══════════════════════════════════════════════════════════════════════

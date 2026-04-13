@@ -135,14 +135,14 @@ optional trait adds a modifier on top.
 
 ### Primary Types (6)
 
-| Type          | Emoji | Base VP | Core Mechanic                                                     |
-| ------------- | ----- | ------- | ----------------------------------------------------------------- |
-| **Standard**  | 🧑    | 3       | Reliable points anywhere. No special conditions.                  |
-| **VIP**       | ⭐    | 5       | +3 VP in front 2 rows. -3 per adjacent Kid or Noisy-trait patron. |
-| **Lovebirds** | 💕    | 0       | +3 VP if adjacent to another Lovebirds. ×2 in back row.           |
-| **Kid**       | 👦    | 0       | 0 VP unless capped; then 2 VP.                                    |
-| **Teacher**   | 👩‍🏫  | 1       | +1 VP per adjacent capped Kid.                                    |
-| **Critic**    | 🎩    | 2       | ×3 VP if in an aisle seat.                                        |
+| Type          | Emoji | Base VP | Core Mechanic                                                          |
+| ------------- | ----- | ------- | ---------------------------------------------------------------------- |
+| **Standard**  | 🧑    | 3       | Reliable points anywhere. No special conditions.                       |
+| **VIP**       | ⭐    | 3       | +3 VP in front 2 rows. −3 per adjacent Kid or Noisy-trait patron.      |
+| **Lovebirds** | 💕    | 1       | +3 VP if horizontally paired. +2 VP in back row. Pairs only.           |
+| **Kid**       | 👦    | 1       | 1 VP uncapped; 3 VP when capped.                                       |
+| **Teacher**   | 👩‍🏫  | 3       | +1 VP per adjacent capped Kid.                                         |
+| **Critic**    | 🎩    | 3       | +3 VP in aisle seat. Noisy neighbors nullify the bonus.                |
 
 ### Secondary Traits (4)
 
@@ -207,34 +207,37 @@ Scoring is computed in two phases, then cross-type modifiers are applied.
 
 #### VIP
 
-- **5 VP** base.
+- **3 VP** base.
 - **+3 VP** if seated in **row 0 or 1** (front 2 rows).
 - **-3 VP** for each orthogonally adjacent **Kid**.
 - **-3 VP** for each orthogonally adjacent patron with the **Noisy** trait.
 
 #### Lovebirds
 
-- **0 VP** base.
-- **+3 VP** if orthogonally adjacent to at least one other **Lovebirds** card.
-- **×2 multiplier** if in the **back row** (row 3) _and_ adjacent to another
-  Lovebirds.
+- **1 VP** base.
+- **+3 VP** if **horizontally paired** — adjacent to another Lovebirds in the
+  same row (left or right). Only **strict pairs** count: the first two adjacent
+  Lovebirds in a row form a pair; a third adjacent Lovebird is unpaired. Four
+  adjacent Lovebirds form two pairs.
+- **+2 VP** bonus if in the **back row** _and_ paired.
 
 #### Kid
 
-- **0 VP** if uncapped.
-- **2 VP** if **capped** - the Kid belongs to a contiguous horizontal group of
+- **1 VP** if uncapped.
+- **3 VP** if **capped** — the Kid belongs to a contiguous horizontal group of
   Kids that has a **Teacher** at both the left and right ends.
 
 #### Teacher
 
-- **1 VP** base.
+- **3 VP** base.
 - **+1 VP** per orthogonally adjacent **capped Kid**.
 
 #### Critic
 
-- **2 VP** base.
-- **×3 multiplier** if seated in an **aisle seat** (columns 0 or 4 on the
-  default layout).
+- **3 VP** base.
+- **+3 VP** if seated in an **aisle seat** (columns 0 or 4 on the default
+  layout), **unless** any orthogonally adjacent patron has the **Noisy** trait.
+  A Noisy neighbor nullifies the aisle bonus entirely.
 
 ### Trait Scoring
 
@@ -281,13 +284,13 @@ The trait system creates cards with layered strategic identities:
 
 | Combo                    | Why It's Interesting                                                                                                    |
 | ------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
-| **Bespectacled VIP**     | Front-row double bonus. The rarest prize card in the deck-only 1 exists. Dream placement: front row, away from Kids.    |
+| **Bespectacled VIP**     | Front-row double bonus. The rarest prize card in the deck—only 1 exists. Dream placement: front row, away from Kids. 3+3+2=8 VP.   |
 | **Tall Kid**             | Blocks the patron behind _and_ is a liability if uncapped. Excellent gift card for opponents.                           |
 | **Noisy Lovebirds**      | Big points in the back row when paired, but hurts all neighbors. Place carefully at the edge.                           |
 | **Bespectacled Teacher** | Front-row trait bonus while also needing to cap Kids. Creates tension between optimal row and duty.                     |
-| **Short Critic**         | Dream placement: front-row corner aisle seat. +2 (Short empty front) on top of 2×3 (Critic aisle) = 8 VP from one card. |
-| **Noisy Kid**            | Pure disruption. Worth 0 VP uncapped _and_ hurts neighbors. The ultimate gift card.                                     |
-| **Tall Lovebirds**       | Wants the back row for ×2 scoring but blocks whoever sits behind. In row 3 (back), no one is behind-safe spot.          |
+| **Short Critic**         | Dream placement: front-row corner aisle seat. +2 (Short empty front) on top of 3+3 (Critic aisle) = 8 VP from one card. |
+| **Noisy Kid**            | Worth 1 VP uncapped _and_ hurts neighbors. The ultimate gift card. Noisy also nullifies any adjacent Critic's aisle bonus. |
+| **Tall Lovebirds**       | Wants the back row for +2 bonus but blocks whoever sits behind. In the back row, no one is behind—safe spot.            |
 | **Short Kid**            | Front-row bonus if uncapped feels wasted; capping in the front row means Teachers compete with VIPs for premium seats.  |
 
 ---
@@ -368,7 +371,8 @@ Row 4: [ ][A][A][ ]
 **Strategic feel:** Narrow and deep with 5 rows. Aisle seats are center-only,
 making Critic placement unintuitive. 5 rows deep means Tall chains are
 devastating. The dense packing bonus creates tension: you _want_ neighbors for
-+1 VP, but Noisy patrons punish exactly that.
++1 VP, but Noisy patrons punish exactly that. Noisy also nullifies Critic aisle
+bonuses.
 
 ---
 
@@ -385,8 +389,8 @@ Row 3: [A][ ][ ][ ][A]
 **House Rule: "Royal Approval"** - The single highest-scoring patron in your
 theater gets +3 VP. Tiebreaker: front-most, then left-most.
 
-**Strategic feel:** The Royal Boxes are the most contested seats-a Bespectacled
-VIP in a Box scores 5+3+2+3 = 13 VP. "Royal Approval" also incentivizes building
+**Strategic feel:** The Royal Boxes are the most contested seats—a Bespectacled
+VIP in a Box scores 3+3+2+3 = 11 VP. "Royal Approval" also incentivizes building
 one mega-patron _anywhere_. Do you put your best card in the Box, or does the
 Box itself make the card your best?
 
@@ -404,7 +408,8 @@ Row 3: [ ][ ][ ][ ][ ][ ]
 
 **House Rule: "The Panorama"** - +2 VP bonus for each completely filled row.
 
-**Strategic feel:** Zero aisles means Critics are nearly dead (base 2 VP only).
+**Strategic feel:** Zero aisles means Critics are nearly dead (base 3 VP only,
+no aisle bonus).
 Widening rows create a natural wedge shape-the narrow front (3 seats) is easy to
 fill for Panorama bonus but scarce for VIPs. The wide back row (6 seats) is
 Lovebirds paradise but hard to fill completely. Do you complete the easy small
@@ -435,9 +440,9 @@ table.
 hurts tablemates, not the next table over. The horizontal gap between row-pairs
 further isolates the top 3 tables from the bottom 3. Lovebirds want to share a
 table. Filling a full table for +3 VP means you might place a mediocre card just
-to complete it. The table capping rule makes Teachers valuable-one Teacher can
-supervise an entire table of Kids-but you sacrifice seats that could hold
-higher-scoring patrons. Critics score only 2 VP base (no aisle seats exist).
+to complete it. The table capping rule makes Teachers valuable—one Teacher can
+supervise an entire table of Kids—but you sacrifice seats that could hold
+higher-scoring patrons. Critics score only 3 VP base (no aisle seats exist).
 
 ---
 
@@ -473,7 +478,7 @@ Row 2: [A][ ][ ][ ][A]    20 seats, 8 aisle seats
 Row 3: [ ][ ][A][ ][ ]
 ```
 
-**House Rule: "Wandering Critics"** - Critics score their ×3 bonus in any aisle
+**House Rule: "Wandering Critics"** - Critics score their +3 aisle bonus in any aisle
 seat (as normal), but aisle seats change every row. +1 VP per Critic if you have
 3+ Critics in aisle seats.
 
@@ -501,7 +506,7 @@ count as front row. Outer-ring seats are aisles.
 **Strategic feel:** Theater-in-the-round completely redefines the geometry. The
 10 inner-ring seats are all "front row," making VIPs strong almost everywhere.
 Bespectacled gets +2 VP on every seat (no back row to exclude them). But
-Lovebirds lose their back-row ×2 multiplier entirely — they're capped at 3 VP
+Lovebirds lose their back-row +2 bonus entirely—they're capped at 4 VP
 per pair. Critics have only 6 outer-ring aisle seats to compete for. The hollow
 center breaks adjacency across the stage — patrons on opposite sides of the ring
 can't see each other. Short patrons love the inner ring: many seats face the
@@ -552,7 +557,7 @@ Understudy scores as whatever primary type would earn the most VP in its current
 seat. (It does NOT gain a trait.)
 
 **Why it's interesting:** Every Understudy placement is a puzzle. An aisle seat
-makes it a Critic (6 VP). A front-row seat away from Kids makes it a VIP (8 VP).
+makes it a Critic (6 VP). A front-row seat away from Kids makes it a VIP (6 VP).
 Next to another Lovebirds in the back row makes it Lovebirds (6 VP). But it
 resolves at _end-game_, so the best seat depends on what you place around it
 later. Rewards long-term planning and flexible positioning.
@@ -704,7 +709,7 @@ referenced by specific Plays.
 | **Royal Theatre + The Casting Call** | The Collector role loves the Royal Boxes (diverse types for +6 VP). The Architect can swap a patron INTO a Box mid-game. |
 | **Grand Empress + The Mystery**      | Vanilla layout lets you focus purely on demand adaptation. Good for learning The Mystery without layout complexity.      |
 | **Rotunda + The Avant-Garde**        | Empty stage center already breaks adjacency; leaving outer-ring gaps for +2 VP each compounds the breathing-room bonus. |
-| **Rotunda + The Matinee**            | Every inner-ring seat is "front row" and scores twice at intermission. VIPs and Bespectacled patrons are massive.       |
+| **Rotunda + The Matinee**            | Every inner-ring seat is "front row" and scores twice at intermission. VIPs and Bespectacled patrons are strong.        |
 
 ---
 

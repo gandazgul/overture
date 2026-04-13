@@ -726,11 +726,12 @@ export class GameScene extends Phaser.Scene {
     this.uiContainer = this.add.container(hudX, hudY).setDepth(150);
 
     // HUD Background
+    const houseRuleExtra = this.layout.houseRuleDescription ? s(60) : 0;
     const hudBg = this.add.rectangle(
       0,
       0,
       hudW,
-      s(260 + this.playerCount * 48),
+      s(260 + this.playerCount * 48) + houseRuleExtra,
       0x0f0f1c,
       0.95,
     )
@@ -818,6 +819,31 @@ export class GameScene extends Phaser.Scene {
       panel.add(text);
       this.uiContainer.add(panel);
       this.scorePanels.push(panel);
+    }
+
+    // ── House Rule Reminder ──────────────────────────────────────
+    if (this.layout.houseRuleDescription) {
+      const ruleY = scoreStartY + this.playerCount * s(48) + s(8);
+      // Thin gold divider
+      const divider = this.add.rectangle(
+        hudW / 2, ruleY, hudW - s(30), s(1), 0xd4af37, 0.4,
+      ).setOrigin(0.5, 0);
+      this.uiContainer.add(divider);
+
+      const ruleText = this.add.text(
+        hudW / 2,
+        ruleY + s(8),
+        this.layout.houseRuleDescription,
+        {
+          fontSize: px(11),
+          fontFamily: "Georgia, serif",
+          color: "#f5c518",
+          fontStyle: "italic",
+          wordWrap: { width: hudW - s(24) },
+          align: "center",
+        },
+      ).setOrigin(0.5, 0);
+      this.uiContainer.add(ruleText);
     }
 
     // ── Active Player Large Avatar ──────────────────────────────────
