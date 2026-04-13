@@ -93,9 +93,9 @@ export class TitleScene extends Phaser.Scene {
         // "How many players?" label
         this.add
             .text(width / 2, height / 2 - s(30), 'How many players?', {
-                fontSize: px(24),
+                fontSize: px(28),
                 fontFamily: 'Georgia, serif',
-                color: '#ccccdd',
+                color: '#ffd700',
             })
             .setOrigin(0.5);
 
@@ -233,7 +233,7 @@ export class TitleScene extends Phaser.Scene {
 
         this.add
             .text(width / 2, s(175), 'Player Setup', {
-                fontSize: px(26),
+                fontSize: px(28),
                 fontFamily: 'Georgia, serif',
                 color: '#ffd700',
             })
@@ -424,7 +424,7 @@ export class TitleScene extends Phaser.Scene {
         }
 
         // ── Next button ─────────────────────────────────────────────
-        const btnY = tableY + totalH + s(45);
+        const btnY = tableY + totalH + s(85);
         const { hitArea: startHit } = createButton(
             this, width / 2, btnY, 'Next \u2192',
             { fontSize: 18, width: 200 },

@@ -219,7 +219,6 @@ export class GameScene extends Phaser.Scene {
 
     // ── Seat tags ──────────────────────────────────────────────────────────
     loadIfMissing("tag_royal_box", "assets/tag_royal_box.png");
-    loadIfMissing("tag_aisle", "assets/tag_aisle.png");
 
     // ── Only the selected theater background (JPEG) ─────────────────
     const bgKey = `bg_${this.layout.id}`;
@@ -480,86 +479,57 @@ export class GameScene extends Phaser.Scene {
     }
 
     // ── Aisle walkway strips ──────────────────────────────────────
-    const aisleColor = 0x1e1e32;
+    const aisleColor = 0x2a2440;
+    const aisleBorderColor = 0x8a7a3e;
+    const aisleDashColor = 0x9a8a4e;
     const aisleStripH = floorH;
+
+    /**
+     * Draw a single aisle walkway strip with gold-tinted borders and dashes.
+     * @param {number} cx - center X
+     * @param {number} w  - strip width
+     */
+    const drawAisleStrip = (cx, w) => {
+      // Main walkway background
+      this.add
+        .rectangle(cx, floorTop + floorH / 2, w - s(2), aisleStripH, aisleColor)
+        .setAlpha(0.85);
+      // Left border line
+      this.add
+        .rectangle(cx - w / 2 + s(1), floorTop + floorH / 2, s(2), aisleStripH, aisleBorderColor)
+        .setAlpha(0.6);
+      // Right border line
+      this.add
+        .rectangle(cx + w / 2 - s(1), floorTop + floorH / 2, s(2), aisleStripH, aisleBorderColor)
+        .setAlpha(0.6);
+      // Center dashed line
+      for (let dy = 0; dy < floorH; dy += s(14)) {
+        this.add
+          .rectangle(cx, floorTop + dy + s(3), s(2), s(7), aisleDashColor)
+          .setAlpha(0.7);
+      }
+    };
 
     // Left aisle walkway
     if (leftAisle) {
-      const aisleX = gridStartX + AISLE_GAP / 2;
-      this.add
-        .rectangle(
-          aisleX,
-          floorTop + floorH / 2,
-          AISLE_GAP - s(4),
-          aisleStripH,
-          aisleColor,
-        )
-        .setAlpha(0.6);
-      for (let dy = 0; dy < floorH; dy += s(16)) {
-        this.add
-          .rectangle(aisleX, floorTop + dy + s(4), s(2), s(8), 0x444466)
-          .setAlpha(0.4);
-      }
+      drawAisleStrip(gridStartX + AISLE_GAP / 2, AISLE_GAP - s(4));
     }
 
     // Right aisle walkway
     if (rightAisle) {
-      const aisleX = (floorLeft + floorW) - AISLE_GAP / 2;
-      this.add
-        .rectangle(
-          aisleX,
-          floorTop + floorH / 2,
-          AISLE_GAP - s(4),
-          aisleStripH,
-          aisleColor,
-        )
-        .setAlpha(0.6);
-      for (let dy = 0; dy < floorH; dy += s(16)) {
-        this.add
-          .rectangle(aisleX, floorTop + dy + s(4), s(2), s(8), 0x444466)
-          .setAlpha(0.4);
-      }
+      drawAisleStrip((floorLeft + floorW) - AISLE_GAP / 2, AISLE_GAP - s(4));
     }
 
     // Center aisle walkways
     for (const gapAfterCol of centerAisleGaps) {
       const leftEdge = colX[gapAfterCol] + SEAT_SIZE / 2;
       const rightEdge = colX[gapAfterCol + 1] - SEAT_SIZE / 2;
-      const aisleX = (leftEdge + rightEdge) / 2;
-      const aisleW = rightEdge - leftEdge;
-      this.add
-        .rectangle(
-          aisleX,
-          floorTop + floorH / 2,
-          aisleW - s(4),
-          aisleStripH,
-          aisleColor,
-        )
-        .setAlpha(0.6);
-      for (let dy = 0; dy < floorH; dy += s(16)) {
-        this.add
-          .rectangle(aisleX, floorTop + dy + s(4), s(2), s(8), 0x444466)
-          .setAlpha(0.4);
-      }
+      drawAisleStrip((leftEdge + rightEdge) / 2, rightEdge - leftEdge);
     }
 
     // Gap-column aisle walkways (Cabaret table gaps)
     for (const gc of gapCols) {
-      const aisleX = colX[gc];
-      this.add
-        .rectangle(
-          aisleX,
-          floorTop + floorH / 2,
-          GAP_COL_WIDTH - s(4),
-          aisleStripH,
-          aisleColor,
-        )
-        .setAlpha(0.6);
-      for (let dy = 0; dy < floorH; dy += s(16)) {
-        this.add
-          .rectangle(aisleX, floorTop + dy + s(4), s(2), s(8), 0x444466)
-          .setAlpha(0.4);
-      }
+      drawAisleStrip(colX[gc], GAP_COL_WIDTH - s(4));
     }
 
     // ── Stage platform ───────────────────────────────────────────
@@ -713,14 +683,7 @@ export class GameScene extends Phaser.Scene {
         // Royal Box tag (centered on empty seat)
         if (isRoyalBox && this.textures.exists("tag_royal_box")) {
           const tag = this.add.image(x, y, "tag_royal_box")
-            .setDisplaySize(s(32), s(32)).setAlpha(0.85);
-          this.seatLabels.push(tag);
-        }
-
-        // Aisle tag (below seat)
-        if (isAisle && !isRoyalBox && this.textures.exists("tag_aisle")) {
-          const tag = this.add.image(x, y + SEAT_SIZE / 2 + s(10), "tag_aisle")
-            .setDisplaySize(s(36), s(18)).setAlpha(0.7);
+            .setDisplaySize(s(64), s(64)).setAlpha(0.85);
           this.seatLabels.push(tag);
         }
 
@@ -1283,12 +1246,6 @@ export class GameScene extends Phaser.Scene {
           if (isRoyalBox && this.textures.exists("tag_royal_box")) {
             const tag = this.add.image(seat.x, seat.y, "tag_royal_box")
               .setDisplaySize(s(32), s(32)).setAlpha(0.85);
-            this.seatLabels.push(tag);
-          }
-          const isAisle = hasSeatLabel(row, col, "aisle", this.layout);
-          if (isAisle && !isRoyalBox && this.textures.exists("tag_aisle")) {
-            const tag = this.add.image(seat.x, seat.y + SEAT_SIZE / 2 + s(10), "tag_aisle")
-              .setDisplaySize(s(36), s(18)).setAlpha(0.7);
             this.seatLabels.push(tag);
           }
         }

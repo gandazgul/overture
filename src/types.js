@@ -638,7 +638,7 @@ export const DefaultLayout = GrandEmpressLayout;
  * Creates the full 56-card deck.
  * 35 clean cards + 21 cards with traits.
  *
- * Trait breakdown: 6 Tall, 6 Short, 5 Bespectacled, 4 Noisy.
+ * Trait breakdown: 7 Tall, 7 Short, 6 Bespectacled, 4 Noisy.
  *
  * @returns {CardData[]}
  */
