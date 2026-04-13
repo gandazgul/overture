@@ -51,7 +51,7 @@ ASSETS_TO_GENERATE = [
     },
     {
         "filename": "patron_friends.png",
-        "prompt": "A charming, stylized 2D digital illustration of two friendly 1920s theater-goers, arm in arm, laughing together. Warm theater lighting. Art Deco illustration style, clean lines, expressive character design, centered portrait, plain dark background.",
+        "prompt": "A charming, stylized 2D digital illustration of a friendly 1920s theater-goer laughing. Sitting at an art deco theater. Warm theater lighting. Art Deco illustration style, clean lines, expressive character design, centered portrait, plain dark background.",
         "aspect_ratio": "3:4"
     },
 

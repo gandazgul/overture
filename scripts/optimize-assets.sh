@@ -73,10 +73,10 @@ magick "$ARCHIVE/ui_stage.png" -resize 640x -strip "$SRC/ui_stage.png"
 echo "  ui_stage: $(du -h "$SRC/ui_stage.png" | cut -f1)"
 echo ""
 
-echo "--- Patron Cards (168px wide) ---"
+echo "--- Patron Cards (168px wide, trimmed) ---"
 for patron in "$ARCHIVE"/patron_*.png; do
   name=$(basename "$patron" .png)
-  magick "$patron" -resize 168x -strip "$SRC/${name}.png"
+  magick "$patron" -trim +repage -resize 168x -strip "$SRC/${name}.png"
   echo "  $name: $(du -h "$SRC/${name}.png" | cut -f1)"
 done
 echo ""
@@ -89,10 +89,19 @@ for usher in "$ARCHIVE"/usher_*.png; do
 done
 echo ""
 
-echo "--- Badges (64px) ---"
+echo "--- Badges (64px, trimmed) ---"
 for badge in "$ARCHIVE"/badge_*.png; do
   name=$(basename "$badge" .png)
-  magick "$badge" -resize 64x64 -strip "$SRC/${name}.png"
+  magick "$badge" -trim +repage -resize 64x64 -strip "$SRC/${name}.png"
+  echo "  $name: $(du -h "$SRC/${name}.png" | cut -f1)"
+done
+echo ""
+
+echo "--- Tokens (64px, trimmed) ---"
+for token in "$ARCHIVE"/*token*.png; do
+  [ -f "$token" ] || { echo "  (no token files found)"; break; }
+  name=$(basename "$token" .png)
+  magick "$token" -trim +repage -resize 64x64 -strip "$SRC/${name}.png"
   echo "  $name: $(du -h "$SRC/${name}.png" | cut -f1)"
 done
 echo ""
