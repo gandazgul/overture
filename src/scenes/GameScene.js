@@ -2,6 +2,7 @@
 import Phaser from 'phaser';
 import { pickCardAndSeat, pickSeat } from '../ai.js';
 import { px, s } from '../config.js';
+import { DrawReminderBanner } from '../objects/DrawReminderBanner.js';
 import { createButton } from '../objects/Button.js';
 import { Card } from '../objects/Card.js';
 import { SpeechBubble } from '../objects/SpeechBubble.js';
@@ -34,7 +35,7 @@ const SCORING_HINTS = {
     'Patron': 'Base 3VP',
     'VIP': 'Base 3 VP\n+3VP in the front 2 rows\n⚠ −3VP per adjacent Kid or Noisy',
     'Lovebirds': '+3VP if paired side by side with another Lovebird\n+2VP in back row\n⚠ 0 VP if alone',
-    'Kid': '1VP unless capped by a Teacher\n+2VP when capped\nCapped on both sides e.g. T-K-T',
+    'Kid': '1VP unless capped by a Teacher\n+2VP when capped e.g. T-K-T',
     'Teacher': 'Base 3VP\n+1VP per capped Kid in its chain',
     'Critic': 'Base 3VP\n+3VP in an aisle seat (gold border)',
     'Friends': 'Base 3VP\n+1VP per adjacent Friend',
@@ -1265,25 +1266,22 @@ export class GameScene extends Phaser.Scene {
             const card = new Card(this, x, handY, cardData);
 
             card.on('pointerdown', () => {
-                if (this.turnPhase === 'play') {
-                    this.selectCard(card);
-                }
-                else if (this.turnPhase === 'discard') {
+                if (this.turnPhase === 'discard') {
                     this.discardCard(card);
+                } else {
+                    this.selectCard(card);
                 }
             });
 
-            // Show scoring tooltip on hover
+            // Always show scoring tooltip on hover
             card.on('pointerover', () => {
                 this.showScoringTooltip(card);
             });
 
             card.on('pointerout', () => {
-                // Restore selected card's tooltip, or hide if nothing selected
                 if (this.selectedCard) {
                     this.showScoringTooltip(this.selectedCard);
-                }
-                else {
+                } else {
                     this.hideScoringTooltip();
                 }
             });
@@ -1291,7 +1289,7 @@ export class GameScene extends Phaser.Scene {
             // Animate in
             const targetY = card.y;
             card.y = targetY + s(150);
-            card.setAlpha(0);
+            card.setAlpha(1);
             this.tweens.add({
                 targets: card,
                 y: targetY,
@@ -1313,6 +1311,12 @@ export class GameScene extends Phaser.Scene {
      * @param {Card} card
      */
     selectCard(card) {
+        const hand = this.playerHands[this.currentPlayer];
+        const handIsFull = hand.length === this.maxCardsInHand;
+        if (this.turnPhase === 'play' && !handIsFull) {
+            this.showDrawReminderBanner();
+            return;
+        }
         for (const c of this.handCards) {
             c.setSelected(false);
         }
@@ -1351,6 +1355,30 @@ export class GameScene extends Phaser.Scene {
             duration: 150,
             ease: 'Sine.easeOut',
         });
+    }
+
+    /**
+     * Show a notification banner in the middle of the screen
+     * when the player tries to select a card with an incomplete hand.
+     */
+    showDrawReminderBanner() {
+        // Remove existing banner first, if present
+        if (this.drawReminderBanner) {
+            this.drawReminderBanner.destroy();
+            this.drawReminderBanner = null;
+        }
+        const { width, height } = this.scale;
+        let msg;
+        if (this.playerCount === 2) {
+            const needed = this.maxCardsInHand - this.playerHands[this.currentPlayer].length;
+            msg = needed === 2 ? "You must draw two cards first" : "You must draw a card first";
+        } else {
+            msg = "You must draw a card first";
+        }
+        // Use DrawReminderBanner game object
+        const banner = new DrawReminderBanner(this, width / 2, height / 2, msg);
+        this.add.existing(banner);
+        this.drawReminderBanner = banner; // Banner will self-destroy after its duration.
     }
 
     /** Remove the scoring tooltip if visible. */
