@@ -244,8 +244,12 @@ export class GameScene extends Phaser.Scene {
      * @param {{ playerCount?: number, layoutId?: string, aiConfig?: (string | null)[], playerColorMap?: number[] }} data
      */
     init(data) {
-        this.layout = (data.layoutId && Layouts[data.layoutId]) ||
-            GrandEmpressLayout;
+        if (data && data.layoutId && Layouts[data.layoutId]) {
+            this.layout = Layouts[data.layoutId];
+        }
+        else {
+            this.layout = GrandEmpressLayout;
+        }
         this.playerCount = data.playerCount || 2;
         this.maxCardsInHand = this.playerCount === 2 ? 3 : 2;
         this.currentPlayer = 0;
@@ -1096,6 +1100,73 @@ export class GameScene extends Phaser.Scene {
     }
 
     /**
+     * Render a played patron card (and badge) on a seat, with animatable entry and masking.
+     * Returns the created sprites for animation if needed.
+     *
+     * @param {Phaser.GameObjects.Rectangle} seat
+     * @param {import('../types.js').CardData} cardData
+     * @param {{ animate?: boolean }} [options]
+     * @returns {Phaser.GameObjects.GameObject[]} The created visual objects (seat, baseImg, badge?)
+     */
+    renderPlacedCardOnSeat(seat, cardData, { animate = true } = {}) {
+        seat.setFillStyle(0x000000, 0);
+        seat.setStrokeStyle(
+            s(2),
+            cardData.trait ? TraitColors[cardData.trait] || 0xffffff : 0x4a4a6a,
+            0.8,
+        );
+        // Patron image
+        const baseImgKey = `patron_${cardData.type.toLowerCase()}`;
+        // The mask will use seat dimensions, not SEAT_SIZE (for flexibility)
+        const seatImgW = (seat.width ?? SEAT_SIZE) - s(2);
+        const seatImgH = seatImgW * (140 / 105);
+
+        const baseImg = this.add.image(seat.x, seat.y, baseImgKey);
+        baseImg.setDisplaySize(seatImgW, seatImgH);
+        // Pin to bottom of seat rect
+        baseImg.setPosition(seat.x, seat.y + seatImgH / 2 - (seat.height ?? SEAT_SIZE) / 2);
+        // Mask so patron never escapes seat boundary
+        const bgMask = this.make.graphics();
+        bgMask.fillRect(
+            seat.x - (seat.width ?? SEAT_SIZE) / 2,
+            seat.y - (seat.height ?? SEAT_SIZE) / 2,
+            seat.width ?? SEAT_SIZE,
+            seat.height ?? SEAT_SIZE,
+        );
+        baseImg.setMask(bgMask.createGeometryMask());
+        this.seatLabels.push(baseImg);
+        const visuals = [seat, baseImg];
+        if (cardData.trait) {
+            const badgeKey = `badge_${cardData.trait.toLowerCase()}`;
+            // Position in top-right of the seat rect
+            const badge = this.add.image(
+                seat.x + (seat.width ?? SEAT_SIZE) / 2 - s(15),
+                seat.y - (seat.height ?? SEAT_SIZE) / 2 + s(16),
+                badgeKey,
+            );
+            badge.setDisplaySize(s(30), s(30));
+            this.seatLabels.push(badge);
+            visuals.push(badge);
+        }
+        if (animate) {
+            baseImg.setAlpha(0);
+            this.tweens.add({
+                targets: visuals,
+                alpha: 1,
+                duration: 150,
+            });
+            this.tweens.add({
+                targets: visuals,
+                scaleX: 1.05,
+                scaleY: 1.05,
+                duration: 150,
+                yoyo: true,
+            });
+        }
+        return visuals;
+    }
+
+    /**
      * Animate an AI card placement on the grid, then advance.
      * @param {number} row
      * @param {number} col
@@ -1109,58 +1180,8 @@ export class GameScene extends Phaser.Scene {
             this.time.delayedCall(300, () => this.advanceTurn());
             return;
         }
-
-        // Update seat visual
-        seat.setFillStyle(0x000000, 0);
-        seat.setStrokeStyle(
-            s(2),
-            cardData.trait ? TraitColors[cardData.trait] || 0xffffff : 0x4a4a6a,
-            0.8,
-        );
-
-        // Base patron image
-        const baseImgKey = `patron_${cardData.type.toLowerCase()}`;
-        const baseImg = this.add.image(seat.x, seat.y, baseImgKey);
-        const seatImgW = SEAT_SIZE * 0.9;
-        const seatImgH = seatImgW * (140 / 105);
-        baseImg.setDisplaySize(seatImgW, seatImgH);
-        baseImg.setOrigin(0.5, 1);
-        baseImg.setPosition(seat.x, seat.y + SEAT_SIZE / 2 - s(4));
-        this.seatLabels.push(baseImg);
-
-        const childrenForAnim = [seat, baseImg];
-
-        // Trait badge
-        if (cardData.trait) {
-            const badgeKey = `badge_${cardData.trait.toLowerCase()}`;
-            const badge = this.add.image(
-                seat.x + SEAT_SIZE / 2 - s(6),
-                seat.y - SEAT_SIZE / 2 + s(14),
-                badgeKey,
-            );
-            badge.setDisplaySize(s(30), s(30));
-            this.seatLabels.push(badge);
-            childrenForAnim.push(badge);
-        }
-
-        // Animate placement
-        baseImg.setAlpha(0);
-        this.tweens.add({
-            targets: childrenForAnim,
-            alpha: 1,
-            duration: 150,
-        });
-        this.tweens.add({
-            targets: childrenForAnim,
-            scaleX: 1.05,
-            scaleY: 1.05,
-            duration: 150,
-            yoyo: true,
-        });
-
+        this.renderPlacedCardOnSeat(seat, cardData, { animate: true });
         this.updateScoreboard();
-
-        // Advance after animation
         this.time.delayedCall(500, () => this.advanceTurn());
     }
 
@@ -1188,49 +1209,7 @@ export class GameScene extends Phaser.Scene {
 
                 const cardData = grid[row][col];
                 if (cardData) {
-                    // Make the seat rectangle transparent so the image takes over
-                    seat.setFillStyle(0x000000, 0);
-                    seat.setStrokeStyle(
-                        s(2),
-                        cardData.trait ? TraitColors[cardData.trait] || 0xffffff : 0x4a4a6a,
-                        0.8,
-                    );
-
-                    // Base patron image (Maintain aspect ratio, pin to bottom of seat)
-                    const baseImgKey = `patron_${cardData.type.toLowerCase()}`;
-                    const baseImg = this.add.image(seat.x, seat.y, baseImgKey);
-
-                    const seatImgW = SEAT_SIZE - s(2);
-                    // TODO: get the ratio from the texture
-                    const seatImgH = seatImgW * (140 / 105); // Use Card aspect ratio
-                    baseImg.setDisplaySize(seatImgW, seatImgH);
-                    baseImg.setPosition(seat.x, seat.y + seatImgH / 2 - seat.height / 2);
-                    const bgMask = this.make.graphics();
-                    bgMask.fillRect(
-                        seat.x - seat.width / 2,
-                        seat.y - seat.height / 2,
-                        seat.width,
-                        seat.height,
-                    );
-                    baseImg.setMask(bgMask.createGeometryMask());
-                    this.seatLabels.push(baseImg);
-
-                    // Trait badge
-                    if (cardData.trait) {
-                        const badgeKey = `badge_${cardData.trait.toLowerCase()}`;
-                        // Position badge in top-right corner of the seat
-                        const badge = this.add.image(
-                            0,
-                            0,
-                            badgeKey,
-                        );
-                        badge.setPosition(
-                            seat.x - xseat.width / 2 - badge.width,
-                            seat.y - seat.height / 2 - badge.height,
-                        )
-                        badge.setDisplaySize(s(30), s(30));
-                        this.seatLabels.push(badge);
-                    }
+                    this.renderPlacedCardOnSeat(seat, cardData, { animate: false });
                 }
                 else {
                     // Restore empty-state appearance from seat data
@@ -1397,60 +1376,9 @@ export class GameScene extends Phaser.Scene {
         }
 
         const cardData = this.selectedCard.cardData;
-
         // Update logical state
         this.placedPatrons[this.currentPlayer][row][col] = cardData;
-
-        // Update visual
-        seat.setFillStyle(0x000000, 0);
-        seat.setStrokeStyle(
-            s(2),
-            cardData.trait ? TraitColors[cardData.trait] || 0xffffff : 0x4a4a6a,
-            0.8,
-        );
-
-        // Base patron image (Maintain aspect ratio)
-        const baseImgKey = `patron_${cardData.type.toLowerCase()}`;
-        const baseImg = this.add.image(seat.x, seat.y, baseImgKey);
-        const seatImgW = SEAT_SIZE * 0.9;
-        const seatImgH = seatImgW * (140 / 105);
-        baseImg.setDisplaySize(seatImgW, seatImgH);
-        baseImg.setOrigin(0.5, 1);
-        baseImg.setPosition(seat.x, seat.y + SEAT_SIZE / 2 - s(4));
-        this.seatLabels.push(baseImg);
-
-        const childrenForAnim = [seat, baseImg];
-
-        // Trait badge
-        if (cardData.trait) {
-            const badgeKey = `badge_${cardData.trait.toLowerCase()}`;
-            const badge = this.add.image(
-                seat.x + SEAT_SIZE / 2 - s(6),
-                seat.y - SEAT_SIZE / 2 + s(14),
-                badgeKey,
-            );
-            badge.setDisplaySize(s(30), s(30));
-            this.seatLabels.push(badge);
-            childrenForAnim.push(badge);
-        }
-
-        // Placement animation: fade in + scale pop
-        baseImg.setAlpha(0);
-        // Fade in (no yoyo — stays visible)
-        this.tweens.add({
-            targets: childrenForAnim,
-            alpha: 1,
-            duration: 150,
-        });
-        // Scale pop (yoyo back to normal size)
-        this.tweens.add({
-            targets: childrenForAnim,
-            scaleX: 1.05,
-            scaleY: 1.05,
-            duration: 150,
-            yoyo: true,
-        });
-
+        this.renderPlacedCardOnSeat(seat, cardData, { animate: true });
         // Recalculate scores after placement
         this.updateScoreboard();
 
