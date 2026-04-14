@@ -53,16 +53,26 @@ The player with the **highest total VP** when the deck runs out wins.
 
 Each player starts the game with **1 card** in hand. On your turn:
 
-1. **Draw** — draw 1 card from the deck (giving you a hand of 2).
+1. **Draw** — You may either:
+    - Pick one of the two available cards from the **Lobby** (the shared market).
+    - Click the **Deck** to draw a card blindly.
 2. **Place** — select a card from your hand and click any empty seat in your theater to place it.
 
 You always end your turn holding **1 card**, ready for the next round.
+
+### The Lobby System
+
+The Lobby is a shared market of 3 face-up cards.
+- **The Frozen Slot**: The first card in the lobby is always unavailable to be picked.
+- **The Market**: The second and third cards can be picked by any player on their turn.
+- **Refilling**: When a card is taken from the lobby, a new card is drawn from the deck and placed into the **frozen slot**, shifting the remaining cards to the right.
+- **Information**: You can hover over any lobby card to see its scoring hints, even if it is frozen.
 
 ### 2-Player Variant
 
 In a 2-player game the draw-and-discard rhythm changes:
 
-1. **Draw 2** cards from the deck (giving you a hand of 3).
+1. **Draw 2** cards (via the Lobby or Deck) instead of 1.
 2. **Place** one card into your theater.
 3. **Discard** one of the remaining cards (it's removed from the game).
 

@@ -106,34 +106,29 @@ Object.freeze(PlayerNames);
 /**
  * Card definitions with emoji and descriptions for each primary patron type.
  * @type {Record<string, {emoji: string, description: string}>}
+ *
+ * TODO: collect ALL patron info here, the scoring, the score hint, etc right now its spread out around different files.
  */
 export const PatronInfo = {
   [PatronType.STANDARD]: {
-    emoji: "🧑",
     description: "A regular patron. Worth 3 VP anywhere.",
   },
   [PatronType.VIP]: {
-    emoji: "⭐",
     description: "3 VP base. +3 VP in front rows. −3 per adjacent Kid or Noisy.",
   },
   [PatronType.LOVEBIRDS]: {
-    emoji: "💕",
     description: "1 VP alone. +3 if horizontally paired. +2 in back row.",
   },
   [PatronType.KID]: {
-    emoji: "👦",
     description: "1 VP uncapped. 3 VP when capped by Teachers!",
   },
   [PatronType.TEACHER]: {
-    emoji: "👩‍🏫",
     description: "3 VP base. +1 VP per adjacent capped Kid.",
   },
   [PatronType.CRITIC]: {
-    emoji: "🎩",
     description: "+3 VP in aisle seat. Noisy neighbors nullify the bonus!",
   },
   [PatronType.FRIENDS]: {
-    emoji: "🤝",
     description: "3 VP base. +1 VP per adjacent Friend.",
   },
 };
@@ -145,19 +140,15 @@ Object.freeze(PatronInfo);
  */
 export const TraitInfo = {
   [Trait.TALL]: {
-    emoji: "🦒",
     description: "Patron behind gets −2 VP.",
   },
   [Trait.SHORT]: {
-    emoji: "🧒",
     description: "+2 VP if no one in front. −3 VP if Tall is in front.",
   },
   [Trait.BESPECTACLED]: {
-    emoji: "🤓",
     description: "+2 VP in front 3 rows (closer to stage).",
   },
   [Trait.NOISY]: {
-    emoji: "📢",
     description: "Each adjacent patron gets −1 VP.",
   },
 };
@@ -454,12 +445,13 @@ export const AmphitheaterLayout = {
   emoji: "🏛",
   bgKey: "bg_amphitheater",
   bgThumbKey: "bg_amphitheater_thumb",
-  description:
-    "Tiered rows widen toward the back. No aisles. Fill rows for bonus VP.",
+  description: "Tiered rows widen toward the back. No aisles. Fill rows for bonus VP.",
   rows: 4,
   cols: 6,
   aisleCols: [],
   backRows: [3],
+  // TODO: The 2 seats behind a seat should be considered adjacent for FRIENDS, NOISY and TALL/SHORT traits, even though there's no direct adjacency.
+  //  This is a bit tricky to implement since it breaks the standard orthogonal adjacency model. We may need to add a custom "extendedAdjacency" property to the layout that defines these special cases.
   seatMask: [
     //       col: 0     1     2     3     4     5
     /* Row 0 */ [false, false, true, true, true, false], // 3 seats (narrow front)

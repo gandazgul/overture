@@ -101,6 +101,11 @@ export class Card extends Phaser.GameObjects.Container {
         scene.add.existing(this);
     }
 
+    setStrokeColor(newStrokeColor) {
+        this.strokeColor = newStrokeColor;
+        this.background.setStrokeStyle(s(2), this.strokeColor, 0.7);
+    }
+
     /**
      * Toggle the selected visual state of the card.
      * @param {boolean} selected

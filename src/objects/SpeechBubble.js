@@ -5,6 +5,8 @@ import { s, px } from "../config.js";
 /**
  * A speech bubble tooltip that follows a target game object.
  * Updates its position every frame to stay above the target's scaled bounds.
+ * @class SpeechBubble
+ * @extends {Phaser.GameObjects.Container}
  */
 export class SpeechBubble extends Phaser.GameObjects.Container {
   /** @type {Phaser.GameObjects.Container & { x: number, y: number, scaleY: number, height: number }} */

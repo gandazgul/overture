@@ -1,26 +1,26 @@
 // @ts-check
-import Phaser from "phaser";
-import { Card } from "../objects/Card.js";
-import { SpeechBubble } from "../objects/SpeechBubble.js";
+import Phaser from 'phaser';
+import { pickCardAndSeat, pickSeat } from '../ai.js';
+import { px, s } from '../config.js';
+import { createButton } from '../objects/Button.js';
+import { Card } from '../objects/Card.js';
+import { SpeechBubble } from '../objects/SpeechBubble.js';
+import { scorePlayer, seatExists } from '../scoring.js';
 import {
-  createDeck,
-  GrandEmpressLayout,
-  hasSeatLabel,
-  LayoutOrder,
-  Layouts,
-  PatronInfo,
-  PatronType,
-  PlayerColors,
-  PlayerColorsHex,
-  PlayerNames,
-  Trait,
-  TraitColors,
-  TraitInfo,
-} from "../types.js";
-import { scorePlayer, seatExists } from "../scoring.js";
-import { createButton } from "../objects/Button.js";
-import { pickCardAndSeat, pickSeat } from "../ai.js";
-import { px, s } from "../config.js";
+    createDeck,
+    GrandEmpressLayout,
+    hasSeatLabel,
+    LayoutOrder,
+    Layouts,
+    PatronInfo,
+    PatronType,
+    PlayerColors,
+    PlayerColorsHex,
+    PlayerNames,
+    Trait,
+    TraitColors,
+    TraitInfo,
+} from '../types.js';
 
 const SEAT_SIZE = s(100);
 const SEAT_GAP = s(10);
@@ -31,14 +31,13 @@ const AISLE_GAP = s(30); // wider gap for aisle walkways
  * @type {Record<string, string>}
  */
 const SCORING_HINTS = {
-  "Patron": "Base 3 VP",
-  "VIP":
-    "Base 5 VP\n+3 VP in rows A–B (front 2)\n⚠ −3 VP per adjacent Kid or Noisy",
-  "Lovebirds": "+3 VP per adjacent Lovebirds\n×2 VP in back row\n0 VP if alone",
-  "Kid": "⚠ 0 VP unless capped by Teacher\n+2 VP when capped",
-  "Teacher": "Base 1 VP\n+1 VP per adjacent capped Kid",
-  "Critic": "Base 2 VP\n×3 VP in an aisle seat (gold border)",
-  "Friends": "Base 3 VP\n+1 VP per adjacent Friend",
+    'Patron': 'Base 3VP',
+    'VIP': 'Base 3 VP\n+3VP in the front 2 rows\n⚠ −3VP per adjacent Kid or Noisy',
+    'Lovebirds': '+3VP if paired side by side with another Lovebird\n+2VP in back row\n⚠ 0 VP if alone',
+    'Kid': '1VP unless capped by a Teacher\n+2VP when capped\nCapped on both sides e.g. T-K-T',
+    'Teacher': 'Base 3VP\n+1VP per capped Kid in its chain',
+    'Critic': 'Base 3VP\n+3VP in an aisle seat (gold border)',
+    'Friends': 'Base 3VP\n+1VP per adjacent Friend',
 };
 
 /**
@@ -46,1620 +45,1769 @@ const SCORING_HINTS = {
  * @type {Record<string, string>}
  */
 const TRAIT_HINTS = {
-  "Tall": "⚠ Patron behind gets −2 VP",
-  "Short": "+2 VP if no one in front\n⚠ −3 VP if Tall in front",
-  "Bespectacled": "+2 VP in rows A–C (front 3)",
-  "Noisy": "⚠ Each adjacent patron gets −1 VP",
+    'Tall': '⚠ Patron behind gets −2VP',
+    'Short': '+2VP if no one in front\n⚠ −3 VP if Tall in front',
+    'Bespectacled': '+2VP unless seated on the back row',
+    'Noisy': '⚠ Each adjacent patron gets −1VP',
 };
 
 export class GameScene extends Phaser.Scene {
-  constructor() {
-    super("GameScene");
+    constructor() {
+        super('GameScene');
 
-    /** @type {import('../types.js').CardData[]} */
-    this.deck = [];
+        /** @type {import('../types.js').CardData[]} */
+        this.deck = [];
 
-    /** @type {import('../types.js').LayoutMeta} */
-    this.layout = GrandEmpressLayout;
+        /** @type {import('../types.js').LayoutMeta} */
+        this.layout = GrandEmpressLayout;
 
-    /** @type {number} */
-    this.playerCount = 2;
+        /** @type {number} */
+        this.playerCount = 2;
 
-    /** @type {number} */
-    this.currentPlayer = 0; // 0-indexed
+        /** @type {number} */
+        this.currentPlayer = 0; // 0-indexed
 
-    /** @type {number} */
-    this.round = 1;
+        /** @type {number} */
+        this.round = 1;
 
-    /** @type {number} */
-    this.totalRounds = 14;
+        /** @type {number} */
+        this.totalRounds = 14;
 
-    /**
-     * Per-player theater grids. placedPatrons[playerIdx][row][col]
-     * @type {(import('../types.js').CardData | null)[][][]}
-     */
-    this.placedPatrons = [];
+        /**
+         * Per-player theater grids. placedPatrons[playerIdx][row][col]
+         * @type {(import('../types.js').CardData | null)[][][]}
+         */
+        this.placedPatrons = [];
 
-    /**
-     * Per-player hands (cards kept between turns).
-     * @type {import('../types.js').CardData[][]}
-     */
-    this.playerHands = [];
+        /**
+         * Per-player hands (cards kept between turns).
+         * @type {import('../types.js').CardData[][]}
+         */
+        this.playerHands = [];
 
-    /** @type {Card[]} */
-    this.handCards = [];
+        /** @type {Card[]} */
+        this.handCards = [];
 
-    /** @type {Card | null} */
-    this.selectedCard = null;
+        /** @type {Card | null} */
+        this.selectedCard = null;
 
-    /**
-     * Current phase of a turn.
-     * @type {'pass-screen' | 'play' | 'discard' | 'ghost-discard' | 'game-over'}
-     */
-    this.turnPhase = "pass-screen";
+        /**
+         * Current phase of a turn.
+         * @type {'pass-screen' | 'play' | 'discard' | 'ghost-discard' | 'game-over'}
+         */
+        this.turnPhase = 'pass-screen';
 
-    // Visual references
-    /** @type {(Phaser.GameObjects.Rectangle | null)[][]} */
-    this.seatGrid = [];
+        // Visual references
+        /** @type {(Phaser.GameObjects.Rectangle | null)[][]} */
+        this.seatGrid = [];
 
-    /** @type {Phaser.GameObjects.Container | null} */
-    this.passOverlay = null;
+        /** @type {Phaser.GameObjects.Container | null} */
+        this.passOverlay = null;
 
-    /** @type {Phaser.GameObjects.Text | null} */
-    this.turnText = null;
+        /** @type {Phaser.GameObjects.Text | null} */
+        this.turnText = null;
 
-    /** @type {Phaser.GameObjects.Text | null} */
-    this.deckText = null;
+        /** @type {Phaser.GameObjects.Text | null} */
+        this.deckText = null;
 
-    /** @type {Phaser.GameObjects.Text | null} */
+        /** @type {Phaser.GameObjects.Text | null} */
 
-    /** @type {Phaser.GameObjects.Container | null} */
-    this.uiContainer = null;
+        /** @type {Phaser.GameObjects.Container | null} */
+        this.uiContainer = null;
 
-    /** @type {Phaser.GameObjects.Container[]} */
-    this.scorePanels = [];
+        /** @type {Phaser.GameObjects.Container[]} */
+        this.scorePanels = [];
 
-    /** @type {Phaser.GameObjects.Container | null} */
-    this.deckPileImage = null;
+        /** @type {Phaser.GameObjects.Container | null} */
+        this.deckPileImage = null;
 
-    /** @type {Phaser.GameObjects.GameObject[]} */
-    this.seatLabels = [];
+        /** @type {Phaser.GameObjects.GameObject[]} */
+        this.seatLabels = [];
 
-    /** @type {number[]} center-x of each column (set in create) */
-    this.colX = [];
+        /** @type {number[]} center-x of each column (set in create) */
+        this.colX = [];
 
-    /** @type {number[]} per-row X offset for staggered layouts (set in create) */
-    this.staggerRowOffsets = [];
+        /** @type {number[]} per-row X offset for staggered layouts (set in create) */
+        this.staggerRowOffsets = [];
 
-    /** @type {number[]} center-y of each row (set in create) */
-    this.rowY = [];
+        /** @type {number[]} center-y of each row (set in create) */
+        this.rowY = [];
 
-    /** @type {number} top of the seat grid (set in create) */
-    this.gridStartY = 0;
+        /** @type {number} top of the seat grid (set in create) */
+        this.gridStartY = 0;
 
-    /** @type {Phaser.GameObjects.Container | null} */
-    this.scoringTooltip = null;
+        /** @type {SpeechBubble} */
+        this.scoringTooltip = null;
 
-    /**
-     * AI config per player slot: null = human, string = AI difficulty.
-     * @type {(string | null)[]}
-     */
-    this.aiConfig = [];
-  }
-
-  // ── Color mapping helpers ──────────────────────────────────────────
-
-  /** @type {string[]} */
-  static USHER_KEYS = ['usher_blue', 'usher_red', 'usher_green', 'usher_orange'];
-
-  /** Get the color index for a player slot. */
-  colorOf(/** @type {number} */ p) {
-    return this.playerColorMap?.[p] ?? p;
-  }
-
-  /** Get the CSS color string for a player. */
-  playerColor(/** @type {number} */ p) {
-    return PlayerColors[this.colorOf(p)];
-  }
-
-  /** Get the hex color number for a player. */
-  playerColorHex(/** @type {number} */ p) {
-    return PlayerColorsHex[this.colorOf(p)];
-  }
-
-  /** Get the usher texture key for a player. */
-  usherKey(/** @type {number} */ p) {
-    return GameScene.USHER_KEYS[this.colorOf(p)];
-  }
-
-  preload() {
-    const { width, height } = this.scale;
-
-    // ── Progress bar ────────────────────────────────────────────────
-    const barW = s(300);
-    const barH = s(16);
-    const barBorder = this.add.rectangle(
-      width / 2,
-      height / 2,
-      barW + s(4),
-      barH + s(4),
-    );
-    barBorder.setStrokeStyle(s(2), 0xd4af37);
-    barBorder.setFillStyle(0x0a0a1a);
-    const barFill = this.add.rectangle(
-      width / 2 - barW / 2 + s(2),
-      height / 2,
-      0,
-      barH,
-      0xd4af37,
-    ).setOrigin(0, 0.5);
-
-    this.load.on("progress", (/** @type {number} */ value) => {
-      barFill.width = barW * value;
-    });
-
-    // ── Helper: only load if not already cached ─────────────────────
-    const loadIfMissing = (
-      /** @type {string} */ key,
-      /** @type {string} */ url,
-    ) => {
-      if (!this.textures.exists(key)) {
-        this.load.image(key, url);
-      }
-    };
-
-    // ── Patron cards ────────────────────────────────────────────────
-    loadIfMissing("patron_patron", "assets/patron_patron.png");
-    loadIfMissing("patron_vip", "assets/patron_vip.png");
-    loadIfMissing("patron_lovebirds", "assets/patron_lovebirds.png");
-    loadIfMissing("patron_kid", "assets/patron_kid.png");
-    loadIfMissing("patron_teacher", "assets/patron_teacher.png");
-    loadIfMissing("patron_critic", "assets/patron_critic.png");
-    loadIfMissing("patron_friends", "assets/patron_friends.png");
-
-    // ── Trait badges ────────────────────────────────────────────────
-    loadIfMissing("badge_tall", "assets/badge_tall.png");
-    loadIfMissing("badge_short", "assets/badge_short.png");
-    loadIfMissing("badge_bespectacled", "assets/badge_bespectacled.png");
-    loadIfMissing("badge_noisy", "assets/badge_noisy.png");
-
-    // ── Seat tags ──────────────────────────────────────────────────────────
-    loadIfMissing("tag_royal_box", "assets/tag_royal_box.png");
-
-    // ── Only the selected theater background (JPEG) ─────────────────
-    const bgKey = `bg_${this.layout.id}`;
-    loadIfMissing(bgKey, `assets/${this.layout.bgKey}.jpg`);
-
-    // ── Game UI assets ──────────────────────────────────────────────
-    loadIfMissing("card_back", "assets/card_back.png");
-    loadIfMissing("ui_stage", "assets/ui_stage.png");
-    loadIfMissing("ui_logo", "assets/ui_logo.png");
-    loadIfMissing("ui_button_frame", "assets/ui_button_frame.png");
-    loadIfMissing("usher_blue", "assets/usher_blue.png");
-    loadIfMissing("usher_red", "assets/usher_red.png");
-    loadIfMissing("usher_green", "assets/usher_green.png");
-    loadIfMissing("usher_orange", "assets/usher_orange.png");
-  }
-
-  /**
-   * @param {{ playerCount?: number, layoutId?: string, aiConfig?: (string | null)[], playerColorMap?: number[] }} data
-   */
-  init(data) {
-    this.layout = (data.layoutId && Layouts[data.layoutId]) ||
-      GrandEmpressLayout;
-    this.playerCount = data.playerCount || 2;
-    this.currentPlayer = 0;
-    this.round = 1;
-    this.selectedCard = null;
-    this.turnPhase = "pass-screen";
-    this.deck = createDeck();
-    this.handCards = [];
-    this.seatLabels = [];
-    this.aiConfig = data.aiConfig || Array.from({ length: this.playerCount }, () => null);
-    /** @type {number[]} */
-    this.playerColorMap = data.playerColorMap || Array.from({ length: this.playerCount }, (_, i) => i);
-
-    const { rows, cols } = this.layout;
-
-    // Initialize per-player state
-    this.placedPatrons = [];
-    this.playerHands = [];
-    for (let p = 0; p < this.playerCount; p++) {
-      this.placedPatrons[p] = Array.from(
-        { length: rows },
-        () => Array.from({ length: cols }).fill(null),
-      );
-      // Deal starting hand: 1 card per player
-      const startCard = this.deck.pop();
-      this.playerHands[p] = startCard ? [startCard] : [];
+        /**
+         * AI config per player slot: null = human, string = AI difficulty.
+         * @type {(string | null)[]}
+         */
+        this.aiConfig = [];
     }
 
-    // For 3 players, ghost "4th player" was also dealt and discards
-    if (this.playerCount === 3) {
-      this.deck.pop();
+    // ── Color mapping helpers ──────────────────────────────────────────
+
+    /** @type {string[]} */
+    static USHER_KEYS = ['usher_blue', 'usher_red', 'usher_green', 'usher_orange'];
+
+    /** Get the color index for a player slot. */
+    colorOf(/** @type {number} */ p) {
+        return this.playerColorMap?.[p] ?? p;
     }
-    // For 2 players, discard 2 to align: 56 - 2 dealt - 2 discarded = 52
-    // 52 / 4 cards-per-round = 13 rounds + 1 final round = 14
-    if (this.playerCount === 2) {
-      this.deck.pop();
-      this.deck.pop();
+
+    /** Get the CSS color string for a player. */
+    playerColor(/** @type {number} */ p) {
+        return PlayerColors[this.colorOf(p)];
     }
 
-    this.seatGrid = [];
-    this.scorePanels = [];
-    this.deckPileImage = null;
-  }
+    /** Get the hex color number for a player. */
+    playerColorHex(/** @type {number} */ p) {
+        return PlayerColorsHex[this.colorOf(p)];
+    }
 
-  create() {
-    const { width, height } = this.scale;
+    /** Get the usher texture key for a player. */
+    usherKey(/** @type {number} */ p) {
+        return GameScene.USHER_KEYS[this.colorOf(p)];
+    }
 
-    // ── DEV DEBUG SKIP (Shift+D) ────────────────────────────────────
-    this.input.keyboard?.on("keydown-D", (/** @type {KeyboardEvent} */ e) => {
-      if (!e.shiftKey) return;
-      console.log("DEBUG: Skipping to end screen");
-      this.turnPhase = "game-over";
-      this.endGame();
-    });
+    preload() {
+        const { width, height } = this.scale;
 
-    // ── DEV DEBUG HAND (Shift+H) — one of each patron + one of each trait
-    this.input.keyboard?.on("keydown-H", (/** @type {KeyboardEvent} */ e) => {
-      if (!e.shiftKey) return;
-      console.log("DEBUG: Dealing debug hand (all types + all traits)");
-      const hand = this.playerHands[this.currentPlayer];
-      hand.length = 0;
+        // ── Progress bar ────────────────────────────────────────────────
+        const barW = s(300);
+        const barH = s(16);
+        const barBorder = this.add.rectangle(
+            width / 2,
+            height / 2,
+            barW + s(4),
+            barH + s(4),
+        );
+        barBorder.setStrokeStyle(s(2), 0xd4af37);
+        barBorder.setFillStyle(0x0a0a1a);
+        const barFill = this.add.rectangle(
+            width / 2 - barW / 2 + s(2),
+            height / 2,
+            0,
+            barH,
+            0xd4af37,
+        ).setOrigin(0, 0.5);
 
-      // One card per patron type (no trait)
-      for (const type of Object.values(PatronType)) {
-        const info = PatronInfo[type];
-        hand.push({
-          type,
-          label: type,
-          emoji: info.emoji,
-          description: info.description,
+        this.load.on('progress', (/** @type {number} */ value) => {
+            barFill.width = barW * value;
         });
-      }
 
-      // One Standard card per trait
-      const baseType = PatronType.STANDARD;
-      const baseInfo = PatronInfo[baseType];
-      for (const trait of Object.values(Trait)) {
-        const tInfo = TraitInfo[trait];
-        hand.push({
-          type: baseType,
-          trait,
-          label: `${trait} ${baseType}`,
-          emoji: `${tInfo.emoji}${baseInfo.emoji}`,
-          description: `${baseInfo.description} ${tInfo.description}`,
-        });
-      }
+        // ── Helper: only load if not already cached ─────────────────────
+        const loadIfMissing = (
+            /** @type {string} */ key,
+            /** @type {string} */ url,
+        ) => {
+            if (!this.textures.exists(key)) {
+                this.load.image(key, url);
+            }
+        };
 
-      // Clear visible hand and re-render
-      for (const c of this.handCards) c.destroy();
-      this.handCards = [];
-      this.renderHand();
-    });
+        // ── Patron cards ────────────────────────────────────────────────
+        loadIfMissing('patron_patron', 'assets/patron_patron.png');
+        loadIfMissing('patron_vip', 'assets/patron_vip.png');
+        loadIfMissing('patron_lovebirds', 'assets/patron_lovebirds.png');
+        loadIfMissing('patron_kid', 'assets/patron_kid.png');
+        loadIfMissing('patron_teacher', 'assets/patron_teacher.png');
+        loadIfMissing('patron_critic', 'assets/patron_critic.png');
+        loadIfMissing('patron_friends', 'assets/patron_friends.png');
 
-    // ── DEV DEBUG THEATER CYCLE (Shift+T) ─────────────────────────
-    this.input.keyboard?.on("keydown-T", (/** @type {KeyboardEvent} */ e) => {
-      if (!e.shiftKey) return;
-      const curIdx = LayoutOrder.indexOf(this.layout.id);
-      const nextIdx = (curIdx + 1) % LayoutOrder.length;
-      const nextId = LayoutOrder[nextIdx];
-      console.log(`DEBUG: Cycling theater → ${Layouts[nextId].name}`);
-      this.scene.restart({
-        layoutId: nextId,
-        playerCount: this.playerCount,
-        aiConfig: this.aiConfig,
-        playerColorMap: this.playerColorMap,
-      });
-    });
+        // ── Trait badges ────────────────────────────────────────────────
+        loadIfMissing('badge_tall', 'assets/badge_tall.png');
+        loadIfMissing('badge_short', 'assets/badge_short.png');
+        loadIfMissing('badge_bespectacled', 'assets/badge_bespectacled.png');
+        loadIfMissing('badge_noisy', 'assets/badge_noisy.png');
 
-    // ── Compute aisle walkway positions ────────────────────────────
-    const ROWS = this.layout.rows;
-    const COLS = this.layout.cols;
-    const aisleCols = this.layout.aisleCols ?? [];
-    const hasPerRowAisles = !!this.layout.aisleColsByRow;
+        // ── Seat tags ──────────────────────────────────────────────────────────
+        loadIfMissing('tag_royal_box', 'assets/tag_royal_box.png');
 
-    // Determine where walkway gaps go (edges and between seats).
-    // For per-row aisles (Promenade), we skip structural gaps and
-    // only use per-seat colour tints.
-    const leftAisle = !hasPerRowAisles && aisleCols.includes(0);
-    const rightAisle = !hasPerRowAisles && aisleCols.includes(COLS - 1);
-    /** @type {Set<number>} gaps between col c and col c+1 */
-    const centerAisleGaps = new Set();
-    if (!hasPerRowAisles) {
-      for (let c = 0; c < COLS - 1; c++) {
-        if (aisleCols.includes(c) && aisleCols.includes(c + 1)) {
-          centerAisleGaps.add(c);
-        }
-      }
+        // ── Only the selected theater background (JPEG) ─────────────────
+        const bgKey = `bg_${this.layout.id}`;
+        loadIfMissing(bgKey, `assets/${this.layout.bgKey}.jpg`);
+
+        // ── Game UI assets ──────────────────────────────────────────────
+        loadIfMissing('card_back', 'assets/card_back.png');
+        loadIfMissing('ui_stage', 'assets/ui_stage.png');
+        loadIfMissing('ui_logo', 'assets/ui_logo.png');
+        loadIfMissing('ui_button_frame', 'assets/ui_button_frame.png');
+        loadIfMissing('usher_blue', 'assets/usher_blue.png');
+        loadIfMissing('usher_red', 'assets/usher_red.png');
+        loadIfMissing('usher_green', 'assets/usher_green.png');
+        loadIfMissing('usher_orange', 'assets/usher_orange.png');
     }
-
-    // Detect seatMask gap columns (Cabaret: cols where no row has a seat)
-    /** @type {Set<number>} columns that are entirely empty (gap columns) */
-    const gapCols = new Set();
-    if (this.layout.seatMask) {
-      for (let c = 0; c < COLS; c++) {
-        if (this.layout.seatMask.every((row) => !row[c])) {
-          gapCols.add(c);
-        }
-      }
-    }
-
-    // Detect adjacency breaks for visual row gaps (Balcony)
-    /** @type {Set<number>} row indices after which there's a visual break */
-    const rowBreaksAfter = new Set();
-    if (this.layout.adjacencyBreaks) {
-      for (const [a, b] of this.layout.adjacencyBreaks) {
-        rowBreaksAfter.add(Math.min(a, b));
-      }
-    }
-
-    // ── Compute column X positions with variable gaps ────────────
-    const GAP_COL_WIDTH = AISLE_GAP; // gap columns rendered as aisles (Cabaret tables)
-    const ROW_BREAK_GAP = s(20); // extra gap for adjacency breaks
-    /** @type {number[]} center-x of each column */
-    const colX = [];
-    let cursor = 0;
-    if (leftAisle) cursor += AISLE_GAP;
-    for (let c = 0; c < COLS; c++) {
-      if (gapCols.has(c)) {
-        // Gap column: skip it (just add gap space)
-        colX[c] = cursor + GAP_COL_WIDTH / 2; // position for reference
-        cursor += GAP_COL_WIDTH;
-      } else {
-        colX[c] = cursor + SEAT_SIZE / 2;
-        cursor += SEAT_SIZE;
-      }
-      if (c < COLS - 1) {
-        if (centerAisleGaps.has(c)) {
-          cursor += AISLE_GAP;
-        } else if (!gapCols.has(c) && !gapCols.has(c + 1)) {
-          cursor += SEAT_GAP;
-        }
-      }
-    }
-    if (rightAisle) cursor += AISLE_GAP;
-    const totalGridW = cursor;
-
-    // ── Compute row Y positions with adjacency break gaps ───────
-    /** @type {number[]} center-y of each row */
-    const rowY = [];
-    let yCursor = 0;
-    for (let r = 0; r < ROWS; r++) {
-      rowY[r] = yCursor + SEAT_SIZE / 2;
-      yCursor += SEAT_SIZE;
-      if (r < ROWS - 1) {
-        yCursor += rowBreaksAfter.has(r) ? SEAT_GAP + ROW_BREAK_GAP : SEAT_GAP;
-      }
-    }
-    const totalGridH = yCursor;
-
-    const floorW = totalGridW; // grid centered on screen
-    const stageAscpectRatio = 222 / 978;
-    const stageRenderWidth = floorW + s(115);
-    const actualStageH = stageRenderWidth * stageAscpectRatio;
-    const topBarBottom = s(10);
-    const gridStartY = topBarBottom + actualStageH + s(10);
-
-    // ── Compute per-row stagger offsets (brick-pattern pyramid) ──
-    /** @type {number[]} per-row X shift for staggered layouts */
-    const staggerRowOffsets = [];
-    const halfSeat = (SEAT_SIZE + SEAT_GAP) / 2;
-    if (this.layout.staggered && this.layout.seatMask) {
-      // Find the widest row as the baseline (no offset needed)
-      let maxSeats = 0;
-      let widestFirstCol = 0;
-      for (let r = 0; r < ROWS; r++) {
-        let seats = 0;
-        let first = -1;
-        for (let c = 0; c < COLS; c++) {
-          if (this.layout.seatMask[r][c]) {
-            seats++;
-            if (first < 0) first = c;
-          }
-        }
-        if (seats > maxSeats) {
-          maxSeats = seats;
-          widestFirstCol = first;
-        }
-      }
-      // Each row offsets by (seatDifference * halfSeat) for the brick stagger,
-      // minus the inherent grid offset from the seatMask column positions
-      for (let r = 0; r < ROWS; r++) {
-        let seatCount = 0;
-        let firstCol = 0;
-        for (let c = 0; c < COLS; c++) {
-          if (this.layout.seatMask[r][c]) {
-            seatCount++;
-            if (seatCount === 1) firstCol = c;
-          }
-        }
-        const seatDiff = maxSeats - seatCount;
-        const desiredOffset = seatDiff * halfSeat;
-        const inherentOffset = (firstCol - widestFirstCol) *
-          (SEAT_SIZE + SEAT_GAP);
-        staggerRowOffsets[r] = desiredOffset - inherentOffset;
-      }
-    } else {
-      for (let r = 0; r < ROWS; r++) staggerRowOffsets[r] = 0;
-    }
-
-    // Center the entire floor (label pad + grid) on screen
-    const floorLeft = (width - floorW) / 2;
-    const gridStartX = floorLeft;
-
-    // Offset colX and rowY so they're relative to gridStartX/gridStartY
-    for (let c = 0; c < COLS; c++) colX[c] += gridStartX;
-    for (let r = 0; r < ROWS; r++) rowY[r] += gridStartY;
-
-    // ── Theater floor background ─────────────────────────────────
-    const floorTop = gridStartY - s(4);
-    const floorBottom = gridStartY + totalGridH + s(4);
-    const floorH = floorBottom - floorTop;
-
-    const floorCenterX = floorLeft + floorW / 2;
-    const bgKey = `bg_${this.layout.id}`;
-    if (this.textures.exists(bgKey)) {
-      // Draw the background image with cover scaling (maintain aspect ratio)
-      const bleed = s(60);
-      const coverW = floorW + bleed;
-      const coverH = floorH + bleed;
-      const bgImg = this.add.image(
-        floorCenterX,
-        floorTop + floorH / 2,
-        bgKey,
-      );
-      const texW = bgImg.width;
-      const texH = bgImg.height;
-      const coverScale = Math.max(coverW / texW, coverH / texH);
-      bgImg.setScale(coverScale);
-
-      // Clip to the floor area with bleed
-      const bgMask = this.make.graphics();
-      bgMask.fillRect(
-        floorLeft - bleed / 2,
-        floorTop - bleed / 2,
-        coverW,
-        coverH,
-      );
-      bgImg.setMask(bgMask.createGeometryMask());
-    } else {
-      this.add
-        .rectangle(
-          floorCenterX,
-          floorTop + floorH / 2,
-          floorW,
-          floorH,
-          0x12122a,
-        )
-        .setStrokeStyle(s(1), 0x2a2a4e, 0.5);
-    }
-
-    // ── Aisle walkway strips ──────────────────────────────────────
-    const aisleColor = 0x2a2440;
-    const aisleBorderColor = 0x8a7a3e;
-    const aisleDashColor = 0x9a8a4e;
-    const aisleStripH = floorH;
 
     /**
-     * Draw a single aisle walkway strip with gold-tinted borders and dashes.
-     * @param {number} cx - center X
-     * @param {number} w  - strip width
+     * @param {{ playerCount?: number, layoutId?: string, aiConfig?: (string | null)[], playerColorMap?: number[] }} data
      */
-    const drawAisleStrip = (cx, w) => {
-      // Main walkway background
-      this.add
-        .rectangle(cx, floorTop + floorH / 2, w - s(2), aisleStripH, aisleColor)
-        .setAlpha(0.85);
-      // Left border line
-      this.add
-        .rectangle(cx - w / 2 + s(1), floorTop + floorH / 2, s(2), aisleStripH, aisleBorderColor)
-        .setAlpha(0.6);
-      // Right border line
-      this.add
-        .rectangle(cx + w / 2 - s(1), floorTop + floorH / 2, s(2), aisleStripH, aisleBorderColor)
-        .setAlpha(0.6);
-      // Center dashed line
-      for (let dy = 0; dy < floorH; dy += s(14)) {
-        this.add
-          .rectangle(cx, floorTop + dy + s(3), s(2), s(7), aisleDashColor)
-          .setAlpha(0.7);
-      }
-    };
+    init(data) {
+        this.layout = (data.layoutId && Layouts[data.layoutId]) ||
+            GrandEmpressLayout;
+        this.playerCount = data.playerCount || 2;
+        this.maxCardsInHand = this.playerCount === 2 ? 3 : 2;
+        this.currentPlayer = 0;
+        this.round = 1;
+        this.selectedCard = null;
+        this.turnPhase = 'pass-screen';
+        this.deck = createDeck();
+        this.handCards = [];
+        this.seatLabels = [];
+        this.aiConfig = data.aiConfig || Array.from({ length: this.playerCount }, () => null);
+        /** @type {number[]} */
+        this.playerColorMap = data.playerColorMap || Array.from({ length: this.playerCount }, (_, i) => i);
 
-    // Only draw walkway strips for Blackbox (center aisle is the defining feature)
-    if (this.layout.id === "blackbox") {
-      if (leftAisle) {
-        drawAisleStrip(gridStartX + AISLE_GAP / 2, AISLE_GAP - s(4));
-      }
-      if (rightAisle) {
-        drawAisleStrip((floorLeft + floorW) - AISLE_GAP / 2, AISLE_GAP - s(4));
-      }
-      for (const gapAfterCol of centerAisleGaps) {
-        const leftEdge = colX[gapAfterCol] + SEAT_SIZE / 2;
-        const rightEdge = colX[gapAfterCol + 1] - SEAT_SIZE / 2;
-        drawAisleStrip((leftEdge + rightEdge) / 2, rightEdge - leftEdge);
-      }
-    }
+        const { rows, cols } = this.layout;
 
-    // ── Stage platform ───────────────────────────────────────────
-    const stageY = topBarBottom + actualStageH / 2;
-
-    if (this.textures.exists("ui_stage")) {
-      const stageImg = this.add.image(
-        floorCenterX,
-        stageY,
-        "ui_stage",
-      );
-      stageImg.setDisplaySize(stageRenderWidth, actualStageH);
-      stageImg.setDepth(2);
-    } else {
-      this.add
-        .rectangle(
-          floorCenterX,
-          stageY,
-          floorW,
-          actualStageH,
-          0x8b4513,
-        )
-        .setStrokeStyle(s(1), 0xdaa520);
-    }
-
-    this.add
-      .text(floorCenterX, stageY, this.layout.name, {
-        fontSize: px(36),
-        color: "#ffd700",
-        fontFamily: "Georgia, serif",
-        fontStyle: "italic",
-        shadow: { blur: 8, color: "#000000", fill: true },
-      })
-      .setOrigin(0.5)
-      .setDepth(3);
-
-    // Store positions for use in renderTheater
-    this.colX = colX;
-    this.staggerRowOffsets = staggerRowOffsets;
-    this.rowY = rowY;
-    this.gridStartY = gridStartY;
-
-    // ── Draw balcony break line if applicable ───────────────────
-    for (const breakRow of rowBreaksAfter) {
-      const y1 = rowY[breakRow] + SEAT_SIZE / 2;
-      const y2 = rowY[breakRow + 1] - SEAT_SIZE / 2;
-      const midY = (y1 + y2) / 2;
-      // Dashed horizontal line
-      for (let dx = 0; dx < totalGridW; dx += s(12)) {
-        this.add
-          .rectangle(gridStartX + dx + s(3), midY, s(6), s(2), 0x555577)
-          .setAlpha(0.5);
-      }
-    }
-
-    // ── Build theater grid ──────────────────────────────────────────
-    for (let row = 0; row < ROWS; row++) {
-      this.seatGrid[row] = [];
-      const y = rowY[row];
-      const rowStagger = staggerRowOffsets[row] || 0;
-
-      for (let col = 0; col < COLS; col++) {
-        // Skip non-existent seats (seatMask or gap columns)
-        if (!seatExists(row, col, this.layout)) {
-          this.seatGrid[row][col] = null;
-          continue;
+        // Initialize per-player state
+        this.placedPatrons = [];
+        this.playerHands = [];
+        for (let p = 0; p < this.playerCount; p++) {
+            this.placedPatrons[p] = Array.from(
+                { length: rows },
+                () => Array.from({ length: cols }).fill(null),
+            );
+            // Deal starting hand: 1 card per player
+            const startCard = this.deck.pop();
+            this.playerHands[p] = startCard ? [startCard] : [];
         }
 
-        const x = colX[col] + rowStagger;
-        const isAisle = hasSeatLabel(row, col, "aisle", this.layout);
-        const isRoyalBox = this.layout.royalBoxes?.some(
-          (b) => b.row === row && b.col === col,
+        // For 3 players, ghost "4th player" was also dealt and discards
+        if (this.playerCount === 3) {
+            this.deck.pop();
+        }
+        // For 2 players, discard 2 to align: 56 - 2 dealt - 2 discarded = 52
+        // 52 / 4 cards-per-round = 13 rounds + 1 final round = 14
+        if (this.playerCount === 2) {
+            this.deck.pop();
+            this.deck.pop();
+        }
+
+        this.seatGrid = [];
+        this.scorePanels = [];
+        this.deckPileImage = null;
+    }
+
+    debugSetup() {
+        // ── DEV DEBUG SKIP (Shift+D) ────────────────────────────────────
+        this.input.keyboard?.on('keydown-D', (/** @type {KeyboardEvent} */ e) => {
+            if (!e.shiftKey) {
+                return;
+            }
+            console.log('DEBUG: Skipping to end screen');
+            this.turnPhase = 'game-over';
+            this.endGame();
+        });
+
+        // ── DEV DEBUG HAND (Shift+H) — one of each patron + one of each trait
+        this.input.keyboard?.on('keydown-H', (/** @type {KeyboardEvent} */ e) => {
+            if (!e.shiftKey) {
+                return;
+            }
+            console.log('DEBUG: Dealing debug hand (all types + all traits)');
+            const hand = this.playerHands[this.currentPlayer];
+            hand.length = 0;
+
+            // One card per patron type (no trait)
+            for (const type of Object.values(PatronType)) {
+                const info = PatronInfo[type];
+                hand.push({
+                    type,
+                    label: type,
+                    emoji: info.emoji,
+                    description: info.description,
+                });
+            }
+
+            // One Standard card per trait
+            const baseType = PatronType.STANDARD;
+            const baseInfo = PatronInfo[baseType];
+            for (const trait of Object.values(Trait)) {
+                const tInfo = TraitInfo[trait];
+                hand.push({
+                    type: baseType,
+                    trait,
+                    label: `${trait} ${baseType}`,
+                    emoji: `${tInfo.emoji}${baseInfo.emoji}`,
+                    description: `${baseInfo.description} ${tInfo.description}`,
+                });
+            }
+
+            // Clear visible hand and re-render
+            for (const c of this.handCards) {
+                c.destroy();
+            }
+            this.handCards = [];
+            this.renderHand();
+        });
+
+        // ── DEV DEBUG THEATER CYCLE (Shift+T) ─────────────────────────
+        this.input.keyboard?.on('keydown-T', (/** @type {KeyboardEvent} */ e) => {
+            if (!e.shiftKey) {
+                return;
+            }
+            const curIdx = LayoutOrder.indexOf(this.layout.id);
+            const nextIdx = (curIdx + 1) % LayoutOrder.length;
+            const nextId = LayoutOrder[nextIdx];
+            console.log(`DEBUG: Cycling theater → ${Layouts[nextId].name}`);
+            this.scene.restart({
+                layoutId: nextId,
+                playerCount: this.playerCount,
+                aiConfig: this.aiConfig,
+                playerColorMap: this.playerColorMap,
+            });
+        });
+    }
+
+    create() {
+        const { width, height } = this.scale;
+
+        this.debugSetup();
+
+        // ── Compute aisle walkway positions ────────────────────────────
+        const ROWS = this.layout.rows;
+        const COLS = this.layout.cols;
+        const aisleCols = this.layout.aisleCols ?? [];
+        const hasPerRowAisles = !!this.layout.aisleColsByRow;
+
+        // Determine where walkway gaps go (edges and between seats).
+        // For per-row aisles (Promenade), we skip structural gaps and
+        // only use per-seat colour tints.
+        /** @type {Set<number>} gaps between col c and col c+1 */
+        const centerAisleGaps = new Set();
+        if (!hasPerRowAisles) {
+            for (let c = 0; c < COLS - 1; c++) {
+                if (aisleCols.includes(c) && aisleCols.includes(c + 1)) {
+                    centerAisleGaps.add(c);
+                }
+            }
+        }
+
+        // Detect seatMask gap columns (Cabaret: cols where no row has a seat)
+        /** @type {Set<number>} columns that are entirely empty (gap columns) */
+        const gapCols = new Set();
+        if (this.layout.seatMask) {
+            for (let c = 0; c < COLS; c++) {
+                if (this.layout.seatMask.every((row) => !row[c])) {
+                    gapCols.add(c);
+                }
+            }
+        }
+
+        // Detect adjacency breaks for visual row gaps (Balcony)
+        /** @type {Set<number>} row indices after which there's a visual break */
+        const rowBreaksAfter = new Set();
+        if (this.layout.adjacencyBreaks) {
+            for (const [a, b] of this.layout.adjacencyBreaks) {
+                rowBreaksAfter.add(Math.min(a, b));
+            }
+        }
+
+        // ── Compute column X positions with variable gaps ────────────
+        const GAP_COL_WIDTH = AISLE_GAP; // gap columns rendered as aisles (Cabaret tables)
+        const ROW_BREAK_GAP = s(20); // extra gap for adjacency breaks
+        /** @type {number[]} center-x of each column */
+        const colX = [];
+        let cursor = 0;
+        for (let c = 0; c < COLS; c++) {
+            if (gapCols.has(c)) {
+                // Gap column: skip it (just add gap space)
+                colX[c] = cursor + GAP_COL_WIDTH / 2; // position for reference
+                cursor += GAP_COL_WIDTH;
+            }
+            else {
+                colX[c] = cursor + SEAT_SIZE / 2;
+                cursor += SEAT_SIZE;
+            }
+            if (c < COLS - 1) {
+                if (centerAisleGaps.has(c)) {
+                    cursor += AISLE_GAP;
+                }
+                else if (!gapCols.has(c) && !gapCols.has(c + 1)) {
+                    cursor += SEAT_GAP;
+                }
+            }
+        }
+        const totalGridW = cursor;
+
+        // ── Compute row Y positions with adjacency break gaps ───────
+        /** @type {number[]} center-y of each row */
+        const rowY = [];
+        let yCursor = 0;
+        for (let r = 0; r < ROWS; r++) {
+            rowY[r] = yCursor + SEAT_SIZE / 2;
+            yCursor += SEAT_SIZE;
+            if (r < ROWS - 1) {
+                yCursor += rowBreaksAfter.has(r) ? SEAT_GAP + ROW_BREAK_GAP : SEAT_GAP;
+            }
+        }
+        const totalGridH = yCursor;
+
+        const bleed = s(30);
+        const floorW = totalGridW + bleed * 2; // grid centered on screen
+        const floorH = totalGridH + bleed * 2; // grid centered on screen
+        // TODO: get this from the texture
+        const stageAspectRatio = 222 / 978;
+        const stageRenderWidth = floorW + bleed * 2; // the stage bleeds again
+        const actualStageH = stageRenderWidth * stageAspectRatio;
+        const stageTop = s(10);
+        // Center the entire floor (label pad + grid) on screen
+        const floorTop = stageTop + actualStageH - bleed / 2;
+        const floorLeft = (width - floorW) / 2;
+        const gridStartX = floorLeft + bleed;
+        const gridStartY = floorTop + bleed;
+
+        // ── Compute per-row stagger offsets (brick-pattern pyramid) ──
+        /** @type {number[]} per-row X shift for staggered layouts */
+        const staggerRowOffsets = [];
+        const halfSeat = (SEAT_SIZE + SEAT_GAP) / 2;
+        if (this.layout.staggered && this.layout.seatMask) {
+            // Find the widest row as the baseline (no offset needed)
+            let maxSeats = 0;
+            let widestFirstCol = 0;
+            for (let r = 0; r < ROWS; r++) {
+                let seats = 0;
+                let first = -1;
+                for (let c = 0; c < COLS; c++) {
+                    if (this.layout.seatMask[r][c]) {
+                        seats++;
+                        if (first < 0) {
+                            first = c;
+                        }
+                    }
+                }
+                if (seats > maxSeats) {
+                    maxSeats = seats;
+                    widestFirstCol = first;
+                }
+            }
+            // Each row offsets by (seatDifference * halfSeat) for the brick stagger,
+            // minus the inherent grid offset from the seatMask column positions
+            for (let r = 0; r < ROWS; r++) {
+                let seatCount = 0;
+                let firstCol = 0;
+                for (let c = 0; c < COLS; c++) {
+                    if (this.layout.seatMask[r][c]) {
+                        seatCount++;
+                        if (seatCount === 1) {
+                            firstCol = c;
+                        }
+                    }
+                }
+                const seatDiff = maxSeats - seatCount;
+                const desiredOffset = seatDiff * halfSeat;
+                const inherentOffset = (firstCol - widestFirstCol) *
+                    (SEAT_SIZE + SEAT_GAP);
+                staggerRowOffsets[r] = desiredOffset - inherentOffset;
+            }
+        }
+        else {
+            for (let r = 0; r < ROWS; r++) {
+                staggerRowOffsets[r] = 0;
+            }
+        }
+
+        // Offset colX and rowY so they're relative to gridStartX/gridStartY
+        for (let c = 0; c < COLS; c++) {
+            colX[c] += gridStartX;
+        }
+        for (let r = 0; r < ROWS; r++) {
+            rowY[r] += gridStartY;
+        }
+
+        // ── Theater floor background ─────────────────────────────────
+        const floorCenterX = floorLeft + floorW / 2;
+        const floorCenterY = floorTop + floorH / 2;
+        const bgKey = `bg_${this.layout.id}`;
+        // Draw the background image with cover scaling (maintain aspect ratio)
+        const bgImg = this.add.image(
+            floorCenterX,
+            floorCenterY,
+            bgKey,
+        );
+        const texW = bgImg.width;
+        const texH = bgImg.height;
+        const coverScale = Math.max(floorW / texW, floorH / texH);
+        bgImg.setScale(coverScale);
+
+        const bgMask = this.make.graphics();
+        bgMask.fillRect(
+            floorLeft,
+            floorTop,
+            floorW,
+            floorH,
+        );
+        bgImg.setMask(bgMask.createGeometryMask());
+
+        // ── Aisle walkway strips ──────────────────────────────────────
+        const aisleColor = 0x4D0D0F;
+        const aisleBorderColor = 0x493D18;
+        const aisleDashColor = 0x493D18;
+
+        /**
+         * Draw a single aisle walkway strip with gold-tinted borders and dashes.
+         * @param {number} centerX - center X
+         * @param {number} aisleWidth  - strip width
+         */
+        const drawAisleStrip = (centerX, aisleWidth) => {
+            const aisleWidthWithBorder = aisleWidth - s(6);
+            const centerY = floorTop + floorH / 2;
+
+            // Main walkway background
+            this.add
+                .rectangle(centerX, centerY, aisleWidthWithBorder, totalGridH, aisleColor)
+                .setStrokeStyle(s(2), aisleBorderColor);
+            // Center dashed line
+            for (let dy = bleed + s(2); dy < floorH - bleed; dy += s(14)) {
+                this.add
+                    .rectangle(centerX, floorTop + dy + s(2), s(2), s(7), aisleDashColor);
+            }
+        };
+
+        // Only draw walkway strips for Blackbox (center aisle is the defining feature)
+        if (this.layout.id === 'blackbox') {
+            for (const gapAfterCol of centerAisleGaps) {
+                const leftEdge = colX[gapAfterCol] + SEAT_SIZE / 2 + s(1);
+                const rightEdge = colX[gapAfterCol + 1] - SEAT_SIZE / 2 - s(1);
+                drawAisleStrip((leftEdge + rightEdge) / 2, rightEdge - leftEdge);
+            }
+        }
+
+        // ── Stage platform ───────────────────────────────────────────
+        const stageX = floorCenterX;
+        const stageY = stageTop + actualStageH / 2;
+
+        if (this.textures.exists('ui_stage')) {
+            const stageImg = this.add.image(
+                stageX,
+                stageY,
+                'ui_stage',
+            );
+            stageImg.setDisplaySize(stageRenderWidth, actualStageH);
+            stageImg.setDepth(2);
+        }
+        else {
+            this.add
+                .rectangle(
+                    stageX,
+                    stageY,
+                    floorW,
+                    actualStageH,
+                    0x8b4513,
+                )
+                .setStrokeStyle(s(1), 0xdaa520);
+        }
+
+        this.add
+            .text(floorCenterX, stageY, this.layout.name, {
+                fontSize: px(36),
+                color: '#ffd700',
+                fontFamily: 'Georgia, serif',
+                fontStyle: 'italic',
+                shadow: { blur: 8, color: '#000000', fill: true },
+            })
+            .setOrigin(0.5)
+            .setDepth(3);
+
+        // Store positions for use in renderTheater
+        this.colX = colX;
+        this.staggerRowOffsets = staggerRowOffsets;
+        this.rowY = rowY;
+        this.gridStartY = gridStartY;
+
+        // ── Draw balcony break line if applicable ───────────────────
+        for (const breakRow of rowBreaksAfter) {
+            const y1 = rowY[breakRow] + SEAT_SIZE / 2;
+            const y2 = rowY[breakRow + 1] - SEAT_SIZE / 2;
+            const midY = (y1 + y2) / 2;
+            // Dashed horizontal line
+            for (let dx = 0; dx < totalGridW; dx += s(12)) {
+                this.add
+                    .rectangle(gridStartX + dx + s(3), midY, s(6), s(2), 0x555577)
+                    .setAlpha(0.5);
+            }
+        }
+
+        // ── Build theater grid ──────────────────────────────────────────
+        for (let row = 0; row < ROWS; row++) {
+            this.seatGrid[row] = [];
+            const y = rowY[row];
+            const rowStagger = staggerRowOffsets[row] || 0;
+
+            for (let col = 0; col < COLS; col++) {
+                // Skip non-existent seats (seatMask or gap columns)
+                if (!seatExists(row, col, this.layout)) {
+                    this.seatGrid[row][col] = null;
+                    continue;
+                }
+
+                const x = colX[col] + rowStagger;
+                const isAisle = hasSeatLabel(row, col, 'aisle', this.layout);
+                const isRoyalBox = this.layout.royalBoxes?.some(
+                    (b) => b.row === row && b.col === col,
+                );
+
+                // Visual styling per seat type
+                let emptyFill = 0x1a1a3e;
+                let emptyStroke = 0x3a3a5e;
+                let strokeWidth = s(2);
+                if (isRoyalBox) {
+                    emptyFill = 0x2a2040;
+                    emptyStroke = 0xdaa520;
+                    strokeWidth = s(3);
+                }
+                else if (isAisle) {
+                    emptyFill = 0x1e1e38;
+                    emptyStroke = 0xb89a3e;
+                    strokeWidth = s(3);
+                }
+
+                const seat = this.add
+                    .rectangle(x, y, SEAT_SIZE, SEAT_SIZE, emptyFill)
+                    .setStrokeStyle(strokeWidth, emptyStroke)
+                    .setInteractive({ useHandCursor: true });
+
+                seat.setData('row', row);
+                seat.setData('col', col);
+                seat.setData('emptyFill', emptyFill);
+                seat.setData('emptyStroke', emptyStroke);
+                seat.setData('strokeWidth', strokeWidth);
+
+                seat.on('pointerover', () => {
+                    if (
+                        this.turnPhase === 'play' &&
+                        !this.placedPatrons[this.currentPlayer][row][col] &&
+                        this.selectedCard
+                    ) {
+                        seat.setFillStyle(0x2a2a5e);
+                        seat.setStrokeStyle(s(2), 0xf5c518);
+                    }
+                });
+
+                seat.on('pointerout', () => {
+                    if (!this.placedPatrons[this.currentPlayer][row][col]) {
+                        seat.setFillStyle(emptyFill);
+                        seat.setStrokeStyle(strokeWidth, emptyStroke);
+                    }
+                });
+
+                seat.on('pointerdown', () => {
+                    if (this.turnPhase === 'play') {
+                        this.placeSeatCard(row, col, seat);
+                    }
+                });
+
+                // Royal Box tag (centered on empty seat)
+                if (isRoyalBox && this.textures.exists('tag_royal_box')) {
+                    const tag = this.add.image(x, y, 'tag_royal_box')
+                        .setDisplaySize(s(64), s(64)).setAlpha(0.85);
+                    this.seatLabels.push(tag);
+                }
+
+                this.seatGrid[row][col] = seat;
+            }
+        }
+
+        // ── HUD Panel (Game Information) ────────────────────────────────
+        const hudW = s(260);
+        const hudX = width - hudW - s(20);
+        const hudY = floorTop;
+        this.uiContainer = this.add.container(hudX, hudY).setDepth(150);
+
+        // HUD Background
+        const houseRuleExtra = this.layout.houseRuleDescription ? s(60) : 0;
+        const hudBg = this.add.rectangle(
+            0,
+            0,
+            hudW,
+            s(260 + this.playerCount * 48) + houseRuleExtra,
+            0x0f0f1c,
+            0.95,
+        )
+            .setOrigin(0, 0)
+            .setStrokeStyle(s(3), 0xd4af37);
+        this.uiContainer.add(hudBg);
+
+        this.turnText = this.add
+            .text(hudW / 2, s(20), '', {
+                fontSize: px(20),
+                fontFamily: 'Georgia, serif',
+                color: '#d4af37',
+                fontStyle: 'bold',
+            })
+            .setOrigin(0.5, 0);
+        this.uiContainer.add(this.turnText);
+
+        this.deckText = this.add
+            .text(hudW / 2, s(50), '', {
+                fontSize: px(15),
+                fontFamily: 'Georgia, serif',
+                color: '#aaaacc',
+            })
+            .setOrigin(0.5, 0);
+        this.uiContainer.add(this.deckText);
+
+        // ── Lobby ─────────────────────────────────────────────────────
+        this.lobbyCards = []; // {@type {import('../types.js').CardData[]}}
+        this.lobbyCardVisuals = []; // {@type {Card[]}}
+
+        // ── VP Scoreboard w/ Avatars ──────────────────────────────────
+        const scoreStartY = s(220);
+        this.scorePanels = [];
+        for (let p = 0; p < this.playerCount; p++) {
+            const panel = this.add.container(s(15), scoreStartY + p * s(48));
+
+            const usherKey = this.usherKey(p);
+
+            if (this.textures.exists(usherKey)) {
+                const avatar = this.add.image(s(18), s(18), usherKey);
+                avatar.setDisplaySize(s(32), s(32));
+
+                const mask = this.make.graphics();
+                mask.fillStyle(0xffffff);
+                // Global position: hudX + panel.x + avatar.x, hudY + panel.y + avatar.y
+                mask.fillCircle(
+                    hudX + s(15) + s(18),
+                    hudY + scoreStartY + p * s(48) + s(18),
+                    s(16),
+                );
+                avatar.setMask(mask.createGeometryMask());
+
+                const ring = this.add.circle(s(18), s(18), s(16), 0x000000, 0)
+                    .setStrokeStyle(s(2), this.playerColorHex(p));
+                panel.add([avatar, ring]);
+            }
+
+            const text = this.add
+                .text(s(46), s(18), '', {
+                    fontSize: px(15),
+                    fontFamily: 'Georgia, serif',
+                    color: this.playerColor(p),
+                    fontStyle: 'bold',
+                })
+                .setOrigin(0, 0.5);
+
+            // Store the text object directly on the container object for easy access
+            panel.setData('text', text);
+            panel.add(text);
+            this.uiContainer.add(panel);
+            this.scorePanels.push(panel);
+        }
+
+        // ── House Rule Reminder ──────────────────────────────────────
+        if (this.layout.houseRuleDescription) {
+            const ruleY = scoreStartY + this.playerCount * s(48) + s(8);
+            // Thin gold divider
+            const divider = this.add.rectangle(
+                hudW / 2, ruleY, hudW - s(30), s(1), 0xd4af37, 0.4,
+            ).setOrigin(0.5, 0);
+            this.uiContainer.add(divider);
+
+            const ruleText = this.add.text(
+                hudW / 2,
+                ruleY + s(8),
+                this.layout.houseRuleDescription,
+                {
+                    fontSize: px(11),
+                    fontFamily: 'Georgia, serif',
+                    color: '#f5c518',
+                    fontStyle: 'italic',
+                    wordWrap: { width: hudW - s(24) },
+                    align: 'center',
+                },
+            ).setOrigin(0.5, 0);
+            this.uiContainer.add(ruleText);
+        }
+
+        // ── Active Player Large Avatar ──────────────────────────────────
+        this.localPlayerContainer = this.add.container(width - s(90), height - s(90))
+            .setDepth(5);
+        this.localPlayerAvatar = this.add.image(0, 0, this.usherKey(0));
+        this.localPlayerAvatar.setDisplaySize(s(140), s(140));
+
+        this.localPlayerMask = this.make.graphics();
+        this.localPlayerMask.fillStyle(0xffffff);
+        this.localPlayerMask.fillCircle(width - s(90), height - s(90), s(70));
+        this.localPlayerAvatar.setMask(this.localPlayerMask.createGeometryMask());
+
+        this.localPlayerRing = this.add.circle(0, 0, s(70), 0x000000, 0)
+            .setStrokeStyle(s(6), this.playerColorHex(0));
+
+        this.localPlayerNumberBg = this.add.circle(
+            -s(50),
+            -s(50),
+            s(22),
+            0x0a0a1a,
+            1,
+        ).setStrokeStyle(s(3), this.playerColorHex(0));
+        this.localPlayerNumberText = this.add.text(-s(50), -s(50), '1', {
+            fontSize: px(24),
+            fontFamily: 'Georgia, serif',
+            color: '#ffffff',
+            fontStyle: 'bold',
+        }).setOrigin(0.5);
+
+        this.localPlayerContainer.add([
+            this.localPlayerAvatar,
+            this.localPlayerRing,
+            this.localPlayerNumberBg,
+            this.localPlayerNumberText,
+        ]);
+
+        // Global deselect background click
+        this.input.on(
+            'pointerdown',
+            (/** @type {any} */ _pointer, /** @type {any[]} */ gameObjects) => {
+                if (gameObjects.length === 0 && this.selectedCard) {
+                    this.selectedCard.setSelected(false);
+                    this.selectedCard = null;
+                    this.hideScoringTooltip();
+                }
+            },
         );
 
-        // Visual styling per seat type
-        let emptyFill = 0x1a1a3e;
-        let emptyStroke = 0x3a3a5e;
-        let strokeWidth = s(2);
-        if (isRoyalBox) {
-          emptyFill = 0x2a2040;
-          emptyStroke = 0xdaa520;
-          strokeWidth = s(3);
-        } else if (isAisle) {
-          emptyFill = 0x1e1e38;
-          emptyStroke = 0xb89a3e;
-          strokeWidth = s(3);
+        // ── Logo ────────────────────────────────────────────────────────
+        if (this.textures.exists('ui_logo')) {
+            // Centered at s(80) to perfectly align vertically with the player avatar
+            const logo = this.add.image(s(120), s(60), 'ui_logo');
+            const logoRatio = 0.3643695015;
+            const logoWidth = 220;
+            logo.setDisplaySize(s(logoWidth), s(logoWidth * logoRatio)); // Kept proportional to avoid clipping
+            logo.setDepth(150);
         }
 
-        const seat = this.add
-          .rectangle(x, y, SEAT_SIZE, SEAT_SIZE, emptyFill)
-          .setStrokeStyle(strokeWidth, emptyStroke)
-          .setInteractive({ useHandCursor: true });
+        // ── Start with pass screen for player 1 ─────────────────────────
+        this.showPassScreen();
+    }
 
-        seat.setData("row", row);
-        seat.setData("col", col);
-        seat.setData("emptyFill", emptyFill);
-        seat.setData("emptyStroke", emptyStroke);
-        seat.setData("strokeWidth", strokeWidth);
+    // ══════════════════════════════════════════════════════════════════
+    // PASS SCREEN — shown between every player's turn
+    // ══════════════════════════════════════════════════════════════════
 
-        seat.on("pointerover", () => {
-          if (
-            this.turnPhase === "play" &&
-            !this.placedPatrons[this.currentPlayer][row][col] &&
-            this.selectedCard
-          ) {
-            seat.setFillStyle(0x2a2a5e);
-            seat.setStrokeStyle(s(2), 0xf5c518);
-          }
-        });
+    showPassScreen() {
+        this.turnPhase = 'pass-screen';
 
-        seat.on("pointerout", () => {
-          if (!this.placedPatrons[this.currentPlayer][row][col]) {
-            seat.setFillStyle(emptyFill);
-            seat.setStrokeStyle(strokeWidth, emptyStroke);
-          }
-        });
-
-        seat.on("pointerdown", () => {
-          if (this.turnPhase === "play") {
-            this.placeSeatCard(row, col, seat);
-          }
-        });
-
-        // Royal Box tag (centered on empty seat)
-        if (isRoyalBox && this.textures.exists("tag_royal_box")) {
-          const tag = this.add.image(x, y, "tag_royal_box")
-            .setDisplaySize(s(64), s(64)).setAlpha(0.85);
-          this.seatLabels.push(tag);
+        // Skip the pass screen for AI players, and for the sole human in an AI game
+        const isAI = !!this.aiConfig[this.currentPlayer];
+        const soloHuman = !isAI &&
+            this.aiConfig.filter((a, i) => i < this.playerCount && !a).length === 1;
+        if (isAI || soloHuman) {
+            this.clearHandVisuals();
+            this.time.delayedCall(isAI ? 400 : 0, () => this.startTurn());
+            return;
         }
 
-        this.seatGrid[row][col] = seat;
-      }
-    }
+        const { width, height } = this.scale;
+        const color = this.playerColor(this.currentPlayer);
+        const colorHex = this.playerColorHex(this.currentPlayer);
+        const name = PlayerNames[this.currentPlayer];
 
-    // ── HUD Panel (Game Information) ────────────────────────────────
-    const hudW = s(260);
-    const hudX = width - hudW - s(20);
-    const hudY = gridStartY;
-    this.uiContainer = this.add.container(hudX, hudY).setDepth(150);
-
-    // HUD Background
-    const houseRuleExtra = this.layout.houseRuleDescription ? s(60) : 0;
-    const hudBg = this.add.rectangle(
-      0,
-      0,
-      hudW,
-      s(260 + this.playerCount * 48) + houseRuleExtra,
-      0x0f0f1c,
-      0.95,
-    )
-      .setOrigin(0, 0)
-      .setStrokeStyle(s(3), 0xd4af37);
-    this.uiContainer.add(hudBg);
-
-    this.turnText = this.add
-      .text(hudW / 2, s(20), "", {
-        fontSize: px(20),
-        fontFamily: "Georgia, serif",
-        color: "#d4af37",
-        fontStyle: "bold",
-      })
-      .setOrigin(0.5, 0);
-    this.uiContainer.add(this.turnText);
-
-    this.deckText = this.add
-      .text(hudW / 2, s(50), "", {
-        fontSize: px(15),
-        fontFamily: "Georgia, serif",
-        color: "#aaaacc",
-      })
-      .setOrigin(0.5, 0);
-    this.uiContainer.add(this.deckText);
-
-    // ── Deck Visual ───────────────────────────────────────────────
-    // Stack regular Image objects to form a card pile. This avoids
-    // DynamicTexture / framebuffer issues on mobile WebGL.
-    const PILE_LAYERS = 5;
-    const pileCardW = s(65);
-    const pileCardH = s(87);
-    const pileOffset = s(2); // px shift per layer
-    const pileCenterX = hudW / 2;
-    const pileCenterY = s(145);
-
-    this.deckPileImage = this.add.container(pileCenterX, pileCenterY);
-    for (let i = PILE_LAYERS - 1; i >= 0; i--) {
-      const ox = i * pileOffset + (i % 2 === 0 ? s(1) : -s(1));
-      const oy = i * pileOffset;
-      const layer = this.add.image(ox, oy, "card_back");
-      layer.setDisplaySize(pileCardW, pileCardH);
-      this.deckPileImage.add(layer);
-    }
-    this.uiContainer.add(this.deckPileImage);
-
-    // ── VP Scoreboard w/ Avatars ──────────────────────────────────
-    const scoreStartY = s(220);
-    this.scorePanels = [];
-    for (let p = 0; p < this.playerCount; p++) {
-      const panel = this.add.container(s(15), scoreStartY + p * s(48));
-
-      const usherKey = this.usherKey(p);
-
-      if (this.textures.exists(usherKey)) {
-        const avatar = this.add.image(s(18), s(18), usherKey);
-        avatar.setDisplaySize(s(32), s(32));
-
-        const mask = this.make.graphics();
-        mask.fillStyle(0xffffff);
-        // Global position: hudX + panel.x + avatar.x, hudY + panel.y + avatar.y
-        mask.fillCircle(
-          hudX + s(15) + s(18),
-          hudY + scoreStartY + p * s(48) + s(18),
-          s(16),
-        );
-        avatar.setMask(mask.createGeometryMask());
-
-        const ring = this.add.circle(s(18), s(18), s(16), 0x000000, 0)
-          .setStrokeStyle(s(2), this.playerColorHex(p));
-        panel.add([avatar, ring]);
-      }
-
-      const text = this.add
-        .text(s(46), s(18), "", {
-          fontSize: px(15),
-          fontFamily: "Georgia, serif",
-          color: this.playerColor(p),
-          fontStyle: "bold",
-        })
-        .setOrigin(0, 0.5);
-
-      // Store the text object directly on the container object for easy access
-      panel.setData("text", text);
-      panel.add(text);
-      this.uiContainer.add(panel);
-      this.scorePanels.push(panel);
-    }
-
-    // ── House Rule Reminder ──────────────────────────────────────
-    if (this.layout.houseRuleDescription) {
-      const ruleY = scoreStartY + this.playerCount * s(48) + s(8);
-      // Thin gold divider
-      const divider = this.add.rectangle(
-        hudW / 2, ruleY, hudW - s(30), s(1), 0xd4af37, 0.4,
-      ).setOrigin(0.5, 0);
-      this.uiContainer.add(divider);
-
-      const ruleText = this.add.text(
-        hudW / 2,
-        ruleY + s(8),
-        this.layout.houseRuleDescription,
-        {
-          fontSize: px(11),
-          fontFamily: "Georgia, serif",
-          color: "#f5c518",
-          fontStyle: "italic",
-          wordWrap: { width: hudW - s(24) },
-          align: "center",
-        },
-      ).setOrigin(0.5, 0);
-      this.uiContainer.add(ruleText);
-    }
-
-    // ── Active Player Large Avatar ──────────────────────────────────
-    this.localPlayerContainer = this.add.container(s(90), height - s(90))
-      .setDepth(5);
-    this.localPlayerAvatar = this.add.image(0, 0, this.usherKey(0));
-    this.localPlayerAvatar.setDisplaySize(s(140), s(140));
-
-    this.localPlayerMask = this.make.graphics();
-    this.localPlayerMask.fillStyle(0xffffff);
-    this.localPlayerMask.fillCircle(s(90), height - s(90), s(70));
-    this.localPlayerAvatar.setMask(this.localPlayerMask.createGeometryMask());
-
-    this.localPlayerRing = this.add.circle(0, 0, s(70), 0x000000, 0)
-      .setStrokeStyle(s(6), this.playerColorHex(0));
-
-    this.localPlayerNumberBg = this.add.circle(
-      -s(50),
-      -s(50),
-      s(22),
-      0x0a0a1a,
-      1,
-    ).setStrokeStyle(s(3), this.playerColorHex(0));
-    this.localPlayerNumberText = this.add.text(-s(50), -s(50), "1", {
-      fontSize: px(24),
-      fontFamily: "Georgia, serif",
-      color: "#ffffff",
-      fontStyle: "bold",
-    }).setOrigin(0.5);
-
-    this.localPlayerContainer.add([
-      this.localPlayerAvatar,
-      this.localPlayerRing,
-      this.localPlayerNumberBg,
-      this.localPlayerNumberText,
-    ]);
-
-    // Global deselect background click
-    this.input.on(
-      "pointerdown",
-      (/** @type {any} */ _pointer, /** @type {any[]} */ gameObjects) => {
-        if (gameObjects.length === 0 && this.selectedCard) {
-          this.selectedCard.setSelected(false);
-          this.selectedCard = null;
-          this.hideScoringTooltip();
+        // Remove old overlay
+        if (this.passOverlay) {
+            this.passOverlay.destroy();
         }
-      },
-    );
 
-    // ── Logo ────────────────────────────────────────────────────────
-    if (this.textures.exists("ui_logo")) {
-      // Centered at s(80) to perfectly align vertically with the player avatar
-      const logo = this.add.image(s(120), s(60), "ui_logo");
-      const logoRatio = 0.3643695015;
-      const logoWidth = 220;
-      logo.setDisplaySize(s(logoWidth), s(logoWidth * logoRatio)); // Kept proportional to avoid clipping
-      logo.setDepth(150);
-    }
+        // Clear hand visuals
+        this.clearHandVisuals();
 
-    // ── Start with pass screen for player 1 ─────────────────────────
-    this.showPassScreen();
-  }
+        const container = this.add.container(0, 0).setDepth(200);
 
-  // ══════════════════════════════════════════════════════════════════
-  // PASS SCREEN — shown between every player's turn
-  // ══════════════════════════════════════════════════════════════════
+        // Dim background
+        const bg = this.add
+            .rectangle(width / 2, height / 2, width, height, 0x000000, 0.85);
+        container.add(bg);
 
-  showPassScreen() {
-    this.turnPhase = "pass-screen";
+        // Player usher avatar
+        const usherKey = this.usherKey(this.currentPlayer);
 
-    // Skip the pass screen for AI players, and for the sole human in an AI game
-    const isAI = !!this.aiConfig[this.currentPlayer];
-    const soloHuman = !isAI &&
-      this.aiConfig.filter((a, i) => i < this.playerCount && !a).length === 1;
-    if (isAI || soloHuman) {
-      this.clearHandVisuals();
-      this.time.delayedCall(isAI ? 400 : 0, () => this.startTurn());
-      return;
-    }
+        // Shift avatar origin up to avoid text
+        const avatarY = height / 2 - s(130);
+        const avatarRadius = s(68);
 
-    const { width, height } = this.scale;
-    const color = this.playerColor(this.currentPlayer);
-    const colorHex = this.playerColorHex(this.currentPlayer);
-    const name = PlayerNames[this.currentPlayer];
+        const usherIcon = this.add.image(width / 2, avatarY, usherKey);
+        usherIcon.setDisplaySize(avatarRadius * 2, avatarRadius * 2);
 
-    // Remove old overlay
-    if (this.passOverlay) {
-      this.passOverlay.destroy();
-    }
+        // Create a solid circular Graphics mask
+        const maskShape = this.make.graphics();
+        maskShape.fillStyle(0xffffff);
+        maskShape.fillCircle(width / 2, avatarY, avatarRadius);
+        usherIcon.setMask(maskShape.createGeometryMask());
 
-    // Clear hand visuals
-    this.clearHandVisuals();
-
-    const container = this.add.container(0, 0).setDepth(200);
-
-    // Dim background
-    const bg = this.add
-      .rectangle(width / 2, height / 2, width, height, 0x000000, 0.85);
-    container.add(bg);
-
-    // Player usher avatar
-    const usherKey = this.usherKey(this.currentPlayer);
-
-    // Shift avatar origin up to avoid text
-    const avatarY = height / 2 - s(130);
-    const avatarRadius = s(68);
-
-    if (this.textures.exists(usherKey)) {
-      const usherIcon = this.add.image(width / 2, avatarY, usherKey);
-      usherIcon.setDisplaySize(avatarRadius * 2, avatarRadius * 2);
-
-      // Create a solid circular Graphics mask
-      const maskShape = this.make.graphics();
-      maskShape.fillStyle(0xffffff);
-      maskShape.fillCircle(width / 2, avatarY, avatarRadius);
-      usherIcon.setMask(maskShape.createGeometryMask());
-
-      const ring = this.add.circle(
-        width / 2,
-        avatarY,
-        avatarRadius,
-        0x000000,
-        0,
-      )
-        .setStrokeStyle(s(4), colorHex, 1);
-
-      container.add([usherIcon, ring]);
-    } else {
-      const icons = ["🔵", "🔴", "🟢", "🟠"];
-      const icon = this.add
-        .text(width / 2, avatarY, icons[this.currentPlayer], {
-          fontSize: px(64),
-        })
-        .setOrigin(0.5);
-      container.add(icon);
-    }
-
-    // "Pass to Player X"
-    const title = this.add
-      .text(width / 2, height / 2 - s(20), `${name}'s Turn`, {
-        fontSize: px(42),
-        fontFamily: "Georgia, serif",
-        color: color,
-      })
-      .setOrigin(0.5);
-    container.add(title);
-
-    // Round info
-    const roundInfo = this.add
-      .text(
-        width / 2,
-        height / 2 + s(40),
-        `Round ${this.round} of ${this.totalRounds}  •  Deck: ${this.deck.length} cards`,
-        {
-          fontSize: px(16),
-          fontFamily: "Arial",
-          color: "#aaaaaa",
-        },
-      )
-      .setOrigin(0.5);
-    container.add(roundInfo);
-
-    // House rule reminder
-    if (this.layout.houseRuleDescription) {
-      const houseRule = this.add
-        .text(
-          width / 2,
-          height / 2 + s(70),
-          `${this.layout.houseRuleDescription}`,
-          {
-            fontSize: px(16),
-            fontFamily: "Arial",
-            color: "#f5c518",
-            fontStyle: "italic",
-            wordWrap: { width: s(600) },
-            align: "center",
-          },
+        const ring = this.add.circle(
+            width / 2,
+            avatarY,
+            avatarRadius,
+            0x000000,
+            0,
         )
-        .setOrigin(0.5);
-      container.add(houseRule);
+            .setStrokeStyle(s(4), colorHex, 1);
+
+        container.add([usherIcon, ring]);
+
+        // "Pass to Player X"
+        const title = this.add
+            .text(width / 2, height / 2 - s(20), `${name}'s Turn`, {
+                fontSize: px(42),
+                fontFamily: 'Georgia, serif',
+                color: color,
+            })
+            .setOrigin(0.5);
+        container.add(title);
+
+        // Round info
+        const roundInfo = this.add
+            .text(
+                width / 2,
+                height / 2 + s(40),
+                `Round ${this.round} of ${this.totalRounds}  •  Deck: ${this.deck.length} cards`,
+                {
+                    fontSize: px(16),
+                    fontFamily: 'Arial',
+                    color: '#aaaaaa',
+                },
+            )
+            .setOrigin(0.5);
+        container.add(roundInfo);
+
+        // House rule reminder
+        if (this.layout.houseRuleDescription) {
+            const houseRule = this.add
+                .text(
+                    width / 2,
+                    height / 2 + s(70),
+                    `${this.layout.houseRuleDescription}`,
+                    {
+                        fontSize: px(16),
+                        fontFamily: 'Arial',
+                        color: '#f5c518',
+                        fontStyle: 'italic',
+                        wordWrap: { width: s(600) },
+                        align: 'center',
+                    },
+                )
+                .setOrigin(0.5);
+            container.add(houseRule);
+        }
+
+        // Ready button
+        const { container: readyBtn, hitArea: readyHit } = createButton(
+            this, width / 2, height / 2 + s(160), 'I\'m Ready', { fontSize: 20 },
+        );
+        readyHit.on('pointerdown', () => {
+            container.destroy();
+            this.passOverlay = null;
+            this.startTurn();
+        });
+        container.add(readyBtn);
+        this.passOverlay = container;
     }
 
-    // Ready button
-    const { container: readyBtn, hitArea: readyHit } = createButton(
-      this, width / 2, height / 2 + s(160), "I'm Ready", { fontSize: 20 },
-    );
-    readyHit.on("pointerdown", () => {
-      container.destroy();
-      this.passOverlay = null;
-      this.startTurn();
-    });
-    container.add(readyBtn);
-    this.passOverlay = container;
-  }
+    // ══════════════════════════════════════════════════════════════════
+    // TURN START — draw cards and show player's theater
+    // ══════════════════════════════════════════════════════════════════
 
-  // ══════════════════════════════════════════════════════════════════
-  // TURN START — draw cards and show player's theater
-  // ══════════════════════════════════════════════════════════════════
+    startTurn() {
+        // Initialize lobby if empty
+        this.fillLobby();
 
-  startTurn() {
-    // Draw cards from deck into this player's hand
-    const hand = this.playerHands[this.currentPlayer];
+        // Render the current player's theater and hand
+        this.renderTheater();
+        this.updateUI();
+        this.updateScoreboard();
 
-    // Draw phase: pull cards from deck if available
-    if (this.playerCount === 2) {
-      // 2-player: draw 2 (or whatever's left)
-      const drawCount = Math.min(2, this.deck.length);
-      for (let i = 0; i < drawCount; i++) {
-        const card = this.deck.pop();
-        if (card) hand.push(card);
-      }
-    } else {
-      // 3 or 4 player: draw 1
-      if (this.deck.length > 0) {
-        const card = this.deck.pop();
-        if (card) hand.push(card);
-      }
+        // AI players: auto-play their turn
+        if (this.aiConfig[this.currentPlayer]) {
+            this.turnPhase = 'play';
+            this.time.delayedCall(600, () => this.playAITurn());
+            return;
+        }
+
+        this.renderHand();
+        this.turnPhase = 'play';
     }
 
-    // Render the current player's theater and hand
-    this.renderTheater();
-    this.updateUI();
-    this.updateScoreboard();
+    // ══════════════════════════════════════════════════════════════════
+    // AI TURN — automatic card selection and placement
+    // ══════════════════════════════════════════════════════════════════
 
-    // AI players: auto-play their turn
-    if (this.aiConfig[this.currentPlayer]) {
-      this.turnPhase = "play";
-      this.time.delayedCall(600, () => this.playAITurn());
-      return;
+    /**
+     * Execute an AI player's turn automatically.
+     * Picks the best card and seat, then animates the placement.
+     */
+    playAITurn() {
+        const difficulty = this.aiConfig[this.currentPlayer];
+        if (!difficulty) {
+            return;
+        }
+
+        const hand = this.playerHands[this.currentPlayer];
+        const grid = this.placedPatrons[this.currentPlayer];
+
+        if (hand.length === 0) {
+            this.advanceTurn();
+            return;
+        }
+
+        // For 2-player mode (multiple cards in hand): pick best card + seat, discard the rest
+        if (this.playerCount === 2 && hand.length >= 2) {
+            const decision = pickCardAndSeat(grid, hand, this.layout, difficulty);
+            if (!decision) {
+                this.advanceTurn();
+                return;
+            }
+
+            // Place the chosen card
+            const { play, discard } = decision;
+            this.placedPatrons[this.currentPlayer][play.row][play.col] = play.card;
+
+            // Remove played card from hand
+            const playIdx = hand.indexOf(play.card);
+            if (playIdx >= 0) {
+                hand.splice(playIdx, 1);
+            }
+
+            // Remove discarded card from hand
+            const discardIdx = hand.indexOf(discard);
+            if (discardIdx >= 0) {
+                hand.splice(discardIdx, 1);
+            }
+
+            // Animate the placement on the seat
+            this.animateAIPlacement(play.row, play.col, play.card);
+            return;
+        }
+
+        // Single card: pick the best seat
+        const cardToPlay = hand[0];
+        const seat = pickSeat(grid, cardToPlay, this.layout, difficulty);
+        if (!seat) {
+            this.advanceTurn();
+            return;
+        }
+
+        // Place the card
+        this.placedPatrons[this.currentPlayer][seat.row][seat.col] = cardToPlay;
+        hand.splice(0, 1);
+
+        // Animate the placement
+        this.animateAIPlacement(seat.row, seat.col, cardToPlay);
     }
 
-    this.renderHand();
-    this.turnPhase = "play";
-  }
+    /**
+     * Animate an AI card placement on the grid, then advance.
+     * @param {number} row
+     * @param {number} col
+     * @param {import('../types.js').CardData} cardData
+     */
+    animateAIPlacement(row, col, cardData) {
+        const seat = this.seatGrid[row]?.[col];
+        if (!seat) {
+            this.renderTheater();
+            this.updateScoreboard();
+            this.time.delayedCall(300, () => this.advanceTurn());
+            return;
+        }
 
-  // ══════════════════════════════════════════════════════════════════
-  // AI TURN — automatic card selection and placement
-  // ══════════════════════════════════════════════════════════════════
-
-  /**
-   * Execute an AI player's turn automatically.
-   * Picks the best card and seat, then animates the placement.
-   */
-  playAITurn() {
-    const difficulty = this.aiConfig[this.currentPlayer];
-    if (!difficulty) return;
-
-    const hand = this.playerHands[this.currentPlayer];
-    const grid = this.placedPatrons[this.currentPlayer];
-
-    if (hand.length === 0) {
-      this.advanceTurn();
-      return;
-    }
-
-    // For 2-player mode (multiple cards in hand): pick best card + seat, discard the rest
-    if (this.playerCount === 2 && hand.length >= 2) {
-      const decision = pickCardAndSeat(grid, hand, this.layout, difficulty);
-      if (!decision) {
-        this.advanceTurn();
-        return;
-      }
-
-      // Place the chosen card
-      const { play, discard } = decision;
-      this.placedPatrons[this.currentPlayer][play.row][play.col] = play.card;
-
-      // Remove played card from hand
-      const playIdx = hand.indexOf(play.card);
-      if (playIdx >= 0) hand.splice(playIdx, 1);
-
-      // Remove discarded card from hand
-      const discardIdx = hand.indexOf(discard);
-      if (discardIdx >= 0) hand.splice(discardIdx, 1);
-
-      // Animate the placement on the seat
-      this.animateAIPlacement(play.row, play.col, play.card);
-      return;
-    }
-
-    // Single card: pick the best seat
-    const cardToPlay = hand[0];
-    const seat = pickSeat(grid, cardToPlay, this.layout, difficulty);
-    if (!seat) {
-      this.advanceTurn();
-      return;
-    }
-
-    // Place the card
-    this.placedPatrons[this.currentPlayer][seat.row][seat.col] = cardToPlay;
-    hand.splice(0, 1);
-
-    // Animate the placement
-    this.animateAIPlacement(seat.row, seat.col, cardToPlay);
-  }
-
-  /**
-   * Animate an AI card placement on the grid, then advance.
-   * @param {number} row
-   * @param {number} col
-   * @param {import('../types.js').CardData} cardData
-   */
-  animateAIPlacement(row, col, cardData) {
-    const seat = this.seatGrid[row]?.[col];
-    if (!seat) {
-      this.renderTheater();
-      this.updateScoreboard();
-      this.time.delayedCall(300, () => this.advanceTurn());
-      return;
-    }
-
-    // Update seat visual
-    seat.setFillStyle(0x000000, 0);
-    seat.setStrokeStyle(
-      s(2),
-      cardData.trait ? TraitColors[cardData.trait] || 0xffffff : 0x4a4a6a,
-      0.8,
-    );
-
-    // Base patron image
-    const baseImgKey = `patron_${cardData.type.toLowerCase()}`;
-    const baseImg = this.add.image(seat.x, seat.y, baseImgKey);
-    const seatImgW = SEAT_SIZE * 0.9;
-    const seatImgH = seatImgW * (140 / 105);
-    baseImg.setDisplaySize(seatImgW, seatImgH);
-    baseImg.setOrigin(0.5, 1);
-    baseImg.setPosition(seat.x, seat.y + SEAT_SIZE / 2 - s(4));
-    this.seatLabels.push(baseImg);
-
-    const childrenForAnim = [seat, baseImg];
-
-    // Trait badge
-    if (cardData.trait) {
-      const badgeKey = `badge_${cardData.trait.toLowerCase()}`;
-      const badge = this.add.image(
-        seat.x + SEAT_SIZE / 2 - s(6),
-        seat.y - SEAT_SIZE / 2 + s(14),
-        badgeKey,
-      );
-      badge.setDisplaySize(s(30), s(30));
-      this.seatLabels.push(badge);
-      childrenForAnim.push(badge);
-    }
-
-    // Animate placement
-    baseImg.setAlpha(0);
-    this.tweens.add({
-      targets: childrenForAnim,
-      alpha: 1,
-      duration: 150,
-    });
-    this.tweens.add({
-      targets: childrenForAnim,
-      scaleX: 1.05,
-      scaleY: 1.05,
-      duration: 150,
-      yoyo: true,
-    });
-
-    this.updateScoreboard();
-
-    // Advance after animation
-    this.time.delayedCall(500, () => this.advanceTurn());
-  }
-
-  // ══════════════════════════════════════════════════════════════════
-  // THEATER RENDERING — show current player's grid
-  // ══════════════════════════════════════════════════════════════════
-
-  renderTheater() {
-    const grid = this.placedPatrons[this.currentPlayer];
-    const ROWS = this.layout.rows;
-    const COLS = this.layout.cols;
-
-    // Clear old seat labels
-    for (const lbl of this.seatLabels) {
-      lbl.destroy();
-    }
-    this.seatLabels = [];
-
-    for (let row = 0; row < ROWS; row++) {
-      for (let col = 0; col < COLS; col++) {
-        const seat = this.seatGrid[row][col];
-        if (!seat) continue;
-
-        const cardData = grid[row][col];
-        if (cardData) {
-          // Make the seat rectangle transparent so the image takes over
-          seat.setFillStyle(0x000000, 0);
-          seat.setStrokeStyle(
+        // Update seat visual
+        seat.setFillStyle(0x000000, 0);
+        seat.setStrokeStyle(
             s(2),
             cardData.trait ? TraitColors[cardData.trait] || 0xffffff : 0x4a4a6a,
             0.8,
-          );
+        );
 
-          // Base patron image (Maintain aspect ratio, pin to bottom of seat)
-          const baseImgKey = `patron_${cardData.type.toLowerCase()}`;
-          const baseImg = this.add.image(seat.x, seat.y, baseImgKey);
+        // Base patron image
+        const baseImgKey = `patron_${cardData.type.toLowerCase()}`;
+        const baseImg = this.add.image(seat.x, seat.y, baseImgKey);
+        const seatImgW = SEAT_SIZE * 0.9;
+        const seatImgH = seatImgW * (140 / 105);
+        baseImg.setDisplaySize(seatImgW, seatImgH);
+        baseImg.setOrigin(0.5, 1);
+        baseImg.setPosition(seat.x, seat.y + SEAT_SIZE / 2 - s(4));
+        this.seatLabels.push(baseImg);
 
-          const seatImgW = SEAT_SIZE * 0.9;
-          const seatImgH = seatImgW * (140 / 105); // Use Card aspect ratio
-          baseImg.setDisplaySize(seatImgW, seatImgH);
-          baseImg.setOrigin(0.5, 1);
-          baseImg.setPosition(seat.x, seat.y + SEAT_SIZE / 2 - s(4));
-          this.seatLabels.push(baseImg);
+        const childrenForAnim = [seat, baseImg];
 
-          // Trait badge
-          if (cardData.trait) {
+        // Trait badge
+        if (cardData.trait) {
             const badgeKey = `badge_${cardData.trait.toLowerCase()}`;
-            // Position badge in top-right corner of the seat
             const badge = this.add.image(
-              seat.x + SEAT_SIZE / 2 - s(6),
-              seat.y - SEAT_SIZE / 2 + s(14),
-              badgeKey,
+                seat.x + SEAT_SIZE / 2 - s(6),
+                seat.y - SEAT_SIZE / 2 + s(14),
+                badgeKey,
             );
             badge.setDisplaySize(s(30), s(30));
             this.seatLabels.push(badge);
-          }
-        } else {
-          // Restore empty-state appearance from seat data
-          const emptyFill = seat.getData("emptyFill") ?? 0x1a1a3e;
-          const emptyStroke = seat.getData("emptyStroke") ?? 0x3a3a5e;
-          const sw = seat.getData("strokeWidth") ?? s(2);
-          seat.setFillStyle(emptyFill);
-          seat.setStrokeStyle(sw, emptyStroke);
-
-          // Re-add seat tags for empty seats
-          const isRoyalBox = this.layout.royalBoxes?.some(
-            (b) => b.row === row && b.col === col,
-          );
-          if (isRoyalBox && this.textures.exists("tag_royal_box")) {
-            const tag = this.add.image(seat.x, seat.y, "tag_royal_box")
-              .setDisplaySize(s(64), s(64)).setAlpha(0.85);
-            this.seatLabels.push(tag);
-          }
+            childrenForAnim.push(badge);
         }
-      }
+
+        // Animate placement
+        baseImg.setAlpha(0);
+        this.tweens.add({
+            targets: childrenForAnim,
+            alpha: 1,
+            duration: 150,
+        });
+        this.tweens.add({
+            targets: childrenForAnim,
+            scaleX: 1.05,
+            scaleY: 1.05,
+            duration: 150,
+            yoyo: true,
+        });
+
+        this.updateScoreboard();
+
+        // Advance after animation
+        this.time.delayedCall(500, () => this.advanceTurn());
     }
-  }
 
-  // ══════════════════════════════════════════════════════════════════
-  // HAND RENDERING
-  // ══════════════════════════════════════════════════════════════════
+    // ══════════════════════════════════════════════════════════════════
+    // THEATER RENDERING — show current player's grid
+    // ══════════════════════════════════════════════════════════════════
 
-  clearHandVisuals() {
-    this.hideScoringTooltip();
-    for (const card of this.handCards) {
-      card.destroy();
-    }
-    this.handCards = [];
-    this.selectedCard = null;
-  }
+    renderTheater() {
+        const grid = this.placedPatrons[this.currentPlayer];
+        const ROWS = this.layout.rows;
+        const COLS = this.layout.cols;
 
-  renderHand() {
-    this.clearHandVisuals();
-
-    const { width, height } = this.scale;
-    const hand = this.playerHands[this.currentPlayer];
-    const handSize = hand.length;
-    if (handSize === 0) return;
-
-    const handStartX = width / 2 - ((handSize - 1) * (Card.WIDTH + s(20))) / 2;
-    const handY = height - s(100);
-
-    for (let i = 0; i < handSize; i++) {
-      const cardData = hand[i];
-      const x = handStartX + i * (Card.WIDTH + s(20));
-      const card = new Card(this, x, handY, cardData);
-
-      card.on("pointerdown", () => {
-        if (this.turnPhase === "play") {
-          this.selectCard(card);
-        } else if (this.turnPhase === "discard") {
-          this.discardCard(card);
+        // Clear old seat labels
+        for (const lbl of this.seatLabels) {
+            lbl.destroy();
         }
-      });
+        this.seatLabels = [];
 
-      // Show scoring tooltip on hover
-      card.on("pointerover", () => {
+        for (let row = 0; row < ROWS; row++) {
+            for (let col = 0; col < COLS; col++) {
+                const seat = this.seatGrid[row][col];
+                if (!seat) {
+                    continue;
+                }
+
+                const cardData = grid[row][col];
+                if (cardData) {
+                    // Make the seat rectangle transparent so the image takes over
+                    seat.setFillStyle(0x000000, 0);
+                    seat.setStrokeStyle(
+                        s(2),
+                        cardData.trait ? TraitColors[cardData.trait] || 0xffffff : 0x4a4a6a,
+                        0.8,
+                    );
+
+                    // Base patron image (Maintain aspect ratio, pin to bottom of seat)
+                    const baseImgKey = `patron_${cardData.type.toLowerCase()}`;
+                    const baseImg = this.add.image(seat.x, seat.y, baseImgKey);
+
+                    const seatImgW = SEAT_SIZE - s(2);
+                    // TODO: get the ratio from the texture
+                    const seatImgH = seatImgW * (140 / 105); // Use Card aspect ratio
+                    baseImg.setDisplaySize(seatImgW, seatImgH);
+                    baseImg.setPosition(seat.x, seat.y + seatImgH / 2 - seat.height / 2);
+                    const bgMask = this.make.graphics();
+                    bgMask.fillRect(
+                        seat.x - seat.width / 2,
+                        seat.y - seat.height / 2,
+                        seat.width,
+                        seat.height,
+                    );
+                    baseImg.setMask(bgMask.createGeometryMask());
+                    this.seatLabels.push(baseImg);
+
+                    // Trait badge
+                    if (cardData.trait) {
+                        const badgeKey = `badge_${cardData.trait.toLowerCase()}`;
+                        // Position badge in top-right corner of the seat
+                        const badge = this.add.image(
+                            0,
+                            0,
+                            badgeKey,
+                        );
+                        badge.setPosition(
+                            seat.x - xseat.width / 2 - badge.width,
+                            seat.y - seat.height / 2 - badge.height,
+                        )
+                        badge.setDisplaySize(s(30), s(30));
+                        this.seatLabels.push(badge);
+                    }
+                }
+                else {
+                    // Restore empty-state appearance from seat data
+                    const emptyFill = seat.getData('emptyFill') ?? 0x1a1a3e;
+                    const emptyStroke = seat.getData('emptyStroke') ?? 0x3a3a5e;
+                    const sw = seat.getData('strokeWidth') ?? s(2);
+                    seat.setFillStyle(emptyFill);
+                    seat.setStrokeStyle(sw, emptyStroke);
+
+                    // Re-add seat tags for empty seats
+                    const isRoyalBox = this.layout.royalBoxes?.some(
+                        (b) => b.row === row && b.col === col,
+                    );
+                    if (isRoyalBox && this.textures.exists('tag_royal_box')) {
+                        const tag = this.add.image(seat.x, seat.y, 'tag_royal_box')
+                            .setDisplaySize(s(64), s(64)).setAlpha(0.85);
+                        this.seatLabels.push(tag);
+                    }
+                }
+            }
+        }
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // HAND RENDERING
+    // ══════════════════════════════════════════════════════════════════
+
+    clearHandVisuals() {
+        this.hideScoringTooltip();
+        for (const card of this.handCards) {
+            card.destroy();
+        }
+        this.handCards = [];
+        this.selectedCard = null;
+    }
+
+    renderHand() {
+        this.clearHandVisuals();
+
+        const { width, height } = this.scale;
+        const hand = this.playerHands[this.currentPlayer];
+        const handSize = hand.length;
+        if (handSize === 0) {
+            return;
+        }
+
+        const handStartX = width / 2 - ((handSize - 1) * (Card.WIDTH + s(20))) / 2;
+        const handY = height - s(100);
+
+        for (let i = 0; i < handSize; i++) {
+            const cardData = hand[i];
+            const x = handStartX + i * (Card.WIDTH + s(20));
+            const card = new Card(this, x, handY, cardData);
+
+            card.on('pointerdown', () => {
+                if (this.turnPhase === 'play') {
+                    this.selectCard(card);
+                }
+                else if (this.turnPhase === 'discard') {
+                    this.discardCard(card);
+                }
+            });
+
+            // Show scoring tooltip on hover
+            card.on('pointerover', () => {
+                this.showScoringTooltip(card);
+            });
+
+            card.on('pointerout', () => {
+                // Restore selected card's tooltip, or hide if nothing selected
+                if (this.selectedCard) {
+                    this.showScoringTooltip(this.selectedCard);
+                }
+                else {
+                    this.hideScoringTooltip();
+                }
+            });
+
+            // Animate in
+            const targetY = card.y;
+            card.y = targetY + s(150);
+            card.setAlpha(0);
+            this.tweens.add({
+                targets: card,
+                y: targetY,
+                alpha: 1,
+                duration: 300,
+                delay: i * 100,
+                ease: 'Back.easeOut',
+            });
+
+            this.handCards.push(card);
+        }
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // CARD SELECTION & PLACEMENT
+    // ══════════════════════════════════════════════════════════════════
+
+    /**
+     * @param {Card} card
+     */
+    selectCard(card) {
+        for (const c of this.handCards) {
+            c.setSelected(false);
+        }
+        card.setSelected(true);
+        this.selectedCard = card;
+
         this.showScoringTooltip(card);
-      });
+    }
 
-      card.on("pointerout", () => {
-        // Restore selected card's tooltip, or hide if nothing selected
-        if (this.selectedCard) {
-          this.showScoringTooltip(this.selectedCard);
-        } else {
-          this.hideScoringTooltip();
+    /**
+     * Show a scoring reminder above the selected card.
+     * @param {Card} card
+     */
+    showScoringTooltip(card) {
+        this.hideScoringTooltip();
+
+        let hint = SCORING_HINTS[card.cardData.type] || '';
+        if (card.cardData.trait) {
+            const traitHint = TRAIT_HINTS[card.cardData.trait];
+            if (traitHint) {
+                hint = hint ? `${hint}\n${traitHint}` : traitHint;
+            }
         }
-      });
-
-      // Animate in
-      const targetY = card.y;
-      card.y = targetY + s(150);
-      card.setAlpha(0);
-      this.tweens.add({
-        targets: card,
-        y: targetY,
-        alpha: 1,
-        duration: 300,
-        delay: i * 100,
-        ease: "Back.easeOut",
-      });
-
-      this.handCards.push(card);
-    }
-  }
-
-  // ══════════════════════════════════════════════════════════════════
-  // CARD SELECTION & PLACEMENT
-  // ══════════════════════════════════════════════════════════════════
-
-  /**
-   * @param {Card} card
-   */
-  selectCard(card) {
-    for (const c of this.handCards) {
-      c.setSelected(false);
-    }
-    card.setSelected(true);
-    this.selectedCard = card;
-
-    this.showScoringTooltip(card);
-  }
-
-  /**
-   * Show a scoring reminder above the selected card.
-   * @param {Card} card
-   */
-  showScoringTooltip(card) {
-    this.hideScoringTooltip();
-
-    let hint = SCORING_HINTS[card.cardData.type] || "";
-    if (card.cardData.trait) {
-      const traitHint = TRAIT_HINTS[card.cardData.trait];
-      if (traitHint) hint = hint ? `${hint}\n${traitHint}` : traitHint;
-    }
-    if (!card.cardData.label && !hint) return;
-
-    this.scoringTooltip = new SpeechBubble(this, card, card.cardData.label, hint);
-
-    // Fade in
-    this.scoringTooltip.setAlpha(0);
-    this.tweens.add({
-      targets: this.scoringTooltip,
-      alpha: 1,
-      duration: 150,
-      ease: "Sine.easeOut",
-    });
-  }
-
-  /** Remove the scoring tooltip if visible. */
-  hideScoringTooltip() {
-    if (this.scoringTooltip) {
-      this.scoringTooltip.destroy();
-      this.scoringTooltip = null;
-    }
-  }
-
-  /**
-   * @param {number} row
-   * @param {number} col
-   * @param {Phaser.GameObjects.Rectangle} seat
-   */
-  placeSeatCard(row, col, seat) {
-    if (!this.selectedCard) return;
-    // Seat already occupied
-    if (this.placedPatrons[this.currentPlayer][row][col]) {
-      return;
-    }
-
-    const cardData = this.selectedCard.cardData;
-
-    // Update logical state
-    this.placedPatrons[this.currentPlayer][row][col] = cardData;
-
-    // Update visual
-    seat.setFillStyle(0x000000, 0);
-    seat.setStrokeStyle(
-      s(2),
-      cardData.trait ? TraitColors[cardData.trait] || 0xffffff : 0x4a4a6a,
-      0.8,
-    );
-
-    // Base patron image (Maintain aspect ratio)
-    const baseImgKey = `patron_${cardData.type.toLowerCase()}`;
-    const baseImg = this.add.image(seat.x, seat.y, baseImgKey);
-    const seatImgW = SEAT_SIZE * 0.9;
-    const seatImgH = seatImgW * (140 / 105);
-    baseImg.setDisplaySize(seatImgW, seatImgH);
-    baseImg.setOrigin(0.5, 1);
-    baseImg.setPosition(seat.x, seat.y + SEAT_SIZE / 2 - s(4));
-    this.seatLabels.push(baseImg);
-
-    const childrenForAnim = [seat, baseImg];
-
-    // Trait badge
-    if (cardData.trait) {
-      const badgeKey = `badge_${cardData.trait.toLowerCase()}`;
-      const badge = this.add.image(
-        seat.x + SEAT_SIZE / 2 - s(6),
-        seat.y - SEAT_SIZE / 2 + s(14),
-        badgeKey,
-      );
-      badge.setDisplaySize(s(30), s(30));
-      this.seatLabels.push(badge);
-      childrenForAnim.push(badge);
-    }
-
-    // Placement animation: fade in + scale pop
-    baseImg.setAlpha(0);
-    // Fade in (no yoyo — stays visible)
-    this.tweens.add({
-      targets: childrenForAnim,
-      alpha: 1,
-      duration: 150,
-    });
-    // Scale pop (yoyo back to normal size)
-    this.tweens.add({
-      targets: childrenForAnim,
-      scaleX: 1.05,
-      scaleY: 1.05,
-      duration: 150,
-      yoyo: true,
-    });
-
-    // Recalculate scores after placement
-    this.updateScoreboard();
-
-    // Remove card from hand (visual and data)
-    const cardIndex = this.handCards.indexOf(this.selectedCard);
-    if (cardIndex >= 0) {
-      // Also remove from player hand data
-      const handDataIndex = this.playerHands[this.currentPlayer].indexOf(
-        this.selectedCard.cardData,
-      );
-      if (handDataIndex >= 0) {
-        this.playerHands[this.currentPlayer].splice(handDataIndex, 1);
-      }
-      this.selectedCard.destroy();
-      this.handCards.splice(cardIndex, 1);
-    }
-    this.selectedCard = null;
-    this.hideScoringTooltip();
-
-    // Check if 2-player discard is needed
-    if (
-      this.playerCount === 2 && this.playerHands[this.currentPlayer].length > 1
-    ) {
-      this.turnPhase = "discard";
-      // Highlight remaining cards for discard
-      for (const c of this.handCards) {
-        c.background.setStrokeStyle(s(3), 0xff4444, 1);
-      }
-      return;
-    }
-
-    // Otherwise, advance to next player
-    this.advanceTurn();
-  }
-
-  /**
-   * Discard a card (2-player mode).
-   * @param {Card} card
-   */
-  discardCard(card) {
-    // Remove from data
-    const handDataIndex = this.playerHands[this.currentPlayer].indexOf(
-      card.cardData,
-    );
-    if (handDataIndex >= 0) {
-      this.playerHands[this.currentPlayer].splice(handDataIndex, 1);
-    }
-
-    // Remove visual with a fade
-    const cardIndex = this.handCards.indexOf(card);
-    if (cardIndex >= 0) {
-      this.handCards.splice(cardIndex, 1);
-    }
-
-    this.tweens.add({
-      targets: card,
-      alpha: 0,
-      y: card.y + s(80),
-      duration: 300,
-      onComplete: () => card.destroy(),
-    });
-
-    // Short delay then advance
-    this.time.delayedCall(400, () => {
-      this.advanceTurn();
-    });
-  }
-
-  // ══════════════════════════════════════════════════════════════════
-  // TURN ADVANCEMENT
-  // ══════════════════════════════════════════════════════════════════
-
-  advanceTurn() {
-    const nextPlayer = this.currentPlayer + 1;
-
-    if (nextPlayer >= this.playerCount) {
-      // All players have gone this round
-
-      // Ghost discard for 3-player
-      if (this.playerCount === 3 && this.deck.length > 0) {
-        this.deck.pop();
-      }
-
-      // Check if game is over
-      if (this.round >= this.totalRounds) {
-        this.time.delayedCall(300, () => this.endGame());
-        return;
-      }
-
-      // Next round
-      this.round++;
-      this.currentPlayer = 0;
-    } else {
-      this.currentPlayer = nextPlayer;
-    }
-
-    // Show pass screen for next player
-    this.time.delayedCall(200, () => this.showPassScreen());
-  }
-
-  // ══════════════════════════════════════════════════════════════════
-  // SCOREBOARD
-  // ══════════════════════════════════════════════════════════════════
-
-  /**
-   * Recalculate and display VP scores for all players.
-   * Respects the showAllScores setting from the Phaser registry.
-   */
-  updateScoreboard() {
-    const showAll = this.registry.get("showAllScores") ?? true;
-
-    for (let p = 0; p < this.playerCount; p++) {
-      const panel = this.scorePanels[p];
-      if (!panel) continue;
-
-      const text = panel.getData("text");
-
-      const { total } = scorePlayer(this.placedPatrons[p], this.layout);
-      const isAI = !!this.aiConfig[p];
-      const name = isAI ? `${PlayerNames[p]} \uD83E\uDD16` : PlayerNames[p];
-
-      if (showAll || p === this.currentPlayer) {
-        text.setText(`${name}: ${total} VP`);
-        panel.setAlpha(p === this.currentPlayer ? 1 : 0.6);
-        panel.setVisible(true);
-      } else {
-        panel.setVisible(false);
-      }
-    }
-  }
-
-  // ══════════════════════════════════════════════════════════════════
-  // UI UPDATE
-  // ══════════════════════════════════════════════════════════════════
-
-  updateUI() {
-    const color = this.playerColor(this.currentPlayer);
-    const colorHex = this.playerColorHex(this.currentPlayer);
-
-    if (this.turnText) {
-      this.turnText.setText(`Round ${this.round} / ${this.totalRounds}`);
-    }
-
-    if (this.deckText) {
-      this.deckText.setText(`Deck: ${this.deck.length}`);
-    }
-
-    // Update deck pile visualization (scale down as deck empties)
-    if (this.deckPileImage) {
-      const ratio = Math.max(this.deck.length / 54, 0);
-      this.deckPileImage.setScale(0.3 + 0.7 * ratio);
-      this.deckPileImage.setAlpha(ratio > 0 ? 0.5 + 0.5 * ratio : 0.2);
-    }
-
-    // Update local player avatar
-    if (this.localPlayerAvatar && this.localPlayerRing) {
-      const usherKey = this.usherKey(this.currentPlayer);
-      if (this.textures.exists(usherKey)) {
-        this.localPlayerAvatar.setTexture(usherKey);
-        this.localPlayerRing.setStrokeStyle(s(6), colorHex);
-
-        if (this.localPlayerNumberBg) {
-          this.localPlayerNumberBg.setStrokeStyle(s(3), colorHex);
+        if (!card.cardData.label && !hint) {
+            return;
         }
-        if (this.localPlayerNumberText) {
-          this.localPlayerNumberText.setText(
-            (this.currentPlayer + 1).toString(),
-          );
-          this.localPlayerNumberText.setColor(color);
-        }
-      }
+
+        this.scoringTooltip = new SpeechBubble(this, card, card.cardData.label, hint);
+        //this.scoringTooltip.setDepth(200); // Ensure it is above everything
+
+        // Fade in
+        this.scoringTooltip.setAlpha(0);
+        this.tweens.add({
+            targets: this.scoringTooltip,
+            alpha: 1,
+            duration: 150,
+            ease: 'Sine.easeOut',
+        });
     }
-  }
 
-  // ══════════════════════════════════════════════════════════════════
-  // END GAME — show all theaters and scores
-  // ══════════════════════════════════════════════════════════════════
+    /** Remove the scoring tooltip if visible. */
+    hideScoringTooltip() {
+        if (this.scoringTooltip) {
+            this.scoringTooltip.destroy();
+            this.scoringTooltip = null;
+        }
+    }
 
-  endGame() {
-    this.scene.start("EndGameScene", {
-      playerCount: this.playerCount,
-      layout: this.layout,
-      placedPatrons: this.placedPatrons,
-      playerColorMap: this.playerColorMap,
-      aiConfig: this.aiConfig,
-    });
-  }
+    /**
+     * @param {number} row
+     * @param {number} col
+     * @param {Phaser.GameObjects.Rectangle} seat
+     */
+    placeSeatCard(row, col, seat) {
+        if (!this.selectedCard) {
+            return;
+        }
+        // Seat already occupied
+        if (this.placedPatrons[this.currentPlayer][row][col]) {
+            return;
+        }
 
-  /**
-   * @override
-   * @param {number} _time
-   * @param {number} _delta
-   */
-  update(_time, _delta) {
-    // Event-driven game — nothing needed here.
-  }
+        const cardData = this.selectedCard.cardData;
+
+        // Update logical state
+        this.placedPatrons[this.currentPlayer][row][col] = cardData;
+
+        // Update visual
+        seat.setFillStyle(0x000000, 0);
+        seat.setStrokeStyle(
+            s(2),
+            cardData.trait ? TraitColors[cardData.trait] || 0xffffff : 0x4a4a6a,
+            0.8,
+        );
+
+        // Base patron image (Maintain aspect ratio)
+        const baseImgKey = `patron_${cardData.type.toLowerCase()}`;
+        const baseImg = this.add.image(seat.x, seat.y, baseImgKey);
+        const seatImgW = SEAT_SIZE * 0.9;
+        const seatImgH = seatImgW * (140 / 105);
+        baseImg.setDisplaySize(seatImgW, seatImgH);
+        baseImg.setOrigin(0.5, 1);
+        baseImg.setPosition(seat.x, seat.y + SEAT_SIZE / 2 - s(4));
+        this.seatLabels.push(baseImg);
+
+        const childrenForAnim = [seat, baseImg];
+
+        // Trait badge
+        if (cardData.trait) {
+            const badgeKey = `badge_${cardData.trait.toLowerCase()}`;
+            const badge = this.add.image(
+                seat.x + SEAT_SIZE / 2 - s(6),
+                seat.y - SEAT_SIZE / 2 + s(14),
+                badgeKey,
+            );
+            badge.setDisplaySize(s(30), s(30));
+            this.seatLabels.push(badge);
+            childrenForAnim.push(badge);
+        }
+
+        // Placement animation: fade in + scale pop
+        baseImg.setAlpha(0);
+        // Fade in (no yoyo — stays visible)
+        this.tweens.add({
+            targets: childrenForAnim,
+            alpha: 1,
+            duration: 150,
+        });
+        // Scale pop (yoyo back to normal size)
+        this.tweens.add({
+            targets: childrenForAnim,
+            scaleX: 1.05,
+            scaleY: 1.05,
+            duration: 150,
+            yoyo: true,
+        });
+
+        // Recalculate scores after placement
+        this.updateScoreboard();
+
+        // Remove card from hand (visual and data)
+        const cardIndex = this.handCards.indexOf(this.selectedCard);
+        if (cardIndex >= 0) {
+            // Also remove from player hand data
+            const handDataIndex = this.playerHands[this.currentPlayer].indexOf(
+                this.selectedCard.cardData,
+            );
+            if (handDataIndex >= 0) {
+                this.playerHands[this.currentPlayer].splice(handDataIndex, 1);
+            }
+            this.selectedCard.destroy();
+            this.handCards.splice(cardIndex, 1);
+        }
+        this.selectedCard = null;
+        this.hideScoringTooltip();
+
+        // Check if 2-player discard is needed
+        if (
+            this.playerCount === 2 && this.playerHands[this.currentPlayer].length > 1
+        ) {
+            this.turnPhase = 'discard';
+            // Highlight remaining cards for discard
+            for (const c of this.handCards) {
+                c.background.setStrokeStyle(s(3), 0xff4444, 1);
+            }
+            return;
+        }
+
+        // Otherwise, advance to next player
+        this.advanceTurn();
+    }
+
+    /**
+     * Discard a card (2-player mode).
+     * @param {Card} card
+     */
+    discardCard(card) {
+        // Remove from data
+        const handDataIndex = this.playerHands[this.currentPlayer].indexOf(
+            card.cardData,
+        );
+        if (handDataIndex >= 0) {
+            this.playerHands[this.currentPlayer].splice(handDataIndex, 1);
+        }
+
+        // Remove visual with a fade
+        const cardIndex = this.handCards.indexOf(card);
+        if (cardIndex >= 0) {
+            this.handCards.splice(cardIndex, 1);
+        }
+
+        this.tweens.add({
+            targets: card,
+            alpha: 0,
+            y: card.y + s(80),
+            duration: 300,
+            onComplete: () => card.destroy(),
+        });
+
+        // Short delay then advance
+        this.time.delayedCall(400, () => {
+            this.advanceTurn();
+        });
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // LOBBY LOGIC — shared market of 3 cards
+    // ══════════════════════════════════════════════════════════════════
+
+    /**
+     * Initial fills the lobby to 3 cards.
+     */
+    fillLobby() {
+        while (this.lobbyCards.length < 3 && this.deck.length > 0) {
+            this.lobbyCards.push(this.deck.pop());
+        }
+
+        this.renderLobby();
+    }
+
+    /**
+     * Renders the lobby cards on the left of the screen.
+     */
+    renderLobby() {
+        // Clear old visuals
+        for (const v of this.lobbyCardVisuals) {
+            v.destroy();
+        }
+        this.lobbyCardVisuals = [];
+
+        const deckX = s(130);
+        const deckY = s(250);
+        const gap = s(20);
+        // Stack regular Image objects to form a card pile.
+        const PILE_LAYERS = 10;
+        const pileOffset = s(-2);
+
+        /** @type {Phaser.Objects.Container} */
+        this.deckPileImage = this.add.container(deckX, deckY);
+        for (let i = 0; i < PILE_LAYERS; i++) {
+            const ox = i * pileOffset;
+            const oy = i * pileOffset;
+            const background = this.add
+                .rectangle(ox, oy, Card.WIDTH, Card.HEIGHT, 0x000000)
+                .setStrokeStyle(s(2), 0x000000, 0.7);
+
+            const image = this.add.image(ox, oy, 'card_back');
+            image.setDisplaySize(Card.WIDTH, Card.HEIGHT);
+
+            /** @type {Phaser.GameObjects.GameObject[]} */
+            const children = [background, image];
+
+            this.deckPileImage.add(children);
+        }
+        this.deckPileImage.setInteractive(
+            new Phaser.Geom.Rectangle(
+                0,
+                0,
+                Card.WIDTH,
+                Card.HEIGHT,
+            ),
+            Phaser.Geom.Rectangle.Contains,
+        );
+        this.deckPileImage.on('pointerdown', () => this.drawFromDeck());
+
+        // Draw lobby cards
+        for (let i = 0; i < this.lobbyCards.length; i++) {
+            const data = this.lobbyCards[i];
+            // Start lobby cards to the right of the deck pile
+            const cardY = deckY + (i + 1) * (Card.HEIGHT + gap);
+
+            // use deckX sot they are all aligned with the deck
+            const card = new Card(this, deckX, cardY, data);
+            card.setDepth(160); // Ensure they are above everything else
+
+            card.on('pointerover', () => {
+                this.showScoringTooltip(card);
+            });
+            card.on('pointerout', () => {
+                if (this.selectedCard) {
+                    this.showScoringTooltip(this.selectedCard);
+                }
+                else {
+                    this.hideScoringTooltip();
+                }
+            });
+
+            // Slot 0 is unavailable
+            if (i === 0) {
+                card.setInteractive(false);
+                // TODO: how to make the card look unavailable
+                card.setStrokeColor(0xf44336);
+            }
+            else {
+                card.on('pointerdown', () => this.drawFromLobby(i));
+            }
+
+            this.lobbyCardVisuals.push(card);
+        }
+    }
+
+    /**
+     * Handles picking a card from the lobby.
+     * @param {number} index
+     */
+    drawFromLobby(index) {
+        if (this.turnPhase !== 'play') {
+            return;
+        }
+
+        const hand = this.playerHands[this.currentPlayer];
+        // hand is full
+        if (hand.length === this.maxCardsInHand) {
+            return;
+        }
+
+        // TODO animate drawing the card
+        const cardData = this.lobbyCards[index];
+        // Add to player hand
+        hand.push(cardData);
+
+        // Remove from lobby
+        this.lobbyCards.splice(index, 1);
+
+        // Refill from deck
+        // TODO animate this
+        if (this.deck.length > 0) {
+            this.lobbyCards.unshift(this.deck.pop());
+        }
+
+        this.renderHand();
+        this.renderLobby();
+        this.updateUI();
+    }
+
+    /**
+     * Blind draw from the deck.
+     */
+    drawFromDeck() {
+        if (this.turnPhase !== 'play') {
+            return;
+        }
+        if (this.deck.length === 0) {
+            return;
+        }
+
+        const hand = this.playerHands[this.currentPlayer];
+        // hand is full
+        if (hand.length === this.maxCardsInHand) {
+            return;
+        }
+
+        const cardData = this.deck.pop();
+        hand.push(cardData);
+
+        this.renderHand();
+        this.updateUI();
+    }
+
+    advanceTurn() {
+        const nextPlayer = this.currentPlayer + 1;
+
+        if (nextPlayer >= this.playerCount) {
+            // All players have gone this round
+
+            // Ghost discard for 3-player
+            if (this.playerCount === 3 && this.deck.length > 0) {
+                this.deck.pop();
+            }
+
+            // Check if game is over
+            if (this.round >= this.totalRounds) {
+                this.time.delayedCall(300, () => this.endGame());
+                return;
+            }
+
+            // Next round
+            this.round++;
+            this.currentPlayer = 0;
+        }
+        else {
+            this.currentPlayer = nextPlayer;
+        }
+
+        // Show pass screen for next player
+        this.time.delayedCall(200, () => this.showPassScreen());
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // SCOREBOARD
+    // ══════════════════════════════════════════════════════════════════
+
+    /**
+     * Recalculate and display VP scores for all players.
+     * Respects the showAllScores setting from the Phaser registry.
+     */
+    updateScoreboard() {
+        const showAll = this.registry.get('showAllScores') ?? true;
+
+        for (let p = 0; p < this.playerCount; p++) {
+            const panel = this.scorePanels[p];
+            if (!panel) {
+                continue;
+            }
+
+            const text = panel.getData('text');
+
+            const { total } = scorePlayer(this.placedPatrons[p], this.layout);
+            const isAI = !!this.aiConfig[p];
+            const name = isAI ? `${PlayerNames[p]} \uD83E\uDD16` : PlayerNames[p];
+
+            if (showAll || p === this.currentPlayer) {
+                text.setText(`${name}: ${total} VP`);
+                panel.setAlpha(p === this.currentPlayer ? 1 : 0.6);
+                panel.setVisible(true);
+            }
+            else {
+                panel.setVisible(false);
+            }
+        }
+    }
+
+    /**
+     * Re-render and update the lobby visuals.
+     */
+    updateLobby() {
+        this.renderLobby();
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // UI UPDATE
+    // ══════════════════════════════════════════════════════════════════
+
+    updateUI() {
+        const color = this.playerColor(this.currentPlayer);
+        const colorHex = this.playerColorHex(this.currentPlayer);
+
+        if (this.turnText) {
+            this.turnText.setText(`Round ${this.round} / ${this.totalRounds}`);
+        }
+
+        if (this.deckText) {
+            this.deckText.setText(`Deck: ${this.deck.length}`);
+        }
+
+        // Update deck pile visualization (scale down as deck empties)
+        if (this.deckPileImage) {
+            const ratio = Math.max(this.deck.length / 54, 0);
+            this.deckPileImage.setScale(0.3 + 0.7 * ratio);
+            this.deckPileImage.setAlpha(ratio > 0 ? 0.5 + 0.5 * ratio : 0.2);
+        }
+
+        this.updateLobby();
+
+        // Update local player avatar
+        if (this.localPlayerAvatar && this.localPlayerRing) {
+            const usherKey = this.usherKey(this.currentPlayer);
+            if (this.textures.exists(usherKey)) {
+                this.localPlayerAvatar.setTexture(usherKey);
+                this.localPlayerRing.setStrokeStyle(s(6), colorHex);
+
+                if (this.localPlayerNumberBg) {
+                    this.localPlayerNumberBg.setStrokeStyle(s(3), colorHex);
+                }
+                if (this.localPlayerNumberText) {
+                    this.localPlayerNumberText.setText(
+                        (this.currentPlayer + 1).toString(),
+                    );
+                    this.localPlayerNumberText.setColor(color);
+                }
+            }
+        }
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // END GAME — show all theaters and scores
+    // ══════════════════════════════════════════════════════════════════
+
+    endGame() {
+        this.scene.start('EndGameScene', {
+            playerCount: this.playerCount,
+            layout: this.layout,
+            placedPatrons: this.placedPatrons,
+            playerColorMap: this.playerColorMap,
+            aiConfig: this.aiConfig,
+        });
+    }
+
+    /**
+     * @override
+     * @param {number} _time
+     * @param {number} _delta
+     */
+    update(_time, _delta) {
+        // Event-driven game — nothing needed here.
+    }
 }
