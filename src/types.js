@@ -546,6 +546,8 @@ export const OperaHouseLayout = {
     cols: 5,
     aisleCols: [0, 4],
     backRows: [3],
+    // Balcony-like front box row is visually/adjacency-separated from main house rows.
+    adjacencyBreaks: [[0, 1]],
     royalBoxes: [
         { row: 0, col: 0 },
         { row: 0, col: 4 },
@@ -592,8 +594,6 @@ export const AmphitheaterLayout = {
     cols: 6,
     aisleCols: [],
     backRows: [3],
-    // TODO: The 2 seats behind a seat should be considered adjacent for FRIENDS, NOISY and TALL/SHORT traits, even though there's no direct adjacency.
-    //  This is a bit tricky to implement since it breaks the standard orthogonal adjacency model. We may need to add a custom "extendedAdjacency" property to the layout that defines these special cases.
     seatMask: [
         //       col: 0     1     2     3     4     5
         /* Row 0 */ [false, false, true, true, true, false], // 3 seats (narrow front)

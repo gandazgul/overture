@@ -1,12 +1,10 @@
 // @ts-check
 import Phaser from "phaser";
-import { px, s } from "../config.js";
+import { s } from "../config.js";
+import { createStage } from "../factories/Stage.js";
 import { seatExists } from "../scoring.js";
 import { hasSeatLabel, TraitColors } from "../types.js";
-
-const SEAT_SIZE = s(100);
-const SEAT_GAP = s(10);
-const AISLE_GAP = s(30); // wider gap for aisle walkways
+import { AISLE_GAP, SEAT_GAP, SEAT_SIZE } from "../constants.js";
 
 /** @typedef {import('../types.js').LayoutMeta} LayoutMeta */
 /** @typedef {import('../types.js').CardData} CardData */
@@ -148,11 +146,19 @@ export class TheaterGrid extends Phaser.GameObjects.Container {
         const bleedHeight = s(30);
         const floorW = totalGridW + bleedWidth * 2;
         const floorH = totalGridH + bleedHeight * 2;
-        const stageAspectRatio = 222 / 978;
-        const stageRenderWidth = floorW + bleedWidth * 2;
-        const actualStageH = stageRenderWidth * stageAspectRatio;
+
         const stageTop = s(10);
-        const floorTop = stageTop + actualStageH - bleedHeight / 2;
+        const stageX = width / 2;
+        const { stage, height: stageHeight } = createStage(
+            scene,
+            {
+                label: this.layout.name,
+                x: stageX,
+                top: stageTop,
+            },
+        );
+
+        const floorTop = stageTop + stageHeight;
         const floorLeft = (width - floorW) / 2;
         const gridStartX = floorLeft + bleedWidth;
         const gridStartY = floorTop + bleedHeight;
@@ -169,7 +175,9 @@ export class TheaterGrid extends Phaser.GameObjects.Container {
                 for (let c = 0; c < COLS; c++) {
                     if (this.layout.seatMask[r][c]) {
                         seats++;
-                        if (first < 0) first = c;
+                        if (first < 0) {
+                            first = c;
+                        }
                     }
                 }
                 if (seats > maxSeats) {
@@ -183,7 +191,9 @@ export class TheaterGrid extends Phaser.GameObjects.Container {
                 for (let c = 0; c < COLS; c++) {
                     if (this.layout.seatMask[r][c]) {
                         seatCount++;
-                        if (seatCount === 1) firstCol = c;
+                        if (seatCount === 1) {
+                            firstCol = c;
+                        }
                     }
                 }
                 const seatDiff = maxSeats - seatCount;
@@ -197,14 +207,17 @@ export class TheaterGrid extends Phaser.GameObjects.Container {
             }
         }
 
-        for (let c = 0; c < COLS; c++) colX[c] += gridStartX;
-        for (let r = 0; r < ROWS; r++) rowY[r] += gridStartY;
+        for (let c = 0; c < COLS; c++) {
+            colX[c] += gridStartX;
+        }
+        for (let r = 0; r < ROWS; r++) {
+            rowY[r] += gridStartY;
+        }
 
-        const floorCenterX = floorLeft + floorW / 2;
         const floorCenterY = floorTop + floorH / 2;
         const bgKey = `bg_${this.layout.id}`;
 
-        const bgImg = scene.add.image(floorCenterX, floorCenterY, bgKey);
+        const bgImg = scene.add.image(stageX, floorCenterY, bgKey);
         const coverScale = Math.max(floorW / bgImg.width, floorH / bgImg.height);
         bgImg.setScale(coverScale);
         const bgMask = scene.make.graphics();
@@ -212,11 +225,16 @@ export class TheaterGrid extends Phaser.GameObjects.Container {
         bgImg.setMask(bgMask.createGeometryMask());
         this.add(bgImg);
 
+        this.add(stage);
+
         const aisleColor = 0x4D0D0F;
         const aisleBorderColor = 0x493D18;
         const aisleDashColor = 0x493D18;
 
-        /** @param {number} centerX @param {number} aisleWidth */
+        /**
+         * @param {number} centerX @param {number} aisleWidth
+         * @param {number} aisleWidth
+         */
         const drawAisleStrip = (centerX, aisleWidth) => {
             const aisleWidthWithBorder = aisleWidth - s(6);
             const centerY = floorTop + floorH / 2;
@@ -238,33 +256,6 @@ export class TheaterGrid extends Phaser.GameObjects.Container {
                 drawAisleStrip((leftEdge + rightEdge) / 2, rightEdge - leftEdge);
             }
         }
-
-        const stageX = floorCenterX;
-        const stageY = stageTop + actualStageH / 2;
-
-        if (scene.textures.exists("ui_stage")) {
-            const stageImg = scene.add.image(stageX, stageY, "ui_stage");
-            stageImg.setDisplaySize(stageRenderWidth, actualStageH);
-            stageImg.setDepth(2);
-            this.add(stageImg);
-        } else {
-            const fallbackStage = scene.add
-                .rectangle(stageX, stageY, floorW, actualStageH, 0x8b4513)
-                .setStrokeStyle(s(1), 0xdaa520);
-            this.add(fallbackStage);
-        }
-
-        const stageLabel = scene.add
-            .text(floorCenterX, stageY, this.layout.name, {
-                fontSize: px(36),
-                color: "#ffd700",
-                fontFamily: "Georgia, serif",
-                fontStyle: "italic",
-                shadow: { blur: 8, color: "#000000", fill: true },
-            })
-            .setOrigin(0.5)
-            .setDepth(3);
-        this.add(stageLabel);
 
         // ── Build theater grid ──────────────────────────────────────
         for (let row = 0; row < ROWS; row++) {
@@ -336,22 +327,15 @@ export class TheaterGrid extends Phaser.GameObjects.Container {
         }
 
         // ── Column breaks (vertical dashed lines) ──────────────────────────
-        if (this.layout.adjacencyBreaks) {
-            // Use the same line style as row breaks.
-            // We look for columns that separate the theater into distinct "table" zones.
-            // In Dinner Playhouse, this typically means a gap between col 1 and 2.
-            const colBreaks = [];
-            // Identify gaps where seats exist on both sides but there is a visual "break"
-            // For Dinner Playhouse, the adjacency breaks are usually defined by row,
-            // but for vertical separators we look at the Gap Columns.
-            for (let c = 0; c < COLS - 1; c++) {
-                if (gapCols.has(c) || centerAisleGaps.has(c)) {
-                    const midX = colX[c];
-                    colBreaks.push(midX);
+        // Draw for explicit gap columns (e.g. Dinner Playhouse table columns).
+        // Blackbox keeps its special center red carpet treatment only.
+        if (this.layout.id !== "blackbox" && gapCols.size > 0) {
+            for (let c = 0; c < COLS; c++) {
+                if (!gapCols.has(c)) {
+                    continue;
                 }
-            }
+                const midX = colX[c];
 
-            for (const midX of colBreaks) {
                 for (let dy = 0; dy < totalGridH; dy += s(12)) {
                     const line = scene.add
                         .rectangle(midX, gridStartY + dy + s(3), s(2), s(6), 0x555577)
@@ -466,7 +450,9 @@ export class TheaterGrid extends Phaser.GameObjects.Container {
         for (let row = 0; row < this.layout.rows; row++) {
             for (let col = 0; col < this.layout.cols; col++) {
                 const seat = this.seatGrid[row]?.[col];
-                if (!seat) continue;
+                if (!seat) {
+                    continue;
+                }
 
                 const cardData = grid[row]?.[col] ?? null;
                 if (cardData) {
