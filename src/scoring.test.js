@@ -734,10 +734,10 @@ Deno.test("Opera House: Royal Box is NOT adjacent to row 0 front seats", () => {
 
 Deno.test("Opera House: front row seat (0,1) is not adjacent to box (0,0)", () => {
     const neighbors = getOrthogonalNeighbors(0, 1, 4, 5, OperaHouseLayout);
-    // (0,1) should see (0,2) to the right and (1,1) below, but NOT (0,0) the box
+    // (0,1) should see (0,2) to the right, but NOT (0,0) box and not row 1 due to balcony break.
     const hasBox = neighbors.some((n) => n.row === 0 && n.col === 0);
     assertEquals(hasBox, false);
-    assertEquals(neighbors.length, 2); // (0,2) and (1,1)
+    assertEquals(neighbors.length, 1); // (0,2)
 });
 
 Deno.test("Opera House: VIP in Royal Box NOT penalized by adjacent Kid", () => {
