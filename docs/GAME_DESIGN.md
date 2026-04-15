@@ -23,13 +23,12 @@
    - [Trait Scoring](#trait-scoring)
    - [Cross-Type Modifiers](#cross-type-modifiers)
 9. [Interesting Trait Combos](#interesting-trait-combos)
-10. [Gifting & the Manager's Attention Token](#gifting--the-managers-attention-token)
-11. [Theater Cards](#theater-cards)
-12. [Play Cards](#play-cards)
-13. [Season Deck](#season-deck)
-14. [End of Game](#end-of-game)
-15. [Art Direction & Visual Style](#art-direction--visual-style)
-16. [Design Principles](#design-principles)
+10. [Theater Cards](#theater-cards)
+11. [Play Cards](#play-cards)
+12. [Season Deck](#season-deck)
+13. [End of Game](#end-of-game)
+14. [Art Direction & Visual Style](#art-direction--visual-style)
+15. [Design Principles](#design-principles)
 
 ---
 
@@ -37,10 +36,13 @@
 
 Each player is a theater usher with their own theater grid (layout varies by
 Theater card). At the start each player is dealt 1 card. On each turn you draw a patron card from the deck or take one
-from the **Lobby** (a shared face-up market), then place it in your theater-or
-"gift" a disruptive card to an opponent's theater. The game ends when the
-56-card patron deck is exhausted. Each player then tallies victory points (VP)
-based on how well their patrons are seated.
+from the **Lobby** (a shared face-up market), then place it in your theater.
+The game ends when the 56-card patron deck is exhausted. Each player then
+tallies victory points (VP) based on how well their patrons are seated.
+
+By default, Overture is a **constructive** game (no gifting). If you want direct
+player disruption, enable it with specific Play cards (see
+[Play Cards](#play-cards)).
 
 **Player count:** 2-4 players
 With 2 okayers, during setup players get 2 cards, on their turn they play a card then discard a card.
@@ -56,13 +58,13 @@ patron deck.
 
 ## Components
 
-| Component                 | Quantity | Description                                                                  |
-| ------------------------- | -------- | ---------------------------------------------------------------------------- |
-| Theater boards            | 4        | Individual grids (layout defined by Theater card)                            |
-| Patron deck               | 56 cards | 6 primary types, 4 secondary traits                                          |
-| Season deck               | varies   | Theater cards, Play cards, Role cards, Demand cards, Understudy cards        |
-| Player markers            | 4 sets   | Colored tokens to identify each player's board                               |
-| Manager's Attention token | 1        | Anti-targeting token (see [Gifting](#gifting--the-managers-attention-token)) |
+| Component                | Quantity | Description                                                                       |
+| ------------------------ | -------- | --------------------------------------------------------------------------------- |
+| Theater boards           | 4        | Individual grids (layout defined by Theater card)                                 |
+| Patron deck              | 56 cards | 6 primary types, 4 secondary traits                                               |
+| Season deck              | varies   | Theater cards, Play cards, Role cards, Demand cards, Understudy and Rivalry cards |
+| Player markers           | 4 sets   | Colored tokens to identify each player's board                                    |
+| Manager's Attention card | 1        | Tracking card used only when a Play enables gifting (e.g., The Rivalry)           |
 
 ---
 
@@ -79,8 +81,8 @@ patron deck.
    place it face-down in the center.
 5. **Set up the Lobby:** Draw 3 cards from the patron deck and place them
    face-up in a row beside the deck.
-6. Place the **Manager's Attention** token to one side-it enters play when the
-   first gift occurs.
+6. Place the **Manager's Attention card** to one side; use it only if the
+   selected Play card enables gifting (e.g., The Rivalry).
 7. The first player is whoever went to the theater last. They take their turn and play proceeds clockwise until the Patrons run out.
 
 ---
@@ -90,10 +92,9 @@ patron deck.
 1. **Draw** - Either:
    - Draw the **top card** from the patron deck (blind), or
    - Take **one card** from the Lobby (known).
-2. **Place or Gift** - Either:
-   - **Place** the card into any empty seat in _your_ theater, or
-   - **Gift** the card to an opponent's theater (see
-     [Gifting](#gifting--the-managers-attention-token)).
+2. **Place** - Place the card into any empty seat in _your_ theater.
+   - If the active Play card enables gifting (e.g., The Rivalry), you may
+     choose to gift instead by following that Play's rules.
 3. **Refill the Lobby** - If you took from the Lobby, refill it to 3 cards from
    the top of the patron deck. _(If the deck is empty, the Lobby simply
    shrinks.)_
@@ -126,8 +127,8 @@ placement. The Lobby adds:
 1. The Lobby always starts with 3 face-up cards (dealt during setup). The card next to the deck cant be taken.
 2. On your turn, you may take one Lobby card instead of drawing from the deck.
 3. After taking from the Lobby, immediately refill, put the new card next to the deck.
-4. Cards taken from the Lobby follow the same Place or Gift rules as drawn
-   cards.
+4. Cards taken from the Lobby follow the same placement rules as drawn cards
+   (unless modified by the active Play card).
 5. If the patron deck is empty, the Lobby cannot refill. Players may still take
    from whatever remains in the Lobby.
 
@@ -304,47 +305,16 @@ The trait system creates cards with layered strategic identities:
 | Combo                    | Why It's Interesting                                                                                                             |
 | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
 | **Bespectacled VIP**     | Front-row double bonus. The rarest prize card in the deck—only 1 exists. Dream placement: front row, away from Kids. 3+3+2=8 VP. |
-| **Tall Kid**             | Blocks the patron behind _and_ is a liability if uncapped. Excellent gift card for opponents.                                    |
+| **Tall Kid**             | Blocks the patron behind _and_ is a liability if uncapped. A high-friction card to optimize in your own grid.                    |
 | **Noisy Lovebirds**      | Big points in the back row when paired, but hurts all neighbors. Place carefully at the edge.                                    |
 | **Bespectacled Teacher** | Front-row trait bonus while also needing to cap Kids. Creates tension between optimal row and duty.                              |
 | **Short Critic**         | Dream placement: front-row corner aisle seat. +2 (Short empty front) on top of 3+3 (Critic aisle) = 8 VP from one card.          |
-| **Noisy Kid**            | Worth 1 VP uncapped _and_ hurts neighbors. The ultimate gift card. Noisy also nullifies any adjacent Critic's aisle bonus.       |
+| **Noisy Kid**            | Worth 1 VP uncapped _and_ hurts neighbors. A powerful self-puzzle card; Noisy also nullifies any adjacent Critic's aisle bonus.  |
 | **Tall Lovebirds**       | Wants the back row for +2 bonus but blocks whoever sits behind. In the back row, no one is behind—safe spot.                     |
 | **Short Kid**            | Front-row bonus if uncapped feels wasted; capping in the front row means Teachers compete with VIPs for premium seats.           |
 | **Tall Friends**         | Blocks the patron behind, but great in the back row where there's no one behind and the Friends cluster grows safely.            |
 | **Short Friends**        | +2 VP if no one is in front. Place at the front edge of a Friends cluster for the Short bonus on top of group VP.                |
 | **Bespectacled Friends** | +2 VP unless in the back row. Encourages Friends clusters in the front/middle rows rather than the back.                         |
-
----
-
-## Gifting & the Manager's Attention Token
-
-### The Gift Rule
-
-When you draw a card, you may **place it in an opponent's theater** instead of
-your own. This turns disruptive cards (Tall, Noisy, uncapped Kids) into
-strategic weapons-but the recipient gains partial control by choosing _where_ in
-their grid the card goes.
-
-**Design philosophy:** Gifts are a _hindrance_, not a devastating blow. They
-force suboptimal placements and create new puzzles, but should not
-single-handedly ruin a player's game.
-
-### The Manager's Attention Token
-
-To prevent repeated targeting of one player:
-
-1. When you gift a card to an opponent, place the **Manager's Attention** token
-   on that opponent's board.
-2. **No player may gift a card to the player holding the token.**
-3. The token moves only when a different opponent receives a gift.
-
-**Example (4-player game - Alice, Bob, Carol, Dave):**
-
-- Alice gifts a Tall Kid to Bob → token goes to Bob.
-- Carol draws a Noisy Patron. She _cannot_ target Bob. She gifts it to Dave →
-  token moves to Dave.
-- Now Dave is protected; Bob, Alice, and Carol are all valid targets.
 
 ---
 
@@ -589,7 +559,7 @@ later. Rewards long-term planning and flexible positioning.
 ### 🎬 The Dress Rehearsal
 
 **Rule:** **Draft-and-pass.** Each turn, draw 2 cards from the deck. Place one
-(in your theater or gift it). The other goes face-up into the next player's
+(in your theater). The other goes face-up into the next player's
 (clockwise) **offer pile**. On your turn, before drawing, you may take a card
 from your offer pile instead of drawing 2.
 
@@ -606,6 +576,32 @@ neighbor. "Do I keep the VIP and pass them the Lovebirds they clearly need, or
 keep the Lovebirds defensively and pass them the VIP?" The offer pile also
 interacts with the Lobby: sometimes the Lobby has what you need, so you skip
 your offer pile-but that card stays there, growing your neighbor's options.
+
+---
+
+### 🎬 The Rivalry
+
+**Rule:** The **gifting** mechanic and the **Manager's Attention card** are
+active for this game.
+
+- On your turn, after drawing/taking a patron, you may place it in an
+  opponent's theater instead of your own.
+- When you gift to a player, place the Manager's Attention card on that
+  player's board.
+- You cannot gift to the player currently holding the Manager's Attention card.
+- The card moves only when a different player receives a gift.
+
+**Flavor:** _"The theater across the street is closed, and their usher is
+trying to ruin your opening night by sending over their most difficult
+patrons."_
+
+**Extra cards / Setup:** Shuffle **2 extra Noisy** and **2 extra Tall** patron
+cards into the deck from the Season Deck, and include the **Manager's
+Attention card** in play.
+
+**Why it's interesting:** By default, Tall and Noisy are strategic hurdles you
+must absorb into your own tableau. The Rivalry flips that pressure outward for a
+higher-conflict, "mean" variant.
 
 ---
 
@@ -696,8 +692,8 @@ separately; your final score is the **lower** of the two. (what about Between Tw
 
 **Why it's interesting:** You can't just stack one theater. If you dump all good
 cards into Theater A and neglect Theater B, your low score from B is what
-counts. Forces balanced play. Gifting becomes more agonizing-which of their two
-theaters do you target?
+counts. Forces balanced play. Denial and tempo choices become more agonizing-
+which board do you develop first, and which one can you afford to neglect?
 
 ---
 
@@ -709,14 +705,16 @@ referenced by specific Plays.
 
 ### Season Deck Composition
 
-| Card Type               | Count  | Used By                |
-| ----------------------- | ------ | ---------------------- |
-| Theater cards           | 8      | Setup: draw 1 per game |
-| Play cards              | 7      | Setup: draw 1 per game |
-| Role cards              | 6      | The Casting Call play  |
-| Demand cards            | 10     | The Mystery play       |
-| Understudy patron cards | 3      | The Understudy play    |
-| **Total**               | **34** |                        |
+| Card Type                      | Count  | Used By                |
+| ------------------------------ | ------ | ---------------------- |
+| Theater cards                  | 8      | Setup: draw 1 per game |
+| Play cards                     | 8      | Setup: draw 1 per game |
+| Role cards                     | 6      | The Casting Call play  |
+| Demand cards                   | 10     | The Mystery play       |
+| Understudy patron cards        | 3      | The Understudy play    |
+| Rivalry extra patron cards     | 4      | The Rivalry play       |
+| Manager's Attention card       | 1      | The Rivalry play       |
+| **Total**                      | **40** |                        |
 
 ### Notable Theater × Play Combos
 
@@ -731,6 +729,8 @@ referenced by specific Plays.
 | **Grand Empress + The Mystery**     | Vanilla layout lets you focus purely on demand adaptation. Good for learning The Mystery without layout complexity.      |
 | **Rotunda + The Avant-Garde**       | Empty stage center already breaks adjacency; leaving outer-ring gaps for +2 VP each compounds the breathing-room bonus.  |
 | **Rotunda + The Matinee**           | Every inner-ring seat is "front row" and scores twice at intermission. VIPs and Bespectacled patrons are strong.         |
+| **Blackbox + The Rivalry**          | Most punishing gifting map: tight adjacency + 5-row depth makes gifted Tall/Noisy patrons brutal to absorb.              |
+| **Balcony + The Rivalry**           | Least punishing gifting map: the balcony is disconnected from row 1, giving a quarantine lane for gifted trouble cards.  |
 
 ---
 
@@ -812,8 +812,8 @@ canvas size with transparent outer region for clean compositing.
 These guiding principles shaped the game's design and should inform future
 expansions:
 
-1. **Hindrance, not harm.** Gifted cards are a nuisance, not a knockout punch.
-   They create new puzzles, not hopeless situations.
+1. **Constructive by default.** Core Overture play is about building your own
+   theater puzzle, with interaction driven by Lobby denial and racing.
 2. **Layered decisions.** The primary/trait split means every card has a dual
    identity. A "Tall Kid" isn't just a Kid-it's a blocking liability _and_ a
    capping puzzle.
