@@ -68,7 +68,4 @@ function randomInt(...args) {
     return min + (randomInt32 % (max - min + 1));
 }
 
-export {
-    randomInt,
-    random,
-}
+export { random, randomInt };

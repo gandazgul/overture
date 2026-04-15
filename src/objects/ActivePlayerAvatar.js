@@ -1,6 +1,6 @@
 // @ts-check
-import Phaser from 'phaser';
-import { px, s } from '../config.js';
+import Phaser from "phaser";
+import { px, s } from "../config.js";
 
 /**
  * Bottom-right active-player avatar HUD element.
@@ -45,9 +45,9 @@ export class ActivePlayerAvatar extends Phaser.GameObjects.Container {
 
         this.numberText = scene.add.text(-s(50), -s(50), String(options.playerNumber), {
             fontSize: px(24),
-            fontFamily: 'Georgia, serif',
+            fontFamily: "Georgia, serif",
             color: options.color,
-            fontStyle: 'bold',
+            fontStyle: "bold",
         }).setOrigin(0.5);
 
         this.add([

@@ -1,6 +1,6 @@
 // @ts-check
 
-import { randomInt } from './utils.js';
+import { randomInt } from "./utils.js";
 
 // ── Primary Patron Types ───────────────────────────────────────────
 
@@ -12,13 +12,13 @@ import { randomInt } from './utils.js';
  * @enum {string}
  */
 export const PatronType = /** @type {const} */ ({
-  STANDARD: "Patron",
-  VIP: "VIP",
-  LOVEBIRDS: "Lovebirds",
-  KID: "Kid",
-  TEACHER: "Teacher",
-  CRITIC: "Critic",
-  FRIENDS: "Friends",
+    STANDARD: "Patron",
+    VIP: "VIP",
+    LOVEBIRDS: "Lovebirds",
+    KID: "Kid",
+    TEACHER: "Teacher",
+    CRITIC: "Critic",
+    FRIENDS: "Friends",
 });
 Object.freeze(PatronType);
 
@@ -33,10 +33,10 @@ Object.freeze(PatronType);
  * @enum {string}
  */
 export const Trait = /** @type {const} */ ({
-  TALL: "Tall",
-  SHORT: "Short",
-  BESPECTACLED: "Bespectacled",
-  NOISY: "Noisy",
+    TALL: "Tall",
+    SHORT: "Short",
+    BESPECTACLED: "Bespectacled",
+    NOISY: "Noisy",
 });
 Object.freeze(Trait);
 
@@ -96,137 +96,137 @@ Object.freeze(Trait);
  * }>}
  */
 export const PatronInfo = {
-  [PatronType.STANDARD]: {
-    color: 0x607d8b,
-    description: "A regular patron. Worth 3 VP anywhere.",
-    scoringHint: "Base 3VP",
-    scoring: { base: 3 },
-    deck: {
-      clean: 5,
-      traits: {
-        [Trait.TALL]: 2,
-        [Trait.SHORT]: 2,
-        [Trait.BESPECTACLED]: 2,
-        [Trait.NOISY]: 2,
-      },
+    [PatronType.STANDARD]: {
+        color: 0x607d8b,
+        description: "A regular patron. Worth 3 VP anywhere.",
+        scoringHint: "Base 3VP",
+        scoring: { base: 3 },
+        deck: {
+            clean: 5,
+            traits: {
+                [Trait.TALL]: 2,
+                [Trait.SHORT]: 2,
+                [Trait.BESPECTACLED]: 2,
+                [Trait.NOISY]: 2,
+            },
+        },
+        assetKey: "patron_patron",
+        assetPath: "assets/patron_patron.png",
     },
-    assetKey: "patron_patron",
-    assetPath: "assets/patron_patron.png",
-  },
-  [PatronType.VIP]: {
-    color: 0xffc107,
-    description: "3 VP base. +3 VP in front rows. −3 per adjacent Kid or Noisy.",
-    scoringHint: "Base 3 VP\n+3VP in the front 2 rows\n⚠ −3VP per adjacent Kid or Noisy",
-    scoring: {
-      base: 3,
-      rowBonusValue: 3,
-      rowBonusRows: [0, 1],
-      adjacencyPenaltyPer: -3,
-      adjacencyPenaltyTypes: [PatronType.KID],
-      adjacencyPenaltyNoisyTrait: true,
+    [PatronType.VIP]: {
+        color: 0xffc107,
+        description: "3 VP base. +3 VP in front rows. −3 per adjacent Kid or Noisy.",
+        scoringHint: "Base 3 VP\n+3VP in the front 2 rows\n⚠ −3VP per adjacent Kid or Noisy",
+        scoring: {
+            base: 3,
+            rowBonusValue: 3,
+            rowBonusRows: [0, 1],
+            adjacencyPenaltyPer: -3,
+            adjacencyPenaltyTypes: [PatronType.KID],
+            adjacencyPenaltyNoisyTrait: true,
+        },
+        deck: {
+            clean: 3,
+            traits: { [Trait.BESPECTACLED]: 1 },
+        },
+        assetKey: "patron_vip",
+        assetPath: "assets/patron_vip.png",
     },
-    deck: {
-      clean: 3,
-      traits: { [Trait.BESPECTACLED]: 1 },
+    [PatronType.LOVEBIRDS]: {
+        color: 0xe91e63,
+        description: "1 VP alone. +3 if horizontally paired. +2 in back row.",
+        scoringHint: "+3VP if paired side by side with another.\n+2VP in back row\n⚠ 0 VP if alone",
+        scoring: {
+            base: 1,
+            adjacentMatchBonus: 3,
+            backRowBonus: 2,
+        },
+        deck: {
+            clean: 8,
+            traits: {
+                [Trait.TALL]: 1,
+                [Trait.NOISY]: 1,
+            },
+        },
+        assetKey: "patron_lovebirds",
+        assetPath: "assets/patron_lovebirds.png",
     },
-    assetKey: "patron_vip",
-    assetPath: "assets/patron_vip.png",
-  },
-  [PatronType.LOVEBIRDS]: {
-    color: 0xe91e63,
-    description: "1 VP alone. +3 if horizontally paired. +2 in back row.",
-    scoringHint: "+3VP if paired side by side with another.\n+2VP in back row\n⚠ 0 VP if alone",
-    scoring: {
-      base: 1,
-      adjacentMatchBonus: 3,
-      backRowBonus: 2,
+    [PatronType.KID]: {
+        color: 0x4caf50,
+        description: "1 VP uncapped. 3 VP when capped by Teachers!",
+        scoringHint: "Base 1VP\n+2VP when capped e.g. T-K-T",
+        scoring: {
+            base: 1,
+            cappedValue: 3,
+        },
+        deck: {
+            clean: 5,
+            traits: {
+                [Trait.TALL]: 1,
+                [Trait.SHORT]: 1,
+                [Trait.NOISY]: 1,
+            },
+        },
+        assetKey: "patron_kid",
+        assetPath: "assets/patron_kid.png",
     },
-    deck: {
-      clean: 8,
-      traits: {
-        [Trait.TALL]: 1,
-        [Trait.NOISY]: 1,
-      },
+    [PatronType.TEACHER]: {
+        color: 0x8bc34a,
+        description: "3 VP base. +1 VP per adjacent capped Kid.",
+        scoringHint: "Base 3VP\n+1VP per capped Kid in its chain",
+        scoring: {
+            base: 3,
+            perCappedKidBonus: 1,
+        },
+        deck: {
+            clean: 3,
+            traits: {
+                [Trait.TALL]: 1,
+                [Trait.SHORT]: 1,
+                [Trait.BESPECTACLED]: 1,
+            },
+        },
+        assetKey: "patron_teacher",
+        assetPath: "assets/patron_teacher.png",
     },
-    assetKey: "patron_lovebirds",
-    assetPath: "assets/patron_lovebirds.png",
-  },
-  [PatronType.KID]: {
-    color: 0x4caf50,
-    description: "1 VP uncapped. 3 VP when capped by Teachers!",
-    scoringHint: "Base 1VP\n+2VP when capped e.g. T-K-T",
-    scoring: {
-      base: 1,
-      cappedValue: 3,
+    [PatronType.CRITIC]: {
+        color: 0x9c27b0,
+        description: "+3 VP in aisle seat. Noisy neighbors nullify the bonus!",
+        scoringHint: "Base 3VP\n+3VP in an aisle seat (gold border)",
+        scoring: {
+            base: 3,
+            aisleBonus: 3,
+        },
+        deck: {
+            clean: 3,
+            traits: {
+                [Trait.TALL]: 1,
+                [Trait.SHORT]: 2,
+                [Trait.BESPECTACLED]: 1,
+            },
+        },
+        assetKey: "patron_critic",
+        assetPath: "assets/patron_critic.png",
     },
-    deck: {
-      clean: 5,
-      traits: {
-        [Trait.TALL]: 1,
-        [Trait.SHORT]: 1,
-        [Trait.NOISY]: 1,
-      },
+    [PatronType.FRIENDS]: {
+        color: 0x00bcd4,
+        description: "3 VP base. +1 VP per adjacent Friend.",
+        scoringHint: "Base 3VP\n+1VP per adjacent Friend",
+        scoring: {
+            base: 3,
+            perNeighborMatchBonus: 1,
+        },
+        deck: {
+            clean: 5,
+            traits: {
+                [Trait.TALL]: 1,
+                [Trait.SHORT]: 1,
+                [Trait.BESPECTACLED]: 1,
+            },
+        },
+        assetKey: "patron_friends",
+        assetPath: "assets/patron_friends.png",
     },
-    assetKey: "patron_kid",
-    assetPath: "assets/patron_kid.png",
-  },
-  [PatronType.TEACHER]: {
-    color: 0x8bc34a,
-    description: "3 VP base. +1 VP per adjacent capped Kid.",
-    scoringHint: "Base 3VP\n+1VP per capped Kid in its chain",
-    scoring: {
-      base: 3,
-      perCappedKidBonus: 1,
-    },
-    deck: {
-      clean: 3,
-      traits: {
-        [Trait.TALL]: 1,
-        [Trait.SHORT]: 1,
-        [Trait.BESPECTACLED]: 1,
-      },
-    },
-    assetKey: "patron_teacher",
-    assetPath: "assets/patron_teacher.png",
-  },
-  [PatronType.CRITIC]: {
-    color: 0x9c27b0,
-    description: "+3 VP in aisle seat. Noisy neighbors nullify the bonus!",
-    scoringHint: "Base 3VP\n+3VP in an aisle seat (gold border)",
-    scoring: {
-      base: 3,
-      aisleBonus: 3,
-    },
-    deck: {
-      clean: 3,
-      traits: {
-        [Trait.TALL]: 1,
-        [Trait.SHORT]: 2,
-        [Trait.BESPECTACLED]: 1,
-      },
-    },
-    assetKey: "patron_critic",
-    assetPath: "assets/patron_critic.png",
-  },
-  [PatronType.FRIENDS]: {
-    color: 0x00bcd4,
-    description: "3 VP base. +1 VP per adjacent Friend.",
-    scoringHint: "Base 3VP\n+1VP per adjacent Friend",
-    scoring: {
-      base: 3,
-      perNeighborMatchBonus: 1,
-    },
-    deck: {
-      clean: 5,
-      traits: {
-        [Trait.TALL]: 1,
-        [Trait.SHORT]: 1,
-        [Trait.BESPECTACLED]: 1,
-      },
-    },
-    assetKey: "patron_friends",
-    assetPath: "assets/patron_friends.png",
-  },
 };
 Object.freeze(PatronInfo);
 
@@ -243,65 +243,65 @@ Object.freeze(PatronInfo);
  * }>}
  */
 export const TraitInfo = {
-  [Trait.TALL]: {
-    color: 0x795548,
-    description: "Patron behind gets −2 VP.",
-    scoringHint: "⚠ Patron behind gets −2VP",
-    scoring: { behindPenalty: -2 },
-    badgeAssetKey: "badge_tall",
-    badgeAssetPath: "assets/badge_tall.png",
-  },
-  [Trait.SHORT]: {
-    color: 0xff9800,
-    description: "+2 VP if no one in front. −3 VP if Tall is in front.",
-    scoringHint: "+2VP if no one in front\n⚠ −3 VP if Tall in front",
-    scoring: {
-      emptyFrontBonus: 2,
-      tallInFrontPenalty: -3,
+    [Trait.TALL]: {
+        color: 0x795548,
+        description: "Patron behind gets −2 VP.",
+        scoringHint: "⚠ Patron behind gets −2VP",
+        scoring: { behindPenalty: -2 },
+        badgeAssetKey: "badge_tall",
+        badgeAssetPath: "assets/badge_tall.png",
     },
-    badgeAssetKey: "badge_short",
-    badgeAssetPath: "assets/badge_short.png",
-  },
-  [Trait.BESPECTACLED]: {
-    color: 0x2196f3,
-    description: "+2 VP in front 3 rows (closer to stage).",
-    scoringHint: "+2VP unless seated on the back row",
-    scoring: {
-      rowBonusValue: 2,
-      rowBonusRows: [0, 1, 2],
+    [Trait.SHORT]: {
+        color: 0xff9800,
+        description: "+2 VP if no one in front. −3 VP if Tall is in front.",
+        scoringHint: "+2VP if no one in front\n⚠ −3 VP if Tall in front",
+        scoring: {
+            emptyFrontBonus: 2,
+            tallInFrontPenalty: -3,
+        },
+        badgeAssetKey: "badge_short",
+        badgeAssetPath: "assets/badge_short.png",
     },
-    badgeAssetKey: "badge_bespectacled",
-    badgeAssetPath: "assets/badge_bespectacled.png",
-  },
-  [Trait.NOISY]: {
-    color: 0xf44336,
-    description: "Each adjacent patron gets −1 VP.",
-    scoringHint: "⚠ Each adjacent patron gets −1VP",
-    scoring: { adjacentPenalty: -1 },
-    badgeAssetKey: "badge_noisy",
-    badgeAssetPath: "assets/badge_noisy.png",
-  },
+    [Trait.BESPECTACLED]: {
+        color: 0x2196f3,
+        description: "+2 VP in front 3 rows (closer to stage).",
+        scoringHint: "+2VP unless seated on the back row",
+        scoring: {
+            rowBonusValue: 2,
+            rowBonusRows: [0, 1, 2],
+        },
+        badgeAssetKey: "badge_bespectacled",
+        badgeAssetPath: "assets/badge_bespectacled.png",
+    },
+    [Trait.NOISY]: {
+        color: 0xf44336,
+        description: "Each adjacent patron gets −1 VP.",
+        scoringHint: "⚠ Each adjacent patron gets −1VP",
+        scoring: { adjacentPenalty: -1 },
+        badgeAssetKey: "badge_noisy",
+        badgeAssetPath: "assets/badge_noisy.png",
+    },
 };
 Object.freeze(TraitInfo);
 
 /** Primary patron type display order. */
 export const PatronTypeOrder = [
-  PatronType.STANDARD,
-  PatronType.VIP,
-  PatronType.LOVEBIRDS,
-  PatronType.KID,
-  PatronType.TEACHER,
-  PatronType.CRITIC,
-  PatronType.FRIENDS,
+    PatronType.STANDARD,
+    PatronType.VIP,
+    PatronType.LOVEBIRDS,
+    PatronType.KID,
+    PatronType.TEACHER,
+    PatronType.CRITIC,
+    PatronType.FRIENDS,
 ];
 Object.freeze(PatronTypeOrder);
 
 /** Trait display order. */
 export const TraitOrder = [
-  Trait.TALL,
-  Trait.SHORT,
-  Trait.BESPECTACLED,
-  Trait.NOISY,
+    Trait.TALL,
+    Trait.SHORT,
+    Trait.BESPECTACLED,
+    Trait.NOISY,
 ];
 Object.freeze(TraitOrder);
 
@@ -312,10 +312,10 @@ Object.freeze(TraitOrder);
  * @type {Record<string, number>}
  */
 export const PatronColors = Object.freeze(
-  PatronTypeOrder.reduce((acc, type) => {
-    acc[type] = PatronInfo[type].color;
-    return acc;
-  }, /** @type {Record<string, number>} */ ({})),
+    PatronTypeOrder.reduce((acc, type) => {
+        acc[type] = PatronInfo[type].color;
+        return acc;
+    }, /** @type {Record<string, number>} */ ({})),
 );
 
 /**
@@ -323,10 +323,10 @@ export const PatronColors = Object.freeze(
  * @type {Record<string, number>}
  */
 export const TraitColors = Object.freeze(
-  TraitOrder.reduce((acc, trait) => {
-    acc[trait] = TraitInfo[trait].color;
-    return acc;
-  }, /** @type {Record<string, number>} */ ({})),
+    TraitOrder.reduce((acc, trait) => {
+        acc[trait] = TraitInfo[trait].color;
+        return acc;
+    }, /** @type {Record<string, number>} */ ({})),
 );
 
 /**
@@ -334,10 +334,10 @@ export const TraitColors = Object.freeze(
  * @type {Record<string, ScoringParams>}
  */
 export const PatronScoring = Object.freeze(
-  PatronTypeOrder.reduce((acc, type) => {
-    acc[type] = PatronInfo[type].scoring;
-    return acc;
-  }, /** @type {Record<string, ScoringParams>} */ ({})),
+    PatronTypeOrder.reduce((acc, type) => {
+        acc[type] = PatronInfo[type].scoring;
+        return acc;
+    }, /** @type {Record<string, ScoringParams>} */ ({})),
 );
 
 /**
@@ -345,10 +345,10 @@ export const PatronScoring = Object.freeze(
  * @type {Record<string, TraitScoringParams>}
  */
 export const TraitScoring = Object.freeze(
-  TraitOrder.reduce((acc, trait) => {
-    acc[trait] = TraitInfo[trait].scoring;
-    return acc;
-  }, /** @type {Record<string, TraitScoringParams>} */ ({})),
+    TraitOrder.reduce((acc, trait) => {
+        acc[trait] = TraitInfo[trait].scoring;
+        return acc;
+    }, /** @type {Record<string, TraitScoringParams>} */ ({})),
 );
 
 /**
@@ -356,26 +356,26 @@ export const TraitScoring = Object.freeze(
  * @type {ReadonlyArray<readonly [string, string | null, number]>}
  */
 export const PatronDeckSpec = Object.freeze(
-  PatronTypeOrder.flatMap((type) => {
-    const info = PatronInfo[type];
-    const entries = /** @type {Array<[string, string | null, number]>} */ ([]);
-    entries.push([type, null, info.deck.clean]);
-    for (const [trait, count] of Object.entries(info.deck.traits)) {
-      entries.push([type, trait, count]);
-    }
-    return entries;
-  }),
+    PatronTypeOrder.flatMap((type) => {
+        const info = PatronInfo[type];
+        const entries = /** @type {Array<[string, string | null, number]>} */ ([]);
+        entries.push([type, null, info.deck.clean]);
+        for (const [trait, count] of Object.entries(info.deck.traits)) {
+            entries.push([type, trait, count]);
+        }
+        return entries;
+    }),
 );
 
 /**
  * Player colors and names for up to 4 players.
  * @type {string[]}
  */
-export const PlayerColors = ["#4fc3f7", "#ef5350", "#66bb6a", "#ffa726"];
+export const PlayerColors = ["#66bb6a", "#4fc3f7", "#ef5350", "#ffa726"];
 Object.freeze(PlayerColors);
 
 /** @type {number[]} */
-export const PlayerColorsHex = [0x4fc3f7, 0xef5350, 0x66bb6a, 0xffa726];
+export const PlayerColorsHex = [0x66bb6a, 0x4fc3f7, 0xef5350, 0xffa726];
 Object.freeze(PlayerColorsHex);
 
 /** @type {string[]} */
@@ -438,7 +438,7 @@ Object.freeze(PlayerNames);
  * @returns {boolean}
  */
 export function hasSeatLabel(row, col, label, layout) {
-  return layout.seatLabels?.[row]?.[col]?.includes(label) ?? false;
+    return layout.seatLabels?.[row]?.[col]?.includes(label) ?? false;
 }
 
 /**
@@ -449,135 +449,132 @@ export function hasSeatLabel(row, col, label, layout) {
  * @param {LayoutMeta} layout - Layout to generate labels for (mutated: adds seatLabels)
  */
 function buildSeatLabels(layout) {
-  const { rows, cols } = layout;
-  const frontRows = layout.frontRows ?? [0, 1];
+    const { rows, cols } = layout;
+    const frontRows = layout.frontRows ?? [0, 1];
 
-  /** @type {string[][][]} */
-  const labels = Array.from(
-    { length: rows },
-    () => Array.from({ length: cols }, () => []),
-  );
+    /** @type {string[][][]} */
+    const labels = Array.from(
+        { length: rows },
+        () => Array.from({ length: cols }, () => []),
+    );
 
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      // Skip non-existent seats
-      if (layout.seatMask && !layout.seatMask[r][c]) continue;
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            // Skip non-existent seats
+            if (layout.seatMask && !layout.seatMask[r][c]) continue;
 
-      // Front label: from frontRows (used by VIP rowBonus)
-      if (frontRows.includes(r)) {
-        labels[r][c].push("front");
-      }
+            // Front label: from frontRows (used by VIP rowBonus)
+            if (frontRows.includes(r)) {
+                labels[r][c].push("front");
+            }
 
-      // Back label: from backRows (used by Lovebirds multiplier, Bespectacled exclusion)
-      if (layout.backRows.includes(r)) {
-        labels[r][c].push("back");
-      }
+            // Back label: from backRows (used by Lovebirds multiplier, Bespectacled exclusion)
+            if (layout.backRows.includes(r)) {
+                labels[r][c].push("back");
+            }
 
-      // Aisle label: from aisleCols, aisleColsByRow, or royalBoxes
-      let isAisle = false;
-      if (layout.royalBoxes?.some((b) => b.row === r && b.col === c)) {
-        isAisle = true;
-      } else if (layout.aisleColsByRow) {
-        isAisle = layout.aisleColsByRow[r]?.includes(c) ?? false;
-      } else {
-        isAisle = layout.aisleCols.includes(c);
-      }
-      if (isAisle) {
-        labels[r][c].push("aisle");
-      }
+            // Aisle label: from aisleCols, aisleColsByRow, or royalBoxes
+            let isAisle = false;
+            if (layout.royalBoxes?.some((b) => b.row === r && b.col === c)) {
+                isAisle = true;
+            } else if (layout.aisleColsByRow) {
+                isAisle = layout.aisleColsByRow[r]?.includes(c) ?? false;
+            } else {
+                isAisle = layout.aisleCols.includes(c);
+            }
+            if (isAisle) {
+                labels[r][c].push("aisle");
+            }
 
-      // Royal boxes also get "front" if not already, and always get "box"
-      if (
-        layout.royalBoxes?.some((b) => b.row === r && b.col === c)
-      ) {
-        if (!labels[r][c].includes("front")) {
-          labels[r][c].push("front");
+            // Royal boxes also get "front" if not already, and always get "box"
+            if (
+                layout.royalBoxes?.some((b) => b.row === r && b.col === c)
+            ) {
+                if (!labels[r][c].includes("front")) {
+                    labels[r][c].push("front");
+                }
+                labels[r][c].push("box");
+            }
         }
-        labels[r][c].push("box");
-      }
     }
-  }
 
-  layout.seatLabels = labels;
+    layout.seatLabels = labels;
 }
 
 /** @type {LayoutMeta} */
 export const GrandEmpressLayout = {
-  id: "grand-empress",
-  name: "The Grand Empress",
-  bgKey: "bg_grand_empress",
-  bgThumbKey: "bg_grand_empress_thumb",
-  description: "Classic wide theater. Plentiful aisle seats. No house rule.",
-  rows: 4,
-  cols: 5,
-  aisleCols: [0, 4],
-  backRows: [3],
-  houseRule: null,
-  houseRuleDescription: "The Classics — No special demand. Vanilla scoring.",
+    id: "grand-empress",
+    name: "The Grand Empress",
+    bgKey: "bg_grand_empress",
+    bgThumbKey: "bg_grand_empress_thumb",
+    description: "Classic wide theater. Plentiful aisle seats. No house rule.",
+    rows: 4,
+    cols: 5,
+    aisleCols: [0, 4],
+    backRows: [3],
+    houseRule: null,
+    houseRuleDescription: "The Classics — No special demand. Vanilla scoring.",
 };
 buildSeatLabels(GrandEmpressLayout);
 Object.freeze(GrandEmpressLayout);
 
 /** @type {LayoutMeta} */
 export const BlackboxLayout = {
-  id: "blackbox",
-  name: "The Blackbox",
-  bgKey: "bg_blackbox",
-  bgThumbKey: "bg_blackbox_thumb",
-  description: "Deep & narrow. Center aisles only. Dense packing rewarded.",
-  rows: 5,
-  cols: 4,
-  aisleCols: [1, 2],
-  backRows: [4],
-  houseRule: "intimate-venue",
-  houseRuleDescription:
-    "Intimate Venue — Each patron adjacent to 3+ others gets +1 VP.",
+    id: "blackbox",
+    name: "The Blackbox",
+    bgKey: "bg_blackbox",
+    bgThumbKey: "bg_blackbox_thumb",
+    description: "Deep & narrow. Center aisles only. Dense packing rewarded.",
+    rows: 5,
+    cols: 4,
+    aisleCols: [1, 2],
+    backRows: [4],
+    houseRule: "intimate-venue",
+    houseRuleDescription: "Intimate Venue — Each patron adjacent to 3+ others gets +1 VP.",
 };
 buildSeatLabels(BlackboxLayout);
 Object.freeze(BlackboxLayout);
 
 /** @type {LayoutMeta} */
 export const RoyalTheatreLayout = {
-  id: "royal-theatre",
-  name: "The Royal Theatre",
-  bgKey: "bg_royal_theatre",
-  bgThumbKey: "bg_royal_theatre_thumb",
-  description: "Royal Boxes in the front corners. Best patron gets +3 VP.",
-  rows: 4,
-  cols: 5,
-  aisleCols: [0, 4],
-  backRows: [3],
-  royalBoxes: [
-    { row: 0, col: 0 },
-    { row: 0, col: 4 },
-  ],
-  houseRule: "royal-approval",
-  houseRuleDescription:
-    "Royal Approval — Your highest-scoring patron gets +3 VP.",
+    id: "royal-theatre",
+    name: "The Royal Theatre",
+    bgKey: "bg_royal_theatre",
+    bgThumbKey: "bg_royal_theatre_thumb",
+    description: "Royal Boxes in the front corners. Best patron gets +3 VP.",
+    rows: 4,
+    cols: 5,
+    aisleCols: [0, 4],
+    backRows: [3],
+    royalBoxes: [
+        { row: 0, col: 0 },
+        { row: 0, col: 4 },
+    ],
+    houseRule: "royal-approval",
+    houseRuleDescription: "Royal Approval — Your highest-scoring patron gets +3 VP.",
 };
 buildSeatLabels(RoyalTheatreLayout);
 Object.freeze(RoyalTheatreLayout);
 
 /** @type {LayoutMeta} */
 export const PromenadeLayout = {
-  id: "promenade",
-  name: "The Promenade",
-  bgKey: "bg_promenade",
-  bgThumbKey: "bg_promenade_thumb",
-  description: "Staggered aisles every row. Critics spread out.",
-  rows: 4,
-  cols: 5,
-  aisleCols: [], // not used — aisleColsByRow takes precedence
-  aisleColsByRow: [
-    [0, 4], // Row 0
-    [2], // Row 1
-    [0, 4], // Row 2
-    [2], // Row 3
-  ],
-  backRows: [3],
-  houseRule: "wandering-critics",
-  houseRuleDescription:
-    "Wandering Critics — +1 VP per Critic if you have 3+ Critics in aisle seats.",
+    id: "promenade",
+    name: "The Promenade",
+    bgKey: "bg_promenade",
+    bgThumbKey: "bg_promenade_thumb",
+    description: "Staggered aisles every row. Critics spread out.",
+    rows: 4,
+    cols: 5,
+    aisleCols: [], // not used — aisleColsByRow takes precedence
+    aisleColsByRow: [
+        [0, 4], // Row 0
+        [2], // Row 1
+        [0, 4], // Row 2
+        [2], // Row 3
+    ],
+    backRows: [3],
+    houseRule: "wandering-critics",
+    houseRuleDescription: "Wandering Critics — +1 VP per Critic if you have 3+ Critics in aisle seats.",
 };
 buildSeatLabels(PromenadeLayout);
 Object.freeze(PromenadeLayout);
@@ -586,35 +583,35 @@ Object.freeze(PromenadeLayout);
 
 /** @type {LayoutMeta} */
 export const AmphitheaterLayout = {
-  id: "amphitheater",
-  name: "The Amphitheater",
-  bgKey: "bg_amphitheater",
-  bgThumbKey: "bg_amphitheater_thumb",
-  description: "Tiered rows widen toward the back. No aisles. Fill rows for bonus VP.",
-  rows: 4,
-  cols: 6,
-  aisleCols: [],
-  backRows: [3],
-  // TODO: The 2 seats behind a seat should be considered adjacent for FRIENDS, NOISY and TALL/SHORT traits, even though there's no direct adjacency.
-  //  This is a bit tricky to implement since it breaks the standard orthogonal adjacency model. We may need to add a custom "extendedAdjacency" property to the layout that defines these special cases.
-  seatMask: [
-    //       col: 0     1     2     3     4     5
-    /* Row 0 */ [false, false, true, true, true, false], // 3 seats (narrow front)
-    /* Row 1 */ [false, true, true, true, true, false], // 4 seats
-    /* Row 2 */ [false, true, true, true, true, true], // 5 seats
-    /* Row 3 */ [true, true, true, true, true, true], // 6 seats (wide back)
-  ],
-  staggered: true,
-  // In staggered rows, each seat is adjacent to two seats in the row behind
-  // and two seats in the row in front (when those seats exist).
-  // Back mapping:  (r, c) -> (r+1, c) and (r+1, c+1)
-  // Front mapping: (r, c) -> (r-1, c-1) and (r-1, c)
-  extendedAdjacency: {
-    backColDeltas: [0, 1],
-    frontColDeltas: [-1, 0],
-  },
-  houseRule: "panorama",
-  houseRuleDescription: "The Panorama — +2 VP for each completely filled row.",
+    id: "amphitheater",
+    name: "The Amphitheater",
+    bgKey: "bg_amphitheater",
+    bgThumbKey: "bg_amphitheater_thumb",
+    description: "Tiered rows widen toward the back. No aisles. Fill rows for bonus VP.",
+    rows: 4,
+    cols: 6,
+    aisleCols: [],
+    backRows: [3],
+    // TODO: The 2 seats behind a seat should be considered adjacent for FRIENDS, NOISY and TALL/SHORT traits, even though there's no direct adjacency.
+    //  This is a bit tricky to implement since it breaks the standard orthogonal adjacency model. We may need to add a custom "extendedAdjacency" property to the layout that defines these special cases.
+    seatMask: [
+        //       col: 0     1     2     3     4     5
+        /* Row 0 */ [false, false, true, true, true, false], // 3 seats (narrow front)
+        /* Row 1 */ [false, true, true, true, true, false], // 4 seats
+        /* Row 2 */ [false, true, true, true, true, true], // 5 seats
+        /* Row 3 */ [true, true, true, true, true, true], // 6 seats (wide back)
+    ],
+    staggered: true,
+    // In staggered rows, each seat is adjacent to two seats in the row behind
+    // and two seats in the row in front (when those seats exist).
+    // Back mapping:  (r, c) -> (r+1, c) and (r+1, c+1)
+    // Front mapping: (r, c) -> (r-1, c-1) and (r-1, c)
+    extendedAdjacency: {
+        backColDeltas: [0, 1],
+        frontColDeltas: [-1, 0],
+    },
+    houseRule: "panorama",
+    houseRuleDescription: "The Panorama — +2 VP for each completely filled row.",
 };
 buildSeatLabels(AmphitheaterLayout);
 Object.freeze(AmphitheaterLayout);
@@ -627,115 +624,110 @@ Object.freeze(AmphitheaterLayout);
  * @returns {boolean[][]}
  */
 function buildGappedMask(rows, cols, gapCols) {
-  const gapSet = new Set(gapCols);
-  return Array.from(
-    { length: rows },
-    () => Array.from({ length: cols }, (_, c) => !gapSet.has(c)),
-  );
+    const gapSet = new Set(gapCols);
+    return Array.from(
+        { length: rows },
+        () => Array.from({ length: cols }, (_, c) => !gapSet.has(c)),
+    );
 }
 
 /** @type {LayoutMeta} */
 export const CabaretLayout = {
-  id: "cabaret",
-  name: "The Cabaret",
-  bgKey: "bg_cabaret",
-  bgThumbKey: "bg_cabaret_thumb",
-  description: "Intimate tables of 4. Fill a table for +3 VP.",
-  rows: 4,
-  cols: 8,
-  aisleCols: [],
-  backRows: [3],
-  adjacencyBreaks: [[1, 2]], // Horizontal gap between row-pairs (top 3 tables / bottom 3 tables)
-  seatMask: buildGappedMask(4, 8, [2, 5]),
-  // Cols: [0,1]  gap  [3,4]  gap  [6,7]
-  // 3 tables per row-pair (rows 0-1, rows 2-3)
-  // Each table = 2×2 block
-  tableGroups: [
-    // Row 0-1 tables
-    [{ row: 0, col: 0 }, { row: 0, col: 1 }, { row: 1, col: 0 }, {
-      row: 1,
-      col: 1,
-    }],
-    [{ row: 0, col: 3 }, { row: 0, col: 4 }, { row: 1, col: 3 }, {
-      row: 1,
-      col: 4,
-    }],
-    [{ row: 0, col: 6 }, { row: 0, col: 7 }, { row: 1, col: 6 }, {
-      row: 1,
-      col: 7,
-    }],
-    // Row 2-3 tables
-    [{ row: 2, col: 0 }, { row: 2, col: 1 }, { row: 3, col: 0 }, {
-      row: 3,
-      col: 1,
-    }],
-    [{ row: 2, col: 3 }, { row: 2, col: 4 }, { row: 3, col: 3 }, {
-      row: 3,
-      col: 4,
-    }],
-    [{ row: 2, col: 6 }, { row: 2, col: 7 }, { row: 3, col: 6 }, {
-      row: 3,
-      col: 7,
-    }],
-  ],
-  houseRule: "full-tables",
-  houseRuleDescription:
-    "Full Tables — +3 VP for each 2×2 table where all 4 seats are occupied.",
+    id: "cabaret",
+    name: "The Cabaret",
+    bgKey: "bg_cabaret",
+    bgThumbKey: "bg_cabaret_thumb",
+    description: "Intimate tables of 4. Fill a table for +3 VP.",
+    rows: 4,
+    cols: 8,
+    aisleCols: [],
+    backRows: [3],
+    adjacencyBreaks: [[1, 2]], // Horizontal gap between row-pairs (top 3 tables / bottom 3 tables)
+    seatMask: buildGappedMask(4, 8, [2, 5]),
+    // Cols: [0,1]  gap  [3,4]  gap  [6,7]
+    // 3 tables per row-pair (rows 0-1, rows 2-3)
+    // Each table = 2×2 block
+    tableGroups: [
+        // Row 0-1 tables
+        [{ row: 0, col: 0 }, { row: 0, col: 1 }, { row: 1, col: 0 }, {
+            row: 1,
+            col: 1,
+        }],
+        [{ row: 0, col: 3 }, { row: 0, col: 4 }, { row: 1, col: 3 }, {
+            row: 1,
+            col: 4,
+        }],
+        [{ row: 0, col: 6 }, { row: 0, col: 7 }, { row: 1, col: 6 }, {
+            row: 1,
+            col: 7,
+        }],
+        // Row 2-3 tables
+        [{ row: 2, col: 0 }, { row: 2, col: 1 }, { row: 3, col: 0 }, {
+            row: 3,
+            col: 1,
+        }],
+        [{ row: 2, col: 3 }, { row: 2, col: 4 }, { row: 3, col: 3 }, {
+            row: 3,
+            col: 4,
+        }],
+        [{ row: 2, col: 6 }, { row: 2, col: 7 }, { row: 3, col: 6 }, {
+            row: 3,
+            col: 7,
+        }],
+    ],
+    houseRule: "full-tables",
+    houseRuleDescription: "Full Tables — +3 VP for each 2×2 table where all 4 seats are occupied.",
 };
 buildSeatLabels(CabaretLayout);
 Object.freeze(CabaretLayout);
 
 /** @type {LayoutMeta} */
 export const BalconyLayout = {
-  id: "balcony",
-  name: "The Balcony",
-  bgKey: "bg_balcony",
-  bgThumbKey: "bg_balcony_thumb",
-  description:
-    "Elevated balcony (row A) disconnected from the main floor.",
-  rows: 4,
-  cols: 5,
-  aisleCols: [0, 4],
-  backRows: [3],
-  adjacencyBreaks: [[0, 1]], // Row 0 (balcony) is NOT adjacent to row 1
-  houseRule: "birds-eye-view",
-  houseRuleDescription:
-    "Bird's Eye View — Tall in balcony doesn't penalize. Short in balcony always gets +2 VP.",
+    id: "balcony",
+    name: "The Balcony",
+    bgKey: "bg_balcony",
+    bgThumbKey: "bg_balcony_thumb",
+    description: "Elevated balcony (row A) disconnected from the main floor.",
+    rows: 4,
+    cols: 5,
+    aisleCols: [0, 4],
+    backRows: [3],
+    adjacencyBreaks: [[0, 1]], // Row 0 (balcony) is NOT adjacent to row 1
+    houseRule: "birds-eye-view",
+    houseRuleDescription: "Bird's Eye View — Tall in balcony doesn't penalize. Short in balcony always gets +2 VP.",
 };
 buildSeatLabels(BalconyLayout);
 Object.freeze(BalconyLayout);
 
 /** @type {LayoutMeta} */
 export const RotundaLayout = {
-  id: "rotunda",
-  name: "The Rotunda",
-  bgKey: "bg_rotunda",
-  bgThumbKey: "bg_rotunda_thumb",
-  description:
-    "Theater in the round. No back row. Stage-side seats are front row.",
-  rows: 5,
-  cols: 5,
-  aisleCols: [],
-  backRows: [],
-  seatMask: [
-    //       col: 0     1      2      3      4
-    /* Row 0 */ [false, true, true, true, false],
-    /* Row 1 */ [true, true, false, true, true],
-    /* Row 2 */ [true, false, false, false, true],
-    /* Row 3 */ [true, true, false, true, true],
-    /* Row 4 */ [false, true, true, true, false],
-  ],
-  seatLabels: [
-    //       col: 0          1           2           3           4
-    /* Row 0 */ [[], ["front"], ["front"], ["front"], []],
-    /* Row 1 */ [["aisle"], ["front"], [], ["front"], ["aisle"]],
-    /* Row 2 */ [["aisle"], [], [], [], ["aisle"]],
-    /* Row 3 */ [["aisle"], ["front"], [], ["front"], ["aisle"]],
-    /* Row 4 */ [[], ["front"], ["front"], ["front"], []],
-  ],
-  houseRule: null,
-  houseRuleDescription:
-    "In the Round — No back row. Stage-side seats are front row. Outer seats are aisles.",
+    id: "rotunda",
+    name: "The Rotunda",
+    bgKey: "bg_rotunda",
+    bgThumbKey: "bg_rotunda_thumb",
+    description: "Theater in the round. No back row. Stage-side seats are front row.",
+    rows: 5,
+    cols: 5,
+    aisleCols: [],
+    backRows: [],
+    seatMask: [
+        //       col: 0     1      2      3      4
+        /* Row 0 */ [false, true, true, true, false],
+        /* Row 1 */ [true, true, false, true, true],
+        /* Row 2 */ [true, false, false, false, true],
+        /* Row 3 */ [true, true, false, true, true],
+        /* Row 4 */ [false, true, true, true, false],
+    ],
+    seatLabels: [
+        //       col: 0          1           2           3           4
+        /* Row 0 */ [[], ["front"], ["front"], ["front"], []],
+        /* Row 1 */ [["aisle"], ["front"], [], ["front"], ["aisle"]],
+        /* Row 2 */ [["aisle"], [], [], [], ["aisle"]],
+        /* Row 3 */ [["aisle"], ["front"], [], ["front"], ["aisle"]],
+        /* Row 4 */ [[], ["front"], ["front"], ["front"], []],
+    ],
+    houseRule: null,
+    houseRuleDescription: "In the Round — No back row. Stage-side seats are front row. Outer seats are aisles.",
 };
 Object.freeze(RotundaLayout);
 
@@ -744,14 +736,14 @@ Object.freeze(RotundaLayout);
  * @type {Record<string, LayoutMeta>}
  */
 export const Layouts = {
-  [GrandEmpressLayout.id]: GrandEmpressLayout,
-  [BlackboxLayout.id]: BlackboxLayout,
-  [RoyalTheatreLayout.id]: RoyalTheatreLayout,
-  [PromenadeLayout.id]: PromenadeLayout,
-  [AmphitheaterLayout.id]: AmphitheaterLayout,
-  [CabaretLayout.id]: CabaretLayout,
-  [BalconyLayout.id]: BalconyLayout,
-  [RotundaLayout.id]: RotundaLayout,
+    [GrandEmpressLayout.id]: GrandEmpressLayout,
+    [BlackboxLayout.id]: BlackboxLayout,
+    [RoyalTheatreLayout.id]: RoyalTheatreLayout,
+    [PromenadeLayout.id]: PromenadeLayout,
+    [AmphitheaterLayout.id]: AmphitheaterLayout,
+    [CabaretLayout.id]: CabaretLayout,
+    [BalconyLayout.id]: BalconyLayout,
+    [RotundaLayout.id]: RotundaLayout,
 };
 Object.freeze(Layouts);
 
@@ -760,14 +752,14 @@ Object.freeze(Layouts);
  * @type {string[]}
  */
 export const LayoutOrder = [
-  GrandEmpressLayout.id,
-  BlackboxLayout.id,
-  RoyalTheatreLayout.id,
-  PromenadeLayout.id,
-  AmphitheaterLayout.id,
-  CabaretLayout.id,
-  BalconyLayout.id,
-  RotundaLayout.id,
+    GrandEmpressLayout.id,
+    BlackboxLayout.id,
+    RoyalTheatreLayout.id,
+    PromenadeLayout.id,
+    AmphitheaterLayout.id,
+    CabaretLayout.id,
+    BalconyLayout.id,
+    RotundaLayout.id,
 ];
 Object.freeze(LayoutOrder);
 
@@ -785,31 +777,29 @@ export const DefaultLayout = GrandEmpressLayout;
  * @returns {CardData[]}
  */
 export function createDeck() {
-  /** @type {CardData[]} */
-  const deck = [];
+    /** @type {CardData[]} */
+    const deck = [];
 
-  for (const [type, trait, count] of PatronDeckSpec) {
-    const typeInfo = PatronInfo[type];
-    const traitInfo = trait ? TraitInfo[trait] : null;
+    for (const [type, trait, count] of PatronDeckSpec) {
+        const typeInfo = PatronInfo[type];
+        const traitInfo = trait ? TraitInfo[trait] : null;
 
-    const label = trait ? `${trait} ${type}` : type;
-    const description = traitInfo
-      ? `${typeInfo.description} ${traitInfo.description}`
-      : typeInfo.description;
+        const label = trait ? `${trait} ${type}` : type;
+        const description = traitInfo ? `${typeInfo.description} ${traitInfo.description}` : typeInfo.description;
 
-    for (let i = 0; i < count; i++) {
-      /** @type {CardData} */
-      const card = { type, label, description };
-      if (trait) card.trait = trait;
-      deck.push(card);
+        for (let i = 0; i < count; i++) {
+            /** @type {CardData} */
+            const card = { type, label, description };
+            if (trait) card.trait = trait;
+            deck.push(card);
+        }
     }
-  }
 
-  // Fisher-Yates shuffle
-  for (let i = deck.length - 1; i > 0; i--) {
-    const j = randomInt(i);
-    [deck[i], deck[j]] = [deck[j], deck[i]];
-  }
+    // Fisher-Yates shuffle
+    for (let i = deck.length - 1; i > 0; i--) {
+        const j = randomInt(i);
+        [deck[i], deck[j]] = [deck[j], deck[i]];
+    }
 
-  return deck;
+    return deck;
 }

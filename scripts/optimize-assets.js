@@ -13,8 +13,8 @@
  */
 
 import sharp from "sharp";
-import { join, basename, extname } from "node:path";
-import { existsSync, mkdirSync, readdirSync, copyFileSync, unlinkSync, statSync } from "node:fs";
+import { basename, extname, join } from "node:path";
+import { copyFileSync, existsSync, mkdirSync, readdirSync, statSync, unlinkSync } from "node:fs";
 
 const PROJECT_ROOT = new URL("..", import.meta.url).pathname.replace(/\/$/, "");
 const SRC = join(PROJECT_ROOT, "public", "assets");

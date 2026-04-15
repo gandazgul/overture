@@ -1,14 +1,14 @@
 // @ts-check
-import Phaser from 'phaser';
-import { pickCardAndSeat, pickDrawAction } from '../ai.js';
-import { px, s } from '../config.js';
-import { ActivePlayerAvatar } from '../objects/ActivePlayerAvatar.js';
-import { createButton } from '../objects/Button.js';
-import { Card } from '../objects/Card.js';
-import { DrawReminderBanner } from '../objects/DrawReminderBanner.js';
-import { GameInfoPanel } from '../objects/GameInfoPanel.js';
-import { SpeechBubble } from '../objects/SpeechBubble.js';
-import { scorePlayer, seatExists } from '../scoring.js';
+import Phaser from "phaser";
+import { pickCardAndSeat, pickDrawAction } from "../ai.js";
+import { px, s } from "../config.js";
+import { ActivePlayerAvatar } from "../objects/ActivePlayerAvatar.js";
+import { createButton } from "../objects/Button.js";
+import { Card } from "../objects/Card.js";
+import { DrawReminderBanner } from "../objects/DrawReminderBanner.js";
+import { GameInfoPanel } from "../objects/GameInfoPanel.js";
+import { SpeechBubble } from "../objects/SpeechBubble.js";
+import { scorePlayer, seatExists } from "../scoring.js";
 import {
     createDeck,
     GrandEmpressLayout,
@@ -25,7 +25,7 @@ import {
     TraitColors,
     TraitInfo,
     TraitOrder,
-} from '../types.js';
+} from "../types.js";
 
 const SEAT_SIZE = s(100);
 const SEAT_GAP = s(10);
@@ -33,10 +33,12 @@ const AISLE_GAP = s(30); // wider gap for aisle walkways
 
 const ENV = /** @type {{ VITE_DEBUG_AI?: string }} */ ((/** @type {any} */ (import.meta)).env ?? {});
 
+const AI_TURN_START_DELAY_MS = 520;
+const AI_ACTION_PAUSE_MS = 210;
 
 export class GameScene extends Phaser.Scene {
     constructor() {
-        super('GameScene');
+        super("GameScene");
 
         /** @type {import('../types.js').CardData[]} */
         this.deck = [];
@@ -78,7 +80,7 @@ export class GameScene extends Phaser.Scene {
          * Current phase of a turn.
          * @type {'pass-screen' | 'play' | 'discard' | 'ghost-discard' | 'game-over'}
          */
-        this.turnPhase = 'pass-screen';
+        this.turnPhase = "pass-screen";
 
         // Visual references
         /** @type {(Phaser.GameObjects.Rectangle | null)[][]} */
@@ -142,7 +144,7 @@ export class GameScene extends Phaser.Scene {
     // ── Color mapping helpers ──────────────────────────────────────────
 
     /** @type {string[]} */
-    static USHER_KEYS = ['usher_blue', 'usher_red', 'usher_green', 'usher_orange'];
+    static USHER_KEYS = ["usher_blue", "usher_red", "usher_green", "usher_orange"];
 
     /** Get the color index for a player slot. */
     colorOf(/** @type {number} */ p) {
@@ -186,7 +188,7 @@ export class GameScene extends Phaser.Scene {
             0xd4af37,
         ).setOrigin(0, 0.5);
 
-        this.load.on('progress', (/** @type {number} */ value) => {
+        this.load.on("progress", (/** @type {number} */ value) => {
             barFill.width = barW * value;
         });
 
@@ -213,21 +215,21 @@ export class GameScene extends Phaser.Scene {
         }
 
         // ── Seat tags ──────────────────────────────────────────────────────────
-        loadIfMissing('tag_royal_box', 'assets/tag_royal_box.png');
+        loadIfMissing("tag_royal_box", "assets/tag_royal_box.png");
 
         // ── Only the selected theater background (JPEG) ─────────────────
         const bgKey = `bg_${this.layout.id}`;
         loadIfMissing(bgKey, `assets/${this.layout.bgKey}.jpg`);
 
         // ── Game UI assets ──────────────────────────────────────────────
-        loadIfMissing('card_back', 'assets/card_back.png');
-        loadIfMissing('ui_stage', 'assets/ui_stage.png');
-        loadIfMissing('ui_logo', 'assets/ui_logo.png');
-        loadIfMissing('ui_button_frame', 'assets/ui_button_frame.png');
-        loadIfMissing('usher_blue', 'assets/usher_blue.png');
-        loadIfMissing('usher_red', 'assets/usher_red.png');
-        loadIfMissing('usher_green', 'assets/usher_green.png');
-        loadIfMissing('usher_orange', 'assets/usher_orange.png');
+        loadIfMissing("card_back", "assets/card_back.png");
+        loadIfMissing("ui_stage", "assets/ui_stage.png");
+        loadIfMissing("ui_logo", "assets/ui_logo.png");
+        loadIfMissing("ui_button_frame", "assets/ui_button_frame.png");
+        loadIfMissing("usher_blue", "assets/usher_blue.png");
+        loadIfMissing("usher_red", "assets/usher_red.png");
+        loadIfMissing("usher_green", "assets/usher_green.png");
+        loadIfMissing("usher_orange", "assets/usher_orange.png");
     }
 
     /**
@@ -236,8 +238,7 @@ export class GameScene extends Phaser.Scene {
     init(data) {
         if (data?.layoutId && Layouts[data.layoutId]) {
             this.layout = Layouts[data.layoutId];
-        }
-        else {
+        } else {
             this.layout = GrandEmpressLayout;
         }
         this.playerCount = data.playerCount || 2;
@@ -245,7 +246,7 @@ export class GameScene extends Phaser.Scene {
         this.currentPlayer = 0;
         this.round = 1;
         this.selectedCard = null;
-        this.turnPhase = 'pass-screen';
+        this.turnPhase = "pass-screen";
         this.isDrawAnimating = false;
         this.deck = createDeck();
         this.handCards = [];
@@ -288,21 +289,21 @@ export class GameScene extends Phaser.Scene {
 
     debugSetup() {
         // ── DEV DEBUG SKIP (Shift+D) ────────────────────────────────────
-        this.input.keyboard?.on('keydown-D', (/** @type {KeyboardEvent} */ e) => {
+        this.input.keyboard?.on("keydown-D", (/** @type {KeyboardEvent} */ e) => {
             if (!e.shiftKey) {
                 return;
             }
-            console.log('DEBUG: Skipping to end screen');
-            this.turnPhase = 'game-over';
+            console.log("DEBUG: Skipping to end screen");
+            this.turnPhase = "game-over";
             this.endGame();
         });
 
         // ── DEV DEBUG HAND (Shift+H) — one of each patron + one of each trait
-        this.input.keyboard?.on('keydown-H', (/** @type {KeyboardEvent} */ e) => {
+        this.input.keyboard?.on("keydown-H", (/** @type {KeyboardEvent} */ e) => {
             if (!e.shiftKey) {
                 return;
             }
-            console.log('DEBUG: Dealing debug hand (all types + all traits)');
+            console.log("DEBUG: Dealing debug hand (all types + all traits)");
             const hand = this.playerHands[this.currentPlayer];
             hand.length = 0;
 
@@ -338,7 +339,7 @@ export class GameScene extends Phaser.Scene {
         });
 
         // ── DEV DEBUG THEATER CYCLE (Shift+T) ─────────────────────────
-        this.input.keyboard?.on('keydown-T', (/** @type {KeyboardEvent} */ e) => {
+        this.input.keyboard?.on("keydown-T", (/** @type {KeyboardEvent} */ e) => {
             if (!e.shiftKey) {
                 return;
             }
@@ -410,16 +411,14 @@ export class GameScene extends Phaser.Scene {
                 // Gap column: skip it (just add gap space)
                 colX[c] = cursor + GAP_COL_WIDTH / 2; // position for reference
                 cursor += GAP_COL_WIDTH;
-            }
-            else {
+            } else {
                 colX[c] = cursor + SEAT_SIZE / 2;
                 cursor += SEAT_SIZE;
             }
             if (c < COLS - 1) {
                 if (centerAisleGaps.has(c)) {
                     cursor += AISLE_GAP;
-                }
-                else if (!gapCols.has(c) && !gapCols.has(c + 1)) {
+                } else if (!gapCols.has(c) && !gapCols.has(c + 1)) {
                     cursor += SEAT_GAP;
                 }
             }
@@ -496,8 +495,7 @@ export class GameScene extends Phaser.Scene {
                     (SEAT_SIZE + SEAT_GAP);
                 staggerRowOffsets[r] = desiredOffset - inherentOffset;
             }
-        }
-        else {
+        } else {
             for (let r = 0; r < ROWS; r++) {
                 staggerRowOffsets[r] = 0;
             }
@@ -561,7 +559,7 @@ export class GameScene extends Phaser.Scene {
         };
 
         // Only draw walkway strips for Blackbox (center aisle is the defining feature)
-        if (this.layout.id === 'blackbox') {
+        if (this.layout.id === "blackbox") {
             for (const gapAfterCol of centerAisleGaps) {
                 const leftEdge = colX[gapAfterCol] + SEAT_SIZE / 2 + s(1);
                 const rightEdge = colX[gapAfterCol + 1] - SEAT_SIZE / 2 - s(1);
@@ -573,16 +571,15 @@ export class GameScene extends Phaser.Scene {
         const stageX = floorCenterX;
         const stageY = stageTop + actualStageH / 2;
 
-        if (this.textures.exists('ui_stage')) {
+        if (this.textures.exists("ui_stage")) {
             const stageImg = this.add.image(
                 stageX,
                 stageY,
-                'ui_stage',
+                "ui_stage",
             );
             stageImg.setDisplaySize(stageRenderWidth, actualStageH);
             stageImg.setDepth(2);
-        }
-        else {
+        } else {
             this.add
                 .rectangle(
                     stageX,
@@ -597,10 +594,10 @@ export class GameScene extends Phaser.Scene {
         this.add
             .text(floorCenterX, stageY, this.layout.name, {
                 fontSize: px(36),
-                color: '#ffd700',
-                fontFamily: 'Georgia, serif',
-                fontStyle: 'italic',
-                shadow: { blur: 8, color: '#000000', fill: true },
+                color: "#ffd700",
+                fontFamily: "Georgia, serif",
+                fontStyle: "italic",
+                shadow: { blur: 8, color: "#000000", fill: true },
             })
             .setOrigin(0.5)
             .setDepth(3);
@@ -638,7 +635,7 @@ export class GameScene extends Phaser.Scene {
                 }
 
                 const x = colX[col] + rowStagger;
-                const isAisle = hasSeatLabel(row, col, 'aisle', this.layout);
+                const isAisle = hasSeatLabel(row, col, "aisle", this.layout);
                 const isRoyalBox = this.layout.royalBoxes?.some(
                     (b) => b.row === row && b.col === col,
                 );
@@ -651,8 +648,7 @@ export class GameScene extends Phaser.Scene {
                     emptyFill = 0x2a2040;
                     emptyStroke = 0xdaa520;
                     strokeWidth = s(3);
-                }
-                else if (isAisle) {
+                } else if (isAisle) {
                     emptyFill = 0x1e1e38;
                     emptyStroke = 0xb89a3e;
                     strokeWidth = s(3);
@@ -663,15 +659,15 @@ export class GameScene extends Phaser.Scene {
                     .setStrokeStyle(strokeWidth, emptyStroke)
                     .setInteractive({ useHandCursor: true });
 
-                seat.setData('row', row);
-                seat.setData('col', col);
-                seat.setData('emptyFill', emptyFill);
-                seat.setData('emptyStroke', emptyStroke);
-                seat.setData('strokeWidth', strokeWidth);
+                seat.setData("row", row);
+                seat.setData("col", col);
+                seat.setData("emptyFill", emptyFill);
+                seat.setData("emptyStroke", emptyStroke);
+                seat.setData("strokeWidth", strokeWidth);
 
-                seat.on('pointerover', () => {
+                seat.on("pointerover", () => {
                     if (
-                        this.turnPhase === 'play' &&
+                        this.turnPhase === "play" &&
                         !this.placedPatrons[this.currentPlayer][row][col] &&
                         this.selectedCard
                     ) {
@@ -680,22 +676,22 @@ export class GameScene extends Phaser.Scene {
                     }
                 });
 
-                seat.on('pointerout', () => {
+                seat.on("pointerout", () => {
                     if (!this.placedPatrons[this.currentPlayer][row][col]) {
                         seat.setFillStyle(emptyFill);
                         seat.setStrokeStyle(strokeWidth, emptyStroke);
                     }
                 });
 
-                seat.on('pointerdown', () => {
-                    if (this.turnPhase === 'play') {
+                seat.on("pointerdown", () => {
+                    if (this.turnPhase === "play") {
                         this.placeSeatCard(row, col);
                     }
                 });
 
                 // Royal Box tag (centered on empty seat)
-                if (isRoyalBox && this.textures.exists('tag_royal_box')) {
-                    const tag = this.add.image(x, y, 'tag_royal_box')
+                if (isRoyalBox && this.textures.exists("tag_royal_box")) {
+                    const tag = this.add.image(x, y, "tag_royal_box")
                         .setDisplaySize(s(64), s(64)).setAlpha(0.85);
                     this.seatLabels.push(tag);
                 }
@@ -728,14 +724,14 @@ export class GameScene extends Phaser.Scene {
             {
                 usherKey: this.usherKey(0),
                 colorHex: this.playerColorHex(0),
-                color: '#ffffff',
+                color: "#ffffff",
                 playerNumber: 1,
             },
         );
 
         // Global deselect background click
         this.input.on(
-            'pointerdown',
+            "pointerdown",
             (/** @type {any} */ _pointer, /** @type {any[]} */ gameObjects) => {
                 if (gameObjects.length === 0 && this.selectedCard) {
                     this.selectedCard.setSelected(false);
@@ -746,9 +742,9 @@ export class GameScene extends Phaser.Scene {
         );
 
         // ── Logo ────────────────────────────────────────────────────────
-        if (this.textures.exists('ui_logo')) {
+        if (this.textures.exists("ui_logo")) {
             // Centered at s(80) to perfectly align vertically with the player avatar
-            const logo = this.add.image(s(120), s(60), 'ui_logo');
+            const logo = this.add.image(s(120), s(60), "ui_logo");
             const logoRatio = 0.3643695015;
             const logoWidth = 220;
             logo.setDisplaySize(s(logoWidth), s(logoWidth * logoRatio)); // Kept proportional to avoid clipping
@@ -764,7 +760,7 @@ export class GameScene extends Phaser.Scene {
     // ══════════════════════════════════════════════════════════════════
 
     showPassScreen() {
-        this.turnPhase = 'pass-screen';
+        this.turnPhase = "pass-screen";
 
         // Skip the pass screen for AI players, and for the sole human in an AI game
         const isAI = !!this.aiConfig[this.currentPlayer];
@@ -827,7 +823,7 @@ export class GameScene extends Phaser.Scene {
         const title = this.add
             .text(width / 2, height / 2 - s(20), `${name}'s Turn`, {
                 fontSize: px(42),
-                fontFamily: 'Georgia, serif',
+                fontFamily: "Georgia, serif",
                 color: color,
             })
             .setOrigin(0.5);
@@ -841,8 +837,8 @@ export class GameScene extends Phaser.Scene {
                 `Round ${this.round} of ${this.totalRounds}  •  Deck: ${this.deck.length} cards`,
                 {
                     fontSize: px(16),
-                    fontFamily: 'Arial',
-                    color: '#aaaaaa',
+                    fontFamily: "Arial",
+                    color: "#aaaaaa",
                 },
             )
             .setOrigin(0.5);
@@ -857,11 +853,11 @@ export class GameScene extends Phaser.Scene {
                     `${this.layout.houseRuleDescription}`,
                     {
                         fontSize: px(16),
-                        fontFamily: 'Arial',
-                        color: '#f5c518',
-                        fontStyle: 'italic',
+                        fontFamily: "Arial",
+                        color: "#f5c518",
+                        fontStyle: "italic",
                         wordWrap: { width: s(600) },
-                        align: 'center',
+                        align: "center",
                     },
                 )
                 .setOrigin(0.5);
@@ -870,9 +866,13 @@ export class GameScene extends Phaser.Scene {
 
         // Ready button
         const { container: readyBtn, hitArea: readyHit } = createButton(
-            this, width / 2, height / 2 + s(160), 'I\'m Ready', { fontSize: 20 },
+            this,
+            width / 2,
+            height / 2 + s(160),
+            "I'm Ready",
+            { fontSize: 20 },
         );
-        readyHit.on('pointerdown', () => {
+        readyHit.on("pointerdown", () => {
             container.destroy();
             this.passOverlay = null;
             this.startTurn();
@@ -897,13 +897,13 @@ export class GameScene extends Phaser.Scene {
 
         // AI players: auto-play their turn
         if (this.aiConfig[this.currentPlayer]) {
-            this.turnPhase = 'play';
-            this.time.delayedCall(600, () => this.playAITurn());
+            this.turnPhase = "play";
+            this.time.delayedCall(AI_TURN_START_DELAY_MS, () => this.playAITurn());
             return;
         }
 
         this.renderHand();
-        this.turnPhase = 'play';
+        this.turnPhase = "play";
     }
 
     // ══════════════════════════════════════════════════════════════════
@@ -951,14 +951,18 @@ export class GameScene extends Phaser.Scene {
             }
 
             const { source, index: lobbyIdx } = action;
-            if (ENV.VITE_DEBUG_AI === 'true') {
-                console.log(`[AI DEBUG] Action ${actions.length + 1}: Draw from ${source}${source === 'lobby' ? ` index ${lobbyIdx}` : ''}`);
+            if (ENV.VITE_DEBUG_AI === "true") {
+                console.log(
+                    `[AI DEBUG] Action ${actions.length + 1}: Draw from ${source}${
+                        source === "lobby" ? ` index ${lobbyIdx}` : ""
+                    }`,
+                );
             }
 
             /** @type {import('../types.js').CardData | null} */
             let simulatedDrawn = null;
 
-            if (source === 'lobby' && lobbyIdx !== undefined) {
+            if (source === "lobby" && lobbyIdx !== undefined) {
                 const lobbyCard = tempLobby[lobbyIdx];
                 if (lobbyCard) {
                     simulatedDrawn = lobbyCard;
@@ -973,20 +977,19 @@ export class GameScene extends Phaser.Scene {
                         }
                     }
 
-                    actions.push({ type: 'draw', decision: { source: 'lobby', index: lobbyIdx } });
+                    actions.push({ type: "draw", decision: { source: "lobby", index: lobbyIdx } });
                 }
-            }
-            else if (source === 'deck' && tempDeckCount > 0) {
+            } else if (source === "deck" && tempDeckCount > 0) {
                 const deckTop = this.deck[tempDeckCount - 1];
                 tempDeckCount -= 1;
                 if (deckTop) {
                     simulatedDrawn = deckTop;
                     tempHand.push(simulatedDrawn);
-                    actions.push({ type: 'draw', decision: { source: 'deck' } });
+                    actions.push({ type: "draw", decision: { source: "deck" } });
                 }
             }
 
-            if (simulatedDrawn && ENV.VITE_DEBUG_AI === 'true') {
+            if (simulatedDrawn && ENV.VITE_DEBUG_AI === "true") {
                 console.log(`[AI DEBUG] Planned draw from ${source}: ${simulatedDrawn.label || simulatedDrawn.type}`);
             }
         }
@@ -1002,11 +1005,11 @@ export class GameScene extends Phaser.Scene {
             );
 
             if (playAndDiscard) {
-                actions.push({ type: 'select', decision: playAndDiscard.play });
-                actions.push({ type: 'place', decision: playAndDiscard.play });
+                actions.push({ type: "select", decision: playAndDiscard.play });
+                actions.push({ type: "place", decision: playAndDiscard.play });
                 // for 2 players then there will be a discard too
                 if (playAndDiscard.discard) {
-                    actions.push({ type: 'discard', decision: playAndDiscard.discard });
+                    actions.push({ type: "discard", decision: playAndDiscard.discard });
                 }
             }
         }
@@ -1017,16 +1020,15 @@ export class GameScene extends Phaser.Scene {
             const isLast = i === actions.length - 1;
 
             switch (action.type) {
-                case 'draw': {
-                    if (action.decision.source === 'lobby' && action.decision.index !== undefined) {
+                case "draw": {
+                    if (action.decision.source === "lobby" && action.decision.index !== undefined) {
                         await this.drawFromLobby(action.decision.index);
-                    }
-                    else {
+                    } else {
                         await this.drawFromDeck();
                     }
                     break;
                 }
-                case 'select': {
+                case "select": {
                     const { cardData } = action.decision;
                     for (const card of this.handCards) {
                         if (card.cardData.label === cardData.label) {
@@ -1035,19 +1037,21 @@ export class GameScene extends Phaser.Scene {
                     }
                     break;
                 }
-                case 'place': {
+                case "place": {
                     const { cardData, row, col } = action.decision;
 
-                    if (ENV.VITE_DEBUG_AI === 'true') {
-                        console.log(`[AI DEBUG] Action ${i}: Place ${cardData.label || cardData.type} at (${row}, ${col})`);
+                    if (ENV.VITE_DEBUG_AI === "true") {
+                        console.log(
+                            `[AI DEBUG] Action ${i}: Place ${cardData.label || cardData.type} at (${row}, ${col})`,
+                        );
                     }
 
                     this.placeSeatCard(row, col);
                     break;
                 }
-                case 'discard': {
+                case "discard": {
                     const { cardData } = action.decision;
-                    if (ENV.VITE_DEBUG_AI === 'true') {
+                    if (ENV.VITE_DEBUG_AI === "true") {
                         console.log(`[AI DEBUG] Discarding: ${cardData.label || cardData.type}`);
                     }
 
@@ -1061,9 +1065,8 @@ export class GameScene extends Phaser.Scene {
             }
 
             if (!isLast) {
-                await this.waitMs(250);
-            }
-            else if (ENV.VITE_DEBUG_AI === 'true') {
+                await this.waitMs(AI_ACTION_PAUSE_MS);
+            } else if (ENV.VITE_DEBUG_AI === "true") {
                 console.log(`[AI DEBUG] Turn complete for player ${this.currentPlayer}. Advancing...`);
             }
         }
@@ -1161,12 +1164,11 @@ export class GameScene extends Phaser.Scene {
                 const cardData = grid[row][col];
                 if (cardData) {
                     this.renderPlacedCardOnSeat(seat, cardData, { animate: false });
-                }
-                else {
+                } else {
                     // Restore empty-state appearance from seat data
-                    const emptyFill = seat.getData('emptyFill') ?? 0x1a1a3e;
-                    const emptyStroke = seat.getData('emptyStroke') ?? 0x3a3a5e;
-                    const sw = seat.getData('strokeWidth') ?? s(2);
+                    const emptyFill = seat.getData("emptyFill") ?? 0x1a1a3e;
+                    const emptyStroke = seat.getData("emptyStroke") ?? 0x3a3a5e;
+                    const sw = seat.getData("strokeWidth") ?? s(2);
                     seat.setFillStyle(emptyFill);
                     seat.setStrokeStyle(sw, emptyStroke);
 
@@ -1174,8 +1176,8 @@ export class GameScene extends Phaser.Scene {
                     const isRoyalBox = this.layout.royalBoxes?.some(
                         (b) => b.row === row && b.col === col,
                     );
-                    if (isRoyalBox && this.textures.exists('tag_royal_box')) {
-                        const tag = this.add.image(seat.x, seat.y, 'tag_royal_box')
+                    if (isRoyalBox && this.textures.exists("tag_royal_box")) {
+                        const tag = this.add.image(seat.x, seat.y, "tag_royal_box")
                             .setDisplaySize(s(64), s(64)).setAlpha(0.85);
                         this.seatLabels.push(tag);
                     }
@@ -1219,26 +1221,24 @@ export class GameScene extends Phaser.Scene {
             const card = new Card(this, x, handY, cardData);
 
             if (!isAI) {
-                card.on('pointerdown', () => {
-                    if (this.turnPhase === 'discard') {
+                card.on("pointerdown", () => {
+                    if (this.turnPhase === "discard") {
                         this.discardCard(card);
-                    }
-                    else {
+                    } else {
                         this.selectCard(card);
                     }
                 });
             }
 
             // Always show scoring tooltip on hover
-            card.on('pointerover', () => {
+            card.on("pointerover", () => {
                 this.showScoringTooltip(card);
             });
 
-            card.on('pointerout', () => {
+            card.on("pointerout", () => {
                 if (this.selectedCard) {
                     this.showScoringTooltip(this.selectedCard);
-                }
-                else {
+                } else {
                     this.hideScoringTooltip();
                 }
             });
@@ -1257,7 +1257,7 @@ export class GameScene extends Phaser.Scene {
     selectCard(card) {
         const hand = this.playerHands[this.currentPlayer];
         const handIsFull = hand.length === this.maxCardsInHand;
-        if (this.turnPhase === 'play' && !handIsFull) {
+        if (this.turnPhase === "play" && !handIsFull) {
             this.showDrawReminderBanner();
             return;
         }
@@ -1277,7 +1277,7 @@ export class GameScene extends Phaser.Scene {
     showScoringTooltip(card) {
         this.hideScoringTooltip();
 
-        let hint = PatronInfo[card.cardData.type]?.scoringHint || '';
+        let hint = PatronInfo[card.cardData.type]?.scoringHint || "";
         if (card.cardData.trait) {
             const traitHint = TraitInfo[card.cardData.trait]?.scoringHint;
             if (traitHint) {
@@ -1297,7 +1297,7 @@ export class GameScene extends Phaser.Scene {
             targets: this.scoringTooltip,
             alpha: 1,
             duration: 150,
-            ease: 'Sine.easeOut',
+            ease: "Sine.easeOut",
         });
     }
 
@@ -1316,10 +1316,9 @@ export class GameScene extends Phaser.Scene {
         if (this.playerCount === 2) {
             const currentHand = this.playerHands[this.currentPlayer] || [];
             const needed = this.maxCardsInHand - currentHand.length;
-            msg = needed === 2 ? 'You must draw two cards first' : 'You must draw a card first';
-        }
-        else {
-            msg = 'You must draw a card first';
+            msg = needed === 2 ? "You must draw two cards first" : "You must draw a card first";
+        } else {
+            msg = "You must draw a card first";
         }
         // Use DrawReminderBanner game object
         const banner = new DrawReminderBanner(this, width / 2, height / 2, msg);
@@ -1380,7 +1379,7 @@ export class GameScene extends Phaser.Scene {
         if (
             this.playerCount === 2 && this.playerHands[this.currentPlayer].length > 1
         ) {
-            this.turnPhase = 'discard';
+            this.turnPhase = "discard";
             // Highlight remaining cards for discard
             for (const c of this.handCards) {
                 c.background.setStrokeStyle(s(3), 0xff4444, 1);
@@ -1437,6 +1436,17 @@ export class GameScene extends Phaser.Scene {
         };
     }
 
+    /**
+     * @param {number} lobbyIndex
+     */
+    getLobbySlotPosition(lobbyIndex) {
+        const { deckX, deckY, gap } = this.getLobbyMetrics();
+        return {
+            x: deckX,
+            y: deckY + (lobbyIndex + 1) * (Card.HEIGHT + gap),
+        };
+    }
+
     getNextHandSlotPosition() {
         const { width, height } = this.scale;
         const handSizeAfterDraw = this.playerHands[this.currentPlayer].length + 1;
@@ -1476,7 +1486,7 @@ export class GameScene extends Phaser.Scene {
                 scaleY: pickupScale,
                 y: sourceY - s(16),
                 duration: 110,
-                ease: 'Back.easeOut',
+                ease: "Back.easeOut",
                 onComplete: () => resolve(null),
             });
         });
@@ -1489,7 +1499,7 @@ export class GameScene extends Phaser.Scene {
                 scaleX: travelScale,
                 scaleY: travelScale,
                 duration: 230,
-                ease: 'Cubic.easeInOut',
+                ease: "Cubic.easeInOut",
                 onComplete: () => resolve(null),
             });
         });
@@ -1499,12 +1509,13 @@ export class GameScene extends Phaser.Scene {
 
     /**
      * @param {import('../types.js').CardData} cardData
+     * @param {number} targetX
+     * @param {number} targetY
+     * @param {{ travelScale?: number }} [options]
      */
-    async animateDeckDrawToHand(cardData) {
+    async animateDeckFlipToPosition(cardData, targetX, targetY, { travelScale = 1.08 } = {}) {
         const pickupScale = 1.14;
-        const travelScale = 1.08;
         const { deckX, deckY } = this.getLobbyMetrics();
-        const target = this.getNextHandSlotPosition();
 
         const back = this.add.container(deckX, deckY);
         back.setDepth(500);
@@ -1512,7 +1523,7 @@ export class GameScene extends Phaser.Scene {
         const backBorder = this.add
             .rectangle(0, 0, Card.WIDTH, Card.HEIGHT, 0x000000)
             .setStrokeStyle(s(2), 0x000000, 0.7);
-        const backImage = this.add.image(0, 0, 'card_back').setDisplaySize(Card.WIDTH, Card.HEIGHT);
+        const backImage = this.add.image(0, 0, "card_back").setDisplaySize(Card.WIDTH, Card.HEIGHT);
         back.add([backBorder, backImage]);
 
         await new Promise((resolve) => {
@@ -1521,7 +1532,7 @@ export class GameScene extends Phaser.Scene {
                 scaleX: pickupScale,
                 scaleY: pickupScale,
                 duration: 70,
-                ease: 'Sine.easeOut',
+                ease: "Sine.easeOut",
                 onComplete: () => resolve(null),
             });
         });
@@ -1531,7 +1542,7 @@ export class GameScene extends Phaser.Scene {
                 targets: back,
                 scaleX: 0,
                 duration: 120,
-                ease: 'Sine.easeIn',
+                ease: "Sine.easeIn",
                 onComplete: () => resolve(null),
             });
         });
@@ -1547,7 +1558,7 @@ export class GameScene extends Phaser.Scene {
                 targets: faceCard,
                 scaleX: pickupScale,
                 duration: 140,
-                ease: 'Sine.easeOut',
+                ease: "Sine.easeOut",
                 onComplete: () => resolve(null),
             });
         });
@@ -1555,17 +1566,90 @@ export class GameScene extends Phaser.Scene {
         await new Promise((resolve) => {
             this.tweens.add({
                 targets: faceCard,
-                x: target.x,
-                y: target.y,
+                x: targetX,
+                y: targetY,
                 scaleX: travelScale,
                 scaleY: travelScale,
                 duration: 230,
-                ease: 'Cubic.easeInOut',
+                ease: "Cubic.easeInOut",
                 onComplete: () => resolve(null),
             });
         });
 
         faceCard.destroy();
+    }
+
+    /**
+     * @param {import('../types.js').CardData} cardData
+     */
+    async animateDeckDrawToHand(cardData) {
+        const target = this.getNextHandSlotPosition();
+        await this.animateDeckFlipToPosition(cardData, target.x, target.y, { travelScale: 1.08 });
+    }
+
+    /**
+     * @param {import('../types.js').CardData} cardData
+     */
+    async animateDeckRefillToLobby(cardData) {
+        const target = this.getLobbySlotPosition(0);
+        await this.animateDeckFlipToPosition(cardData, target.x, target.y, { travelScale: 1.0 });
+    }
+
+    /**
+     * @param {number} drawnIndex
+     * @param {boolean} willRefill
+     */
+    async animateLobbyShiftAfterDraw(drawnIndex, willRefill) {
+        /** @type {Promise<null>[]} */
+        const animations = [];
+
+        for (let i = 0; i < this.lobbyCardVisuals.length; i++) {
+            if (i === drawnIndex) {
+                continue;
+            }
+
+            const card = this.lobbyCardVisuals[i];
+            if (!card || !card.active || !card.visible) {
+                continue;
+            }
+
+            let targetIndex = i;
+            if (willRefill) {
+                // EVERYONE moves down 1 slot because a new card enters at index 0
+                targetIndex = i + 1;
+
+                // But the card that was drawn is already "gone" (invisible),
+                // so if i was the drawn card, it doesn't move.
+                // But we already skip i === drawnIndex at the top of the loop.
+
+                // If we are moving a card that is ABOVE the drawn card,
+                // it still moves down 1.
+                // If we are moving a card that is BELOW the drawn card,
+                // it moves down 1 (for the refill) but then effectively stays
+                // in the same relative slot because one card was removed.
+                if (i > drawnIndex) {
+                    targetIndex = i;
+                }
+            } else if (i > drawnIndex) {
+                targetIndex = i - 1;
+            }
+            const target = this.getLobbySlotPosition(targetIndex);
+
+            animations.push(
+                new Promise((resolve) => {
+                    this.tweens.add({
+                        targets: card,
+                        x: target.x,
+                        y: target.y,
+                        duration: 230,
+                        ease: "Cubic.easeInOut",
+                        onComplete: () => resolve(null),
+                    });
+                }),
+            );
+        }
+
+        await Promise.all(animations);
     }
 
     /**
@@ -1592,7 +1676,7 @@ export class GameScene extends Phaser.Scene {
         }
         this.lobbyCardVisuals = [];
 
-        const { deckX, deckY, gap } = this.getLobbyMetrics();
+        const { deckX, deckY } = this.getLobbyMetrics();
         // Stack regular Image objects to form a card pile.
         const PILE_LAYERS = 10;
         const pileOffset = s(-1);
@@ -1605,7 +1689,7 @@ export class GameScene extends Phaser.Scene {
                 .rectangle(ox, oy, Card.WIDTH, Card.HEIGHT, 0x000000)
                 .setStrokeStyle(s(2), 0x000000, 0.7);
 
-            const image = this.add.image(ox, oy, 'card_back');
+            const image = this.add.image(ox, oy, "card_back");
             image.setDisplaySize(Card.WIDTH, Card.HEIGHT);
 
             /** @type {Phaser.GameObjects.GameObject[]} */
@@ -1618,12 +1702,12 @@ export class GameScene extends Phaser.Scene {
                 -Card.WIDTH / 2 - s(PILE_LAYERS),
                 -Card.HEIGHT / 2 - s(PILE_LAYERS),
                 Card.WIDTH + s(PILE_LAYERS),
-                Card.HEIGHT + s(PILE_LAYERS)
+                Card.HEIGHT + s(PILE_LAYERS),
             ),
             hitAreaCallback: Phaser.Geom.Rectangle.Contains,
             useHandCursor: true,
         });
-        this.deckPileImage.on('pointerdown', () => {
+        this.deckPileImage.on("pointerdown", () => {
             void this.drawFromDeck();
         });
 
@@ -1633,23 +1717,21 @@ export class GameScene extends Phaser.Scene {
             if (!data) {
                 continue;
             }
-            // Start lobby cards to the right of the deck pile
-            const cardY = deckY + (i + 1) * (Card.HEIGHT + gap);
+            const slot = this.getLobbySlotPosition(i);
 
-            // use deckX sot they are all aligned with the deck
-            const card = new Card(this, deckX, cardY, data);
+            // use deckX so they are all aligned with the deck
+            const card = new Card(this, slot.x, slot.y, data);
             card.setDepth(160); // Ensure they are above everything else
 
             const isAI = !!this.aiConfig[this.currentPlayer];
 
-            card.on('pointerover', () => {
+            card.on("pointerover", () => {
                 this.showScoringTooltip(card);
             });
-            card.on('pointerout', () => {
+            card.on("pointerout", () => {
                 if (this.selectedCard) {
                     this.showScoringTooltip(this.selectedCard);
-                }
-                else {
+                } else {
                     this.hideScoringTooltip();
                 }
             });
@@ -1659,10 +1741,9 @@ export class GameScene extends Phaser.Scene {
                 card.setInteractive(false);
                 // TODO: how to make the card look unavailable
                 card.setStrokeColor(0xf44336);
-            }
-            else {
+            } else {
                 if (!isAI) {
-                    card.on('pointerdown', () => {
+                    card.on("pointerdown", () => {
                         void this.drawFromLobby(i);
                     });
                 }
@@ -1677,7 +1758,7 @@ export class GameScene extends Phaser.Scene {
      * @param {number} index
      */
     async drawFromLobby(index) {
-        if (this.turnPhase !== 'play' || this.isDrawAnimating) {
+        if (this.turnPhase !== "play" || this.isDrawAnimating) {
             return false;
         }
 
@@ -1693,8 +1774,9 @@ export class GameScene extends Phaser.Scene {
         }
 
         const sourceVisual = this.lobbyCardVisuals[index];
-        const { deckX, deckY, gap } = this.getLobbyMetrics();
-        const fallbackY = deckY + (index + 1) * (Card.HEIGHT + gap);
+        const fallback = this.getLobbySlotPosition(index);
+        const refillCardData = this.deck[this.deck.length - 1] ?? null;
+        const willRefill = !!refillCardData;
 
         this.isDrawAnimating = true;
         this.hideScoringTooltip();
@@ -1704,11 +1786,16 @@ export class GameScene extends Phaser.Scene {
         }
 
         try {
-            await this.animateLobbyDrawToHand(
+            const selectedToHand = this.animateLobbyDrawToHand(
                 cardData,
-                sourceVisual?.x ?? deckX,
-                sourceVisual?.y ?? fallbackY,
+                sourceVisual?.x ?? fallback.x,
+                sourceVisual?.y ?? fallback.y,
             );
+
+            const lobbyShift = this.animateLobbyShiftAfterDraw(index, willRefill);
+            const refillAnim = refillCardData ? this.animateDeckRefillToLobby(refillCardData) : Promise.resolve();
+
+            await Promise.all([selectedToHand, lobbyShift, refillAnim]);
 
             // Add to player hand
             hand.push(cardData);
@@ -1717,7 +1804,7 @@ export class GameScene extends Phaser.Scene {
             this.lobbyCards.splice(index, 1);
 
             // Refill from deck
-            if (this.deck.length > 0) {
+            if (willRefill) {
                 const refill = this.deck.pop();
                 if (refill) {
                     this.lobbyCards.unshift(refill);
@@ -1727,8 +1814,7 @@ export class GameScene extends Phaser.Scene {
             this.renderHand();
             this.updateUI();
             return true;
-        }
-        finally {
+        } finally {
             this.isDrawAnimating = false;
         }
     }
@@ -1737,7 +1823,7 @@ export class GameScene extends Phaser.Scene {
      * Blind draw from the deck.
      */
     async drawFromDeck() {
-        if (this.turnPhase !== 'play' || this.isDrawAnimating) {
+        if (this.turnPhase !== "play" || this.isDrawAnimating) {
             return false;
         }
         if (this.deck.length === 0) {
@@ -1770,8 +1856,7 @@ export class GameScene extends Phaser.Scene {
             this.renderHand();
             this.updateUI();
             return true;
-        }
-        finally {
+        } finally {
             this.isDrawAnimating = false;
         }
     }
@@ -1796,8 +1881,7 @@ export class GameScene extends Phaser.Scene {
             // Next round
             this.round++;
             this.currentPlayer = 0;
-        }
-        else {
+        } else {
             this.currentPlayer = nextPlayer;
         }
 
@@ -1814,7 +1898,7 @@ export class GameScene extends Phaser.Scene {
      * Respects the showAllScores setting from the Phaser registry.
      */
     updateScoreboard() {
-        const showAll = this.registry.get('showAllScores') ?? true;
+        const showAll = this.registry.get("showAllScores") ?? true;
 
         /** @type {{ total: number, label: string }[]} */
         const rows = [];
@@ -1868,7 +1952,7 @@ export class GameScene extends Phaser.Scene {
     // ══════════════════════════════════════════════════════════════════
 
     endGame() {
-        this.scene.start('EndGameScene', {
+        this.scene.start("EndGameScene", {
             playerCount: this.playerCount,
             layout: this.layout,
             placedPatrons: this.placedPatrons,

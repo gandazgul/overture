@@ -1,8 +1,7 @@
 // @ts-check
-import Phaser from 'phaser';
-import { px, s } from '../config.js';
-import { Layouts } from '../types.js';
-
+import Phaser from "phaser";
+import { px, s } from "../config.js";
+import { Layouts } from "../types.js";
 
 /**
  * Minimal boot scene that loads only the essential UI assets (logo + button frame)
@@ -10,7 +9,7 @@ import { Layouts } from '../types.js';
  */
 export class BootScene extends Phaser.Scene {
     constructor() {
-        super('BootScene');
+        super("BootScene");
     }
 
     preload() {
@@ -18,10 +17,10 @@ export class BootScene extends Phaser.Scene {
 
         // ── "Loading..." text (no images needed) ────────────────────────
         const loadingText = this.add
-            .text(width / 2, height / 2 - s(40), 'Loading...', {
+            .text(width / 2, height / 2 - s(40), "Loading...", {
                 fontSize: px(24),
-                fontFamily: 'Georgia, serif',
-                color: '#f5c518',
+                fontFamily: "Georgia, serif",
+                color: "#f5c518",
             })
             .setOrigin(0.5);
 
@@ -49,23 +48,23 @@ export class BootScene extends Phaser.Scene {
             0xd4af37,
         ).setOrigin(0, 0.5);
 
-        this.load.on('progress', (/** @type {number} */ value) => {
+        this.load.on("progress", (/** @type {number} */ value) => {
             barFill.width = barW * value;
         });
 
-        this.load.on('complete', () => {
-            loadingText.setText('Ready!');
+        this.load.on("complete", () => {
+            loadingText.setText("Ready!");
         });
 
         // ── Load only essential UI assets ───────────────────────────────
-        this.load.image('ui_logo', 'assets/ui_logo.png');
-        this.load.image('ui_button_frame', 'assets/ui_button_frame.png');
+        this.load.image("ui_logo", "assets/ui_logo.png");
+        this.load.image("ui_button_frame", "assets/ui_button_frame.png");
 
         // ── Usher avatars (needed in TitleScene player setup) ────────────
-        this.load.image('usher_blue', 'assets/usher_blue.png');
-        this.load.image('usher_red', 'assets/usher_red.png');
-        this.load.image('usher_green', 'assets/usher_green.png');
-        this.load.image('usher_orange', 'assets/usher_orange.png');
+        this.load.image("usher_blue", "assets/usher_blue.png");
+        this.load.image("usher_red", "assets/usher_red.png");
+        this.load.image("usher_green", "assets/usher_green.png");
+        this.load.image("usher_orange", "assets/usher_orange.png");
     }
 
     debugTheaterStart() {
@@ -85,9 +84,8 @@ export class BootScene extends Phaser.Scene {
 
             if (layoutId && Layouts[layoutId]) {
                 // Second player is always AI in this mode
-                this.scene.start('GameScene', { layoutId, aiConfig: [null, 'Normal'] });
-            }
-            else {
+                this.scene.start("GameScene", { layoutId, aiConfig: [null, "Normal"] });
+            } else {
                 // fallback if invalid ENV provided
                 console.warn(
                     `[BootScene] Invalid VITE_START_THEATER: '${startTheater}'. Starting normally.`,
@@ -99,6 +97,6 @@ export class BootScene extends Phaser.Scene {
     create() {
         this.debugTheaterStart();
 
-        this.scene.start('TitleScene');
+        this.scene.start("TitleScene");
     }
 }

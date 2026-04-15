@@ -1,6 +1,6 @@
 // src/objects/DrawReminderBanner.js
-import Phaser from 'phaser';
-import { s, px } from '../config.js';
+import Phaser from "phaser";
+import { px, s } from "../config.js";
 
 const DRAW_REMINDER_BANNER_DURATION = 1750;
 
@@ -21,16 +21,16 @@ export class DrawReminderBanner extends Phaser.GameObjects.Container {
 
         const text = scene.add.text(0, 0, msg, {
             fontSize: px(28),
-            fontFamily: 'Georgia, serif',
-            color: '#ffd700',
-            align: 'center',
+            fontFamily: "Georgia, serif",
+            color: "#ffd700",
+            align: "center",
         }).setOrigin(0.5);
 
         this.add(rect);
         this.add(text);
 
         // Auto-destroy children when this container is destroyed
-        this.on('destroy', () => {
+        this.on("destroy", () => {
             rect.destroy();
             text.destroy();
         });

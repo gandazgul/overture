@@ -16,12 +16,7 @@ import {
     pickSeat,
     scoreAllSeats,
 } from "./ai.js";
-import {
-    AmphitheaterLayout,
-    GrandEmpressLayout,
-    PatronType,
-    Trait,
-} from "./types.js";
+import { AmphitheaterLayout, GrandEmpressLayout, PatronType, Trait } from "./types.js";
 
 /** @typedef {import('./types.js').CardData} CardData */
 /** @typedef {import('./types.js').LayoutMeta} LayoutMeta */

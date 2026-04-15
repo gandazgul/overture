@@ -45,7 +45,7 @@ Traits can be applied to any patron type, adding unique bonuses or penalties.
 
 | Trait            | Effect                                                               |
 | ---------------- | -------------------------------------------------------------------- |
-| **Bespectacled** | +2 VP unless seated in the back row.                                  |
+| **Bespectacled** | +2 VP unless seated in the back row.                                 |
 | **Tall**         | Patron directly behind this seat gets −2 VP.                         |
 | **Short**        | +2 VP if no one is in front; −3 VP if a **Tall** patron is in front. |
 | **Noisy**        | Each adjacent patron (any type) gets −1 VP.                          |
@@ -120,6 +120,7 @@ overture/
 ## 🎮 Features
 
 ### Core Gameplay
+
 - **Full Deck** — 56 cards with 6 patron types and 4 secondary traits
 - **Card Hand** — Draw 3 cards per turn with visual selection and speech-bubble tooltips
 - **Turn System** — 2-player pass-and-play with hand passing screen
@@ -128,11 +129,13 @@ overture/
 - **Victory Points Display** — Running score during gameplay, toggleable in settings
 
 ### AI Opponents
+
 - **3 Difficulty Levels** — Easy (random), Medium (greedy best-score), Hard (greedy + positional heuristics with jitter)
 - **Player Setup Screen** — Choose human or AI per slot, pick difficulty, and swap player colors with a color picker
 - **Seamless Integration** — AI turns auto-play with pacing delays; robot emoji marks AI players on the scoreboard
 
 ### Theaters
+
 - **8 Unique Theaters** — Each with its own layout, background art, and house rule:
   - **The Grand Empress** — Classic 5×6 grid
   - **The Blackbox** — Compact 4×4 intimate space
@@ -146,6 +149,7 @@ overture/
 - **Seat Label System** — Front row, back row, aisle, and Royal Box seats are tagged and scored automatically per layout
 
 ### Visual Design
+
 - **1920s Art Deco Aesthetic** — Gold and deep purple palette throughout
 - **Custom Patron Art** — Unique card art for all patron types and traits
 - **Theater Backgrounds** — Hand-crafted AI-generated art for each venue
@@ -153,12 +157,14 @@ overture/
 - **House Rule Reminder** — Active house rule stays visible in the HUD all game
 
 ### Scenes & UI
+
 - **Title Screen** — Animated logo with fullscreen toggle
 - **Boot Screen** — Asset preloader with progress bar
 - **End Game Screen** — Winner announcement, per-type scoring breakdown, and play-again option
 - **Responsive Scaling** — DPR-aware, adapts to viewport aspect ratio, works on mobile
 
 ### Technical
+
 - **Pure Scoring Engine** — No Phaser dependency, fully unit-tested (144 tests)
 - **Pure AI Engine** — No Phaser dependency, fully unit-tested
 - **Modular Scenes** — Boot → Title → Theater Selection → Game → End Game

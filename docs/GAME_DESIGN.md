@@ -158,7 +158,7 @@ optional trait adds a modifier on top.
 | **Tall**         | Patron directly behind gets -2 VP.                                                       |
 | **Short**        | +2 VP if no one is directly in front. -3 VP if a Tall-trait patron is directly in front. |
 | **Bespectacled** | +2 VP unless seated in the back row.                                                     |
-| **Noisy**        | Each orthogonally adjacent patron gets -1 VP (all types, not just Patron).             |
+| **Noisy**        | Each orthogonally adjacent patron gets -1 VP (all types, not just Patron).               |
 
 ### Trait Assignment Rules
 
@@ -301,19 +301,19 @@ These apply to **any** patron regardless of their own type:
 
 The trait system creates cards with layered strategic identities:
 
-| Combo                    | Why It's Interesting                                                                                                    |
-| ------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
-| **Bespectacled VIP**     | Front-row double bonus. The rarest prize card in the deck—only 1 exists. Dream placement: front row, away from Kids. 3+3+2=8 VP.   |
-| **Tall Kid**             | Blocks the patron behind _and_ is a liability if uncapped. Excellent gift card for opponents.                           |
-| **Noisy Lovebirds**      | Big points in the back row when paired, but hurts all neighbors. Place carefully at the edge.                           |
-| **Bespectacled Teacher** | Front-row trait bonus while also needing to cap Kids. Creates tension between optimal row and duty.                     |
-| **Short Critic**         | Dream placement: front-row corner aisle seat. +2 (Short empty front) on top of 3+3 (Critic aisle) = 8 VP from one card. |
-| **Noisy Kid**            | Worth 1 VP uncapped _and_ hurts neighbors. The ultimate gift card. Noisy also nullifies any adjacent Critic's aisle bonus. |
-| **Tall Lovebirds**       | Wants the back row for +2 bonus but blocks whoever sits behind. In the back row, no one is behind—safe spot.            |
-| **Short Kid**            | Front-row bonus if uncapped feels wasted; capping in the front row means Teachers compete with VIPs for premium seats.  |
-| **Tall Friends**         | Blocks the patron behind, but great in the back row where there's no one behind and the Friends cluster grows safely.   |
-| **Short Friends**        | +2 VP if no one is in front. Place at the front edge of a Friends cluster for the Short bonus on top of group VP.       |
-| **Bespectacled Friends** | +2 VP unless in the back row. Encourages Friends clusters in the front/middle rows rather than the back.                |
+| Combo                    | Why It's Interesting                                                                                                             |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| **Bespectacled VIP**     | Front-row double bonus. The rarest prize card in the deck—only 1 exists. Dream placement: front row, away from Kids. 3+3+2=8 VP. |
+| **Tall Kid**             | Blocks the patron behind _and_ is a liability if uncapped. Excellent gift card for opponents.                                    |
+| **Noisy Lovebirds**      | Big points in the back row when paired, but hurts all neighbors. Place carefully at the edge.                                    |
+| **Bespectacled Teacher** | Front-row trait bonus while also needing to cap Kids. Creates tension between optimal row and duty.                              |
+| **Short Critic**         | Dream placement: front-row corner aisle seat. +2 (Short empty front) on top of 3+3 (Critic aisle) = 8 VP from one card.          |
+| **Noisy Kid**            | Worth 1 VP uncapped _and_ hurts neighbors. The ultimate gift card. Noisy also nullifies any adjacent Critic's aisle bonus.       |
+| **Tall Lovebirds**       | Wants the back row for +2 bonus but blocks whoever sits behind. In the back row, no one is behind—safe spot.                     |
+| **Short Kid**            | Front-row bonus if uncapped feels wasted; capping in the front row means Teachers compete with VIPs for premium seats.           |
+| **Tall Friends**         | Blocks the patron behind, but great in the back row where there's no one behind and the Friends cluster grows safely.            |
+| **Short Friends**        | +2 VP if no one is in front. Place at the front edge of a Friends cluster for the Short bonus on top of group VP.                |
+| **Bespectacled Friends** | +2 VP unless in the back row. Encourages Friends clusters in the front/middle rows rather than the back.                         |
 
 ---
 
@@ -552,14 +552,14 @@ everyone knows everyone's advantage.
 **Extra cards:** 6 Role cards (deal one per player, return unused to the Season
 Deck):
 
-| Role                 | Ability                                                                                               |
-| -------------------- | ----------------------------------------------------------------------------------------------------- |
-| **The Veteran**      | Once per game, put your drawn card on the bottom of the deck and draw again.                          |
-| **The Architect**    | Once per game, after placing a patron, swap two adjacent patrons in your theater.                     |
-| **The Collector**    | End-game: +1 VP per unique primary type in your theater (max +6).                                     |
-| **The Director**     | Once per game, look at the top 3 cards before drawing. Take one, return two in any order.             |
+| Role                 | Ability                                                                                             |
+| -------------------- | --------------------------------------------------------------------------------------------------- |
+| **The Veteran**      | Once per game, put your drawn card on the bottom of the deck and draw again.                        |
+| **The Architect**    | Once per game, after placing a patron, swap two adjacent patrons in your theater.                   |
+| **The Collector**    | End-game: +1 VP per unique primary type in your theater (max +6).                                   |
+| **The Director**     | Once per game, look at the top 3 cards before drawing. Take one, return two in any order.           |
 | **The Understudy**   | Once per game, place a drawn card face-down. It scores as a Patron (3 VP) regardless of what it is. |
-| **The Patron Saint** | End-game: your 3 lowest-scoring patrons each get +1 VP.                                               |
+| **The Patron Saint** | End-game: your 3 lowest-scoring patrons each get +1 VP.                                             |
 
 **Why it's interesting:** Three "once per game" roles (Veteran, Architect,
 Director) create timing tension-when do you spend your ability? Three passive
@@ -729,8 +729,8 @@ referenced by specific Plays.
 | **Promenade + The Dress Rehearsal**  | Staggered aisles + draft-and-pass. You can see what your neighbor needs AND deny them the right aisle-seat card.         |
 | **Royal Theatre + The Casting Call** | The Collector role loves the Royal Boxes (diverse types for +6 VP). The Architect can swap a patron INTO a Box mid-game. |
 | **Grand Empress + The Mystery**      | Vanilla layout lets you focus purely on demand adaptation. Good for learning The Mystery without layout complexity.      |
-| **Rotunda + The Avant-Garde**        | Empty stage center already breaks adjacency; leaving outer-ring gaps for +2 VP each compounds the breathing-room bonus. |
-| **Rotunda + The Matinee**            | Every inner-ring seat is "front row" and scores twice at intermission. VIPs and Bespectacled patrons are strong.        |
+| **Rotunda + The Avant-Garde**        | Empty stage center already breaks adjacency; leaving outer-ring gaps for +2 VP each compounds the breathing-room bonus.  |
+| **Rotunda + The Matinee**            | Every inner-ring seat is "front row" and scores twice at intermission. VIPs and Bespectacled patrons are strong.         |
 
 ---
 
@@ -755,21 +755,21 @@ The game uses a **1920s Art Deco theater** aesthetic throughout.
 
 ### Color Palette
 
-| Role           | Hex / Value   | Usage                                       |
-| -------------- | ------------- | ------------------------------------------- |
-| Gold bright    | `#DAA520`     | Primary accent, borders, icons, crown motifs |
-| Gold light     | `#F5C518`     | Highlights, hover states, house-rule text    |
-| Gold dark      | `#B48214`     | Secondary accents, inner details             |
-| Navy deep      | `#0F0F1C`     | Panel backgrounds (95 % opacity)             |
-| Navy mid       | `#1A1A2E`     | Seat fills (regular), UI circles             |
-| Navy seat      | `#1A1A3E`     | Seat fills (default empty)                   |
-| Navy aisle     | `#1E1E38`     | Aisle seat fills                             |
-| Purple box     | `#2A2040`     | Royal Box seat fills                         |
-| Stroke default | `#3A3A5E`     | Regular seat border                          |
-| Stroke aisle   | `#8A7A3E`     | Aisle seat border (gold-tinted)              |
-| Hover fill     | `#2A2A5E`     | Seat hover highlight                         |
-| Heading gold   | `#D4AF37`     | HUD headings, stage border stroke            |
-| Subtext        | `#AAAACC`     | Muted lavender for secondary info            |
+| Role           | Hex / Value | Usage                                        |
+| -------------- | ----------- | -------------------------------------------- |
+| Gold bright    | `#DAA520`   | Primary accent, borders, icons, crown motifs |
+| Gold light     | `#F5C518`   | Highlights, hover states, house-rule text    |
+| Gold dark      | `#B48214`   | Secondary accents, inner details             |
+| Navy deep      | `#0F0F1C`   | Panel backgrounds (95 % opacity)             |
+| Navy mid       | `#1A1A2E`   | Seat fills (regular), UI circles             |
+| Navy seat      | `#1A1A3E`   | Seat fills (default empty)                   |
+| Navy aisle     | `#1E1E38`   | Aisle seat fills                             |
+| Purple box     | `#2A2040`   | Royal Box seat fills                         |
+| Stroke default | `#3A3A5E`   | Regular seat border                          |
+| Stroke aisle   | `#8A7A3E`   | Aisle seat border (gold-tinted)              |
+| Hover fill     | `#2A2A5E`   | Seat hover highlight                         |
+| Heading gold   | `#D4AF37`   | HUD headings, stage border stroke            |
+| Subtext        | `#AAAACC`   | Muted lavender for secondary info            |
 
 ### Patron Card Art
 

@@ -54,8 +54,8 @@ The player with the **highest total VP** when the deck runs out wins.
 Each player starts the game with **1 card** in hand. On your turn:
 
 1. **Draw** — You may either:
-    - Pick one of the two available cards from the **Lobby** (the shared market).
-    - Click the **Deck** to draw a card blindly.
+   - Pick one of the two available cards from the **Lobby** (the shared market).
+   - Click the **Deck** to draw a card blindly.
 2. **Place** — select a card from your hand and click any empty seat in your theater to place it.
 
 You always end your turn holding **1 card**, ready for the next round.
@@ -63,6 +63,7 @@ You always end your turn holding **1 card**, ready for the next round.
 ### The Lobby System
 
 The Lobby is a shared market of 3 face-up cards.
+
 - **The Frozen Slot**: The first card in the lobby is always unavailable to be picked.
 - **The Market**: The second and third cards can be picked by any player on their turn.
 - **Refilling**: When a card is taken from the lobby, a new card is drawn from the deck and placed into the **frozen slot**, shifting the remaining cards to the right.
@@ -89,6 +90,7 @@ Overture is played **hotseat** — all players share the same screen. A hand-pas
 Your theater is a grid of seats arranged in rows. The **stage** is at the top — the front row is closest to it, and the back row is farthest away.
 
 Key seat types:
+
 - **Front Row** — Rows closest to the stage. VIPs score bonus VP here.
 - **Back Row** — The farthest row. Paired Lovebirds get a bonus here.
 - **Aisle Seats** — Seats on the edges (marked with gold borders). Critics score bonus VP here.
@@ -255,20 +257,21 @@ Noisy hurts everyone nearby — and also specifically **nullifies Critic aisle b
 
 Every card with a trait has **two identities** working together. Here are key combos to watch for:
 
-| Combo | Strategy |
-|---|---|
-| **Bespectacled VIP** | Front-row dream: 3 + 3 + 2 = **8 VP**. Only 1 exists in the deck! |
-| **Tall Lovebirds** | Back row is safe (no one behind) AND gives the +2 pair bonus. |
-| **Short Critic** | Front-row aisle corner: 3 + 3 + 2 = **8 VP**. No one in front, aisle bonus active. |
-| **Noisy Lovebirds** | Pair them in the back row for 6 VP each, but beware neighbor damage. |
-| **Tall Kid** | Worth only 1 VP uncapped AND blocks whoever sits behind. Rough card. |
-| **Noisy Kid** | 1 VP and hurts neighbors — plus nullifies adjacent Critic aisle bonuses. |
-| **Short Friends** | +2 VP in front row with no one ahead, on top of Friends clustering bonus. |
-| **Bespectacled Teacher** | Wants the front row for +2 VP, but needs to be next to Kids to cap them. |
+| Combo                    | Strategy                                                                           |
+| ------------------------ | ---------------------------------------------------------------------------------- |
+| **Bespectacled VIP**     | Front-row dream: 3 + 3 + 2 = **8 VP**. Only 1 exists in the deck!                  |
+| **Tall Lovebirds**       | Back row is safe (no one behind) AND gives the +2 pair bonus.                      |
+| **Short Critic**         | Front-row aisle corner: 3 + 3 + 2 = **8 VP**. No one in front, aisle bonus active. |
+| **Noisy Lovebirds**      | Pair them in the back row for 6 VP each, but beware neighbor damage.               |
+| **Tall Kid**             | Worth only 1 VP uncapped AND blocks whoever sits behind. Rough card.               |
+| **Noisy Kid**            | 1 VP and hurts neighbors — plus nullifies adjacent Critic aisle bonuses.           |
+| **Short Friends**        | +2 VP in front row with no one ahead, on top of Friends clustering bonus.          |
+| **Bespectacled Teacher** | Wants the front row for +2 VP, but needs to be next to Kids to cap them.           |
 
 ### Excluded Combos
 
 These combinations **never appear** in the deck (by design):
+
 - **Bespectacled Lovebirds** — Contradictory row incentives.
 - **Short Lovebirds** — Same conflict (Short wants front, Lovebirds want back).
 - **Noisy VIP** — VIPs penalize themselves for Noisy neighbors; self-penalty is confusing.
@@ -281,30 +284,35 @@ These combinations **never appear** in the deck (by design):
 Scoring happens in phases after the final round:
 
 ### Phase 1 — Primary Type
+
 Each patron scores based on its type rules (see [Patron Types](#patron-types)).
 
 ### Phase 2 — Traits
+
 Trait bonuses/penalties apply on top (Bespectacled +2, Short +2/−3, etc.).
 
 ### Phase 3 — Cross-Type Modifiers
+
 These apply to **any** patron regardless of type:
+
 - **Behind a Tall patron:** −2 VP (unless you are Short — Short has its own −3 penalty).
 - **Adjacent to Noisy:** −1 VP per Noisy neighbor.
 
 ### Phase 4 — House Rule
+
 The selected theater's house rule bonus is applied (see [Theaters](#theaters)).
 
 ### Quick Reference
 
-| Type | Base | Best Case | How |
-|---|:---:|:---:|---|
-| **Patron** | 3 | 3 | Always 3 VP |
-| **VIP** | 3 | 6+ | Front row, no Kids or Noisy |
-| **Lovebirds** | 1 | 6 | Paired in back row |
-| **Kid** | 1 | 3 | Capped by Teachers |
-| **Teacher** | 3 | 5+ | Adjacent to 2+ capped Kids |
-| **Critic** | 3 | 6 | Aisle seat, no Noisy neighbors |
-| **Friends** | 3 | 7 | 4 adjacent Friends (rare) |
+| Type          | Base | Best Case | How                            |
+| ------------- | :--: | :-------: | ------------------------------ |
+| **Patron**    |  3   |     3     | Always 3 VP                    |
+| **VIP**       |  3   |    6+     | Front row, no Kids or Noisy    |
+| **Lovebirds** |  1   |     6     | Paired in back row             |
+| **Kid**       |  1   |     3     | Capped by Teachers             |
+| **Teacher**   |  3   |    5+     | Adjacent to 2+ capped Kids     |
+| **Critic**    |  3   |     6     | Aisle seat, no Noisy neighbors |
+| **Friends**   |  3   |     7     | 4 adjacent Friends (rare)      |
 
 > **Traits add:** Bespectacled +2 (not back row) · Short +2 (no one in front) · Tall −2 (to patron behind) · Noisy −1 (to each neighbor)
 
@@ -323,11 +331,11 @@ Each game is played on one of **8 unique theaters**. The theater defines the gri
 </p>
 
 ```
-     Col 1  2  3  4  5
-  [A][ ][ ][ ][A]     A = Aisle seat
-  [A][ ][ ][ ][A]     20 seats · 8 aisle seats
-  [A][ ][ ][ ][A]
-  [A][ ][ ][ ][A]     ← Back row
+   Col 1  2  3  4  5
+[A][ ][ ][ ][A]     A = Aisle seat
+[A][ ][ ][ ][A]     20 seats · 8 aisle seats
+[A][ ][ ][ ][A]
+[A][ ][ ][ ][A]     ← Back row
 ```
 
 **House Rule: "The Classics"** — No special demand. Vanilla scoring.
@@ -343,12 +351,12 @@ The learning theater. Wide aisles make Critics strong. Broad rows are ideal for 
 </p>
 
 ```
-     Col 1  2  3  4
-  [ ][A][A][ ]     A = Aisle seat (center)
-  [ ][A][A][ ]     20 seats · 4 cols × 5 rows
-  [ ][A][A][ ]     Center aisles only
-  [ ][A][A][ ]
-  [ ][A][A][ ]     ← Back row
+   Col 1  2  3  4
+[ ][A][A][ ]     A = Aisle seat (center)
+[ ][A][A][ ]     20 seats · 4 cols × 5 rows
+[ ][A][A][ ]     Center aisles only
+[ ][A][A][ ]
+[ ][A][A][ ]     ← Back row
 ```
 
 **House Rule: "Intimate Venue"** — Each patron adjacent to 3+ others gets **+1 VP**.
@@ -364,11 +372,11 @@ Narrow and deep (5 rows). Aisle seats are center-only, making Critic placement u
 </p>
 
 ```
-     Col 1  2  3  4  5
-  [B][ ][ ][ ][B]     B = Royal Box (aisle + front, isolated)
-  [A][ ][ ][ ][A]     20 seats · 8 aisle seats · 2 Royal Boxes
-  [A][ ][ ][ ][A]
-  [A][ ][ ][ ][A]     ← Back row
+Col 1  2  3  4  5
+   [B][ ][ ][ ][B]     B = Royal Box (aisle + front, isolated)
+   [A][ ][ ][ ][A]     20 seats · 8 aisle seats · 2 Royal Boxes
+   [A][ ][ ][ ][A]
+   [A][ ][ ][ ][A]     ← Back row
 ```
 
 **House Rule: "Royal Approval"** — Your single highest-scoring patron gets **+3 VP**. Tiebreaker: front-most, then left-most.
@@ -384,11 +392,11 @@ Royal Boxes are isolated — they're not adjacent to any regular seats. A Bespec
 </p>
 
 ```
-     Col 1  2  3  4  5
-  [A][ ][ ][ ][A]     Staggered aisles:
-  [ ][ ][A][ ][ ]     Different columns each row
-  [A][ ][ ][ ][A]     20 seats · 8 aisle seats
-  [ ][ ][A][ ][ ]
+Col 1  2  3  4  5
+   [A][ ][ ][ ][A]     Staggered aisles:
+   [ ][ ][A][ ][ ]     Different columns each row
+   [A][ ][ ][ ][A]     20 seats · 8 aisle seats
+   [ ][ ][A][ ][ ]
 ```
 
 **House Rule: "Wandering Critics"** — +1 VP per Critic if you have **3+ Critics in aisle seats**.
@@ -404,11 +412,11 @@ Aisles shift row by row, so you can't stack Critics in one column. Spreading Cri
 </p>
 
 ```
-     Col 1  2  3  4  5  6
-        [ ][ ][ ]          Tiered: 3→4→5→6 = 18 seats
-      [ ][ ][ ][ ]        NO aisle seats
-    [ ][ ][ ][ ][ ]       Rows widen toward the back
-  [ ][ ][ ][ ][ ][ ]      ← Back row
+Col 1  2  3  4  5  6
+      [ ][ ][ ]          Tiered: 3→4→5→6 = 18 seats
+     [ ][ ][ ][ ]        NO aisle seats
+    [ ][ ][ ][ ][ ]      Rows widen toward the back
+   [ ][ ][ ][ ][ ][ ]    ← Back row
 ```
 
 **House Rule: "The Panorama"** — **+2 VP** for each completely filled row.
@@ -424,12 +432,12 @@ Zero aisles = Critics are dead (3 VP only, no aisle bonus). The narrow 3-seat fr
 </p>
 
 ```
-  Col 1  2     3  4     5  6
-  [ ][ ]   [ ][ ]   [ ][ ]    6 tables of 2×2
-  [ ][ ]   [ ][ ]   [ ][ ]    Gaps between tables
-  ─── horizontal gap ───       24 seats · No aisles
-  [ ][ ]   [ ][ ]   [ ][ ]
-  [ ][ ]   [ ][ ]   [ ][ ]
+Col 1  2     3  4     5  6
+   [ ][ ]   [ ][ ]   [ ][ ]   6 tables of 2×2
+   [ ][ ]   [ ][ ]   [ ][ ]   Gaps between tables
+    ─── horizontal gap ───    24 seats · No aisles
+   [ ][ ]   [ ][ ]   [ ][ ]
+   [ ][ ]   [ ][ ]   [ ][ ]
 ```
 
 **House Rule: "Full Tables"** — **+3 VP** for each 2×2 table where all 4 seats are occupied.
@@ -447,12 +455,12 @@ Gaps between tables break adjacency — Noisy only hurts tablemates. Lovebirds p
 </p>
 
 ```
-     Col 1  2  3  4  5
-  [A][ ][ ][ ][A]     Balcony (top row) — elevated, separate
-  ────────────────     Gap: NO adjacency between balcony and floor
-  [A][ ][ ][ ][A]     Main floor
-  [A][ ][ ][ ][A]     Both balcony and first floor row are front rows
-  [A][ ][ ][ ][A]     20 seats · 8 aisle seats
+Col 1  2  3  4  5
+   [A][ ][ ][ ][A]     Balcony (top row) — elevated, separate
+   ────────────────     Gap: NO adjacency between balcony and floor
+   [A][ ][ ][ ][A]     Main floor
+   [A][ ][ ][ ][A]     Both balcony and first floor row are front rows
+   [A][ ][ ][ ][A]     20 seats · 8 aisle seats
 ```
 
 **House Rule: "Bird's Eye View"** — Tall patrons in the balcony (top row) **don't penalize** anyone. Short patrons in the balcony **always get +2 VP** (no one in front).
@@ -467,13 +475,13 @@ The balcony is a safe haven for problem cards — Tall and Short traits are neut
   <img src="images/theater-rotunda.png" alt="The Rotunda" width="600" />
 </p>
 
-```
-     Col 1  2  3  4  5
-       [F][F][F]         Hollow ring: 16 seats
-  [A][F]      [F][A]    Center = stage (no seats)
-  [A]            [A]    F = Front (stage-side)
-  [A][F]      [F][A]    A = Aisle (outer ring)
-       [F][F][F]         No back row at all
+```text
+Col 1  2  3  4  5
+      [F][F][F]       Hollow ring: 16 seats
+   [A][F]   [F][A]    Center = stage (no seats)
+   [A]         [A]    F = Front (stage-side)
+   [A][F]   [F][A]    A = Aisle (outer ring)
+      [F][F][F]       No back row at all
 ```
 
 **House Rule: "In the Round"** — No back row. 10 inner-ring seats are front row. 6 outer-ring seats are aisles.
@@ -486,18 +494,19 @@ Everything changes in the round. VIPs are strong everywhere (10 front-row seats!
 
 **56 cards total** — 32 clean (no trait) + 24 with traits.
 
-| Type | No Trait | Tall | Short | Bespectacled | Noisy | **Total** |
-|---|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Patron** | 5 | 2 | 2 | 2 | 2 | **13** |
-| **VIP** | 3 | — | — | 1 | — | **4** |
-| **Lovebirds** | 8 | 1 | — | — | 1 | **10** |
-| **Kid** | 5 | 1 | 1 | — | 1 | **8** |
-| **Teacher** | 3 | 1 | 1 | 1 | — | **6** |
-| **Critic** | 3 | 1 | 2 | 1 | — | **7** |
-| **Friends** | 5 | 1 | 1 | 1 | — | **8** |
-| **Totals** | **32** | **7** | **7** | **6** | **4** | **56** |
+| Type          | No Trait | Tall  | Short | Bespectacled | Noisy | **Total** |
+| ------------- | :------: | :---: | :---: | :----------: | :---: | :-------: |
+| **Patron**    |    5     |   2   |   2   |      2       |   2   |  **13**   |
+| **VIP**       |    3     |   —   |   —   |      1       |   —   |   **4**   |
+| **Lovebirds** |    8     |   1   |   —   |      —       |   1   |  **10**   |
+| **Kid**       |    5     |   1   |   1   |      —       |   1   |   **8**   |
+| **Teacher**   |    3     |   1   |   1   |      1       |   —   |   **6**   |
+| **Critic**    |    3     |   1   |   2   |      1       |   —   |   **7**   |
+| **Friends**   |    5     |   1   |   1   |      1       |   —   |   **8**   |
+| **Totals**    |  **32**  | **7** | **7** |    **6**     | **4** |  **56**   |
 
 **Key distribution notes:**
+
 - **Patron (13)** — Most common; reliable filler.
 - **Lovebirds (10)** — Enough for pairing strategies.
 - **Kid (8) vs Teacher (6)** — Fewer Teachers creates capping tension.

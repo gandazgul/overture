@@ -9,21 +9,21 @@ import { GAME_HEIGHT, GAME_WIDTH } from "./config.js";
 
 /** @type {Phaser.Types.Core.GameConfig} */
 const config = {
-  type: Phaser.AUTO,
-  width: GAME_WIDTH,
-  height: GAME_HEIGHT,
-  backgroundColor: "#1a1a2e",
-  scene: [
-    BootScene,
-    TitleScene,
-    TheaterSelectionScene,
-    GameScene,
-    EndGameScene,
-  ],
-  scale: {
-    mode: Phaser.Scale.FIT,
-    autoCenter: Phaser.Scale.CENTER_BOTH,
-  },
+    type: Phaser.AUTO,
+    width: GAME_WIDTH,
+    height: GAME_HEIGHT,
+    backgroundColor: "#1a1a2e",
+    scene: [
+        BootScene,
+        TitleScene,
+        TheaterSelectionScene,
+        GameScene,
+        EndGameScene,
+    ],
+    scale: {
+        mode: Phaser.Scale.FIT,
+        autoCenter: Phaser.Scale.CENTER_BOTH,
+    },
 };
 
 const game = new Phaser.Game(config);

@@ -25,7 +25,7 @@ const SETTING_KEYS = ["showAllScores"];
  * @type {Record<string, any>}
  */
 const DEFAULTS = {
-  showAllScores: true,
+    showAllScores: true,
 };
 
 /**
@@ -38,30 +38,30 @@ const DEFAULTS = {
  * @param {Phaser.Data.DataManager} registry - scene.registry or game.registry
  */
 export function loadSettings(registry) {
-  /** @type {Record<string, any>} */
-  let stored = {};
+    /** @type {Record<string, any>} */
+    let stored = {};
 
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      stored = JSON.parse(raw);
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+            stored = JSON.parse(raw);
+        }
+    } catch {
+        // Corrupted or unavailable — use defaults
     }
-  } catch {
-    // Corrupted or unavailable — use defaults
-  }
 
-  // Merge stored values with defaults, then push into the registry
-  for (const key of SETTING_KEYS) {
-    const value = key in stored ? stored[key] : DEFAULTS[key];
-    registry.set(key, value);
-  }
+    // Merge stored values with defaults, then push into the registry
+    for (const key of SETTING_KEYS) {
+        const value = key in stored ? stored[key] : DEFAULTS[key];
+        registry.set(key, value);
+    }
 
-  // Auto-persist on change — listen to each setting key individually
-  for (const key of SETTING_KEYS) {
-    registry.events.on(`changedata-${key}`, () => {
-      saveSettings(registry);
-    });
-  }
+    // Auto-persist on change — listen to each setting key individually
+    for (const key of SETTING_KEYS) {
+        registry.events.on(`changedata-${key}`, () => {
+            saveSettings(registry);
+        });
+    }
 }
 
 /**
@@ -70,16 +70,16 @@ export function loadSettings(registry) {
  * @param {Phaser.Data.DataManager} registry - scene.registry or game.registry
  */
 export function saveSettings(registry) {
-  /** @type {Record<string, any>} */
-  const data = {};
+    /** @type {Record<string, any>} */
+    const data = {};
 
-  for (const key of SETTING_KEYS) {
-    data[key] = registry.get(key);
-  }
+    for (const key of SETTING_KEYS) {
+        data[key] = registry.get(key);
+    }
 
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  } catch {
-    // localStorage full or unavailable — silently fail
-  }
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch {
+        // localStorage full or unavailable — silently fail
+    }
 }

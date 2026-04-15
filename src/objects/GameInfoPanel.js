@@ -1,6 +1,6 @@
 // @ts-check
-import Phaser from 'phaser';
-import { px, s } from '../config.js';
+import Phaser from "phaser";
+import { px, s } from "../config.js";
 
 /**
  * @typedef {{ total: number, label: string }} ScoreRow
@@ -60,20 +60,20 @@ export class GameInfoPanel extends Phaser.GameObjects.Container {
         this.add(panelBg);
 
         this.turnText = scene.add
-            .text(width / 2, s(20), '', {
+            .text(width / 2, s(20), "", {
                 fontSize: px(20),
-                fontFamily: 'Georgia, serif',
-                color: '#d4af37',
-                fontStyle: 'bold',
+                fontFamily: "Georgia, serif",
+                color: "#d4af37",
+                fontStyle: "bold",
             })
             .setOrigin(0.5, 0);
         this.add(this.turnText);
 
         this.deckText = scene.add
-            .text(width / 2, s(50), '', {
+            .text(width / 2, s(50), "", {
                 fontSize: px(15),
-                fontFamily: 'Georgia, serif',
-                color: '#aaaacc',
+                fontFamily: "Georgia, serif",
+                color: "#aaaacc",
             })
             .setOrigin(0.5, 0);
         this.add(this.deckText);
@@ -102,15 +102,15 @@ export class GameInfoPanel extends Phaser.GameObjects.Container {
             }
 
             const text = scene.add
-                .text(s(46), s(18), '', {
+                .text(s(46), s(18), "", {
                     fontSize: px(15),
-                    fontFamily: 'Georgia, serif',
+                    fontFamily: "Georgia, serif",
                     color: playerColor(p),
-                    fontStyle: 'bold',
+                    fontStyle: "bold",
                 })
                 .setOrigin(0, 0.5);
 
-            panel.setData('text', text);
+            panel.setData("text", text);
             panel.add(text);
             this.add(panel);
             this.scorePanels.push(panel);
@@ -119,7 +119,12 @@ export class GameInfoPanel extends Phaser.GameObjects.Container {
         if (houseRuleDescription) {
             const ruleY = scoreStartY + playerCount * s(48) + s(8);
             const divider = scene.add.rectangle(
-                width / 2, ruleY, width - s(30), s(1), 0xd4af37, 0.4,
+                width / 2,
+                ruleY,
+                width - s(30),
+                s(1),
+                0xd4af37,
+                0.4,
             ).setOrigin(0.5, 0);
             this.add(divider);
 
@@ -129,11 +134,11 @@ export class GameInfoPanel extends Phaser.GameObjects.Container {
                 houseRuleDescription,
                 {
                     fontSize: px(11),
-                    fontFamily: 'Georgia, serif',
-                    color: '#f5c518',
-                    fontStyle: 'italic',
+                    fontFamily: "Georgia, serif",
+                    color: "#f5c518",
+                    fontStyle: "italic",
                     wordWrap: { width: width - s(24) },
-                    align: 'center',
+                    align: "center",
                 },
             ).setOrigin(0.5, 0);
             this.add(ruleText);
@@ -170,14 +175,13 @@ export class GameInfoPanel extends Phaser.GameObjects.Container {
                 continue;
             }
 
-            const text = panel.getData('text');
+            const text = panel.getData("text");
             text.setText(`${row.label}: ${row.total} VP`);
 
             if (showAll || p === currentPlayer) {
                 panel.setAlpha(p === currentPlayer ? 1 : 0.6);
                 panel.setVisible(true);
-            }
-            else {
+            } else {
                 panel.setVisible(false);
             }
         }

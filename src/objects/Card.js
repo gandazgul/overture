@@ -1,7 +1,7 @@
 // @ts-check
-import Phaser from 'phaser';
-import { TraitColors } from '../types.js';
-import { s } from '../config.js';
+import Phaser from "phaser";
+import { TraitColors } from "../types.js";
+import { s } from "../config.js";
 
 /** @typedef {import('../types.js').CardData} CardData */
 
@@ -37,9 +37,7 @@ export class Card extends Phaser.GameObjects.Container {
 
         this.baseY = y;
 
-        this.strokeColor = cardData.trait
-            ? TraitColors[cardData.trait] || 0xffffff
-            : 0x4a4a6a;
+        this.strokeColor = cardData.trait ? TraitColors[cardData.trait] || 0xffffff : 0x4a4a6a;
 
         // Use black fill since the image will cover it, but keep it for the stroke outline when selected
         this.background = scene.add
@@ -55,7 +53,11 @@ export class Card extends Phaser.GameObjects.Container {
 
         // Trait badge
         if (cardData.trait) {
-            const badge = scene.add.image(Card.WIDTH / 2 - s(18), -Card.HEIGHT / 2 + s(18), `badge_${cardData.trait.toLowerCase()}`);
+            const badge = scene.add.image(
+                Card.WIDTH / 2 - s(18),
+                -Card.HEIGHT / 2 + s(18),
+                `badge_${cardData.trait.toLowerCase()}`,
+            );
             badge.setDisplaySize(s(28), s(28));
             children.push(badge);
         }
@@ -72,30 +74,6 @@ export class Card extends Phaser.GameObjects.Container {
             ),
             hitAreaCallback: Phaser.Geom.Rectangle.Contains,
             useHandCursor: true,
-        });
-
-        this.on('pointerover', () => {
-            if (!this.isSelected) {
-                scene.tweens.add({
-                    targets: this,
-                    y: this.baseY - s(20), // Pop up slightly
-                    duration: 150,
-                    ease: 'Back.easeOut',
-                });
-            }
-        });
-
-        this.on('pointerout', () => {
-            if (!this.isSelected) {
-                scene.tweens.add({
-                    targets: this,
-                    scaleX: 1,
-                    scaleY: 1,
-                    y: this.baseY,
-                    duration: 150,
-                    ease: 'Sine.easeOut',
-                });
-            }
         });
 
         // Add this container to the scene's display list
@@ -122,11 +100,10 @@ export class Card extends Phaser.GameObjects.Container {
                 scaleY: 1.6,
                 y: this.baseY - s(42), // Pop up more when selected
                 duration: 250,
-                ease: 'Back.easeOut',
+                ease: "Back.easeOut",
             });
             this.scene.children.bringToTop(this);
-        }
-        else {
+        } else {
             this.background.setStrokeStyle(s(2), this.strokeColor, 0.7);
             this.scene.tweens.add({
                 targets: this,
@@ -134,7 +111,7 @@ export class Card extends Phaser.GameObjects.Container {
                 scaleY: 1,
                 y: this.baseY,
                 duration: 200,
-                ease: 'Sine.easeOut',
+                ease: "Sine.easeOut",
             });
         }
     }

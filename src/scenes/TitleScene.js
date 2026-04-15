@@ -1,20 +1,20 @@
 // @ts-check
-import Phaser from 'phaser';
-import { loadSettings } from '../settings.js';
-import { px, s } from '../config.js';
-import { createButton } from '../objects/Button.js';
-import { AIDifficulty } from '../ai.js';
-import { PlayerColors, PlayerColorsHex } from '../types.js';
+import Phaser from "phaser";
+import { loadSettings } from "../settings.js";
+import { px, s } from "../config.js";
+import { createButton } from "../objects/Button.js";
+import { AIDifficulty } from "../ai.js";
+import { PlayerColors, PlayerColorsHex } from "../types.js";
 
 /** Usher avatar texture keys indexed by color slot. */
-const USHER_KEYS = ['usher_blue', 'usher_red', 'usher_green', 'usher_orange'];
+const USHER_KEYS = ["usher_blue", "usher_red", "usher_green", "usher_orange"];
 
 /**
  * Title screen with player count selection.
  */
 export class TitleScene extends Phaser.Scene {
     constructor() {
-        super('TitleScene');
+        super("TitleScene");
         /** @type {number} */
         this.selectedPlayerCount = 2;
 
@@ -36,7 +36,7 @@ export class TitleScene extends Phaser.Scene {
         this._returnToSetup = false;
 
         /** @type {'menu' | 'setup'} Tracks which screen is showing (for debug skip) */
-        this._currentScreen = 'menu';
+        this._currentScreen = "menu";
     }
 
     /**
@@ -59,19 +59,19 @@ export class TitleScene extends Phaser.Scene {
 
         // ── DEV DEBUG SKIP (Shift+D) ────────────────────────────────────
         // Press once from main menu → player setup (4p). Press again → theater select.
-        this.input.keyboard?.on('keydown-D', (/** @type {KeyboardEvent} */ e) => {
-            if (!e.shiftKey) return;
-            if (this._currentScreen === 'menu') {
-                console.log('DEBUG: Skipping to Player Setup (4 players)');
+        this.input.keyboard?.on("keydown-D", (/** @type {KeyboardEvent} */ e) => {
+            if (!e.shiftKey) {
+                return;
+            }
+            if (this._currentScreen === "menu") {
+                console.log("DEBUG: Skipping to Player Setup (4 players)");
                 this.selectedPlayerCount = 4;
-                this.aiConfig = Array.from({ length: 4 }, (_, i) =>
-                    i === 0 ? null : AIDifficulty.MEDIUM
-                );
+                this.aiConfig = Array.from({ length: 4 }, (_, i) => i === 0 ? null : AIDifficulty.MEDIUM);
                 this.showAISetup();
-            } else if (this._currentScreen === 'setup') {
-                console.log('DEBUG: Skipping to Theater Selection');
+            } else if (this._currentScreen === "setup") {
+                console.log("DEBUG: Skipping to Theater Selection");
                 const count = this.selectedPlayerCount;
-                this.scene.start('TheaterSelectionScene', {
+                this.scene.start("TheaterSelectionScene", {
                     playerCount: count,
                     aiConfig: this.aiConfig.slice(0, count),
                     playerColorMap: this.playerColorMap.slice(0, count),
@@ -92,40 +92,29 @@ export class TitleScene extends Phaser.Scene {
     // ══════════════════════════════════════════════════════════════════
 
     showMainMenu() {
-        this._currentScreen = 'menu';
+        this._currentScreen = "menu";
         this.children.removeAll(true);
         this.tweens.killAll();
 
         const { width, height } = this.scale;
 
         // Title
-        if (this.textures.exists('ui_logo')) {
-            const titleLogo = this.add.image(width / 2, height / 4, 'ui_logo');
-            const logoRatio = 0.3643695015;
-            const logoWidth = 480;
-            titleLogo.setDisplaySize(s(logoWidth), s(logoWidth * logoRatio));
-        }
-        else {
-            this.add
-                .text(width / 2, height / 4, 'Overture', {
-                    fontSize: px(52),
-                    fontFamily: 'Georgia, serif',
-                    color: '#f5c518',
-                })
-                .setOrigin(0.5);
-        }
+        const titleLogo = this.add.image(width / 2, height / 4, "ui_logo");
+        const logoRatio = 0.3643695015;
+        const logoWidth = 480;
+        titleLogo.setDisplaySize(s(logoWidth), s(logoWidth * logoRatio));
 
         // Subtitle
         this.add
             .text(
                 width / 2,
                 height / 4 + s(120),
-                'A Card Game of Seating Strategy\nSeat patrons in your theater to earn the most victory points!',
+                "A Card Game of Seating Strategy\nSeat patrons in your theater to earn the most victory points!",
                 {
                     fontSize: px(18),
-                    fontFamily: 'Georgia, serif',
-                    color: '#aaaacc',
-                    align: 'center',
+                    fontFamily: "Georgia, serif",
+                    color: "#aaaacc",
+                    align: "center",
                     lineSpacing: 5,
                 },
             )
@@ -133,10 +122,10 @@ export class TitleScene extends Phaser.Scene {
 
         // "How many players?" label
         this.add
-            .text(width / 2, height / 2 - s(30), 'How many players?', {
+            .text(width / 2, height / 2 - s(30), "How many players?", {
                 fontSize: px(28),
-                fontFamily: 'Georgia, serif',
-                color: '#ffd700',
+                fontFamily: "Georgia, serif",
+                color: "#ffd700",
             })
             .setOrigin(0.5);
 
@@ -157,11 +146,12 @@ export class TitleScene extends Phaser.Scene {
             const { hitArea } = createButton(this, bx, by, `${n} Players`, {
                 width: buttonWidth,
             });
-            hitArea.on('pointerdown', () => {
+            hitArea.on("pointerdown", () => {
                 this.selectedPlayerCount = n;
                 // Reset AI config: player 0 always human, others default to AI medium
-                this.aiConfig = Array.from({ length: 4 }, (_, i) =>
-                    i === 0 ? null : (i < n ? AIDifficulty.MEDIUM : null)
+                this.aiConfig = Array.from(
+                    { length: 4 },
+                    (_, i) => i === 0 ? null : (i < n ? AIDifficulty.MEDIUM : null),
                 );
                 this.showAISetup();
             });
@@ -169,24 +159,24 @@ export class TitleScene extends Phaser.Scene {
 
         // ── Settings section ────────────────────────────────────────────────
         this.add
-            .text(width / 2, height / 2 + s(140), 'Settings', {
+            .text(width / 2, height / 2 + s(140), "Settings", {
                 fontSize: px(18),
-                fontFamily: 'Georgia, serif',
-                color: '#888899',
+                fontFamily: "Georgia, serif",
+                color: "#888899",
             })
             .setOrigin(0.5);
 
-        const showAll = this.registry.get('showAllScores') ?? true;
+        const showAll = this.registry.get("showAllScores") ?? true;
         const toggleText = this.add
             .text(
                 width / 2,
                 height / 2 + s(175),
-                `Show all scores: ${showAll ? 'ON' : 'OFF'}`,
+                `Show all scores: ${showAll ? "ON" : "OFF"}`,
                 {
                     fontSize: px(16),
-                    fontFamily: 'Arial',
-                    color: showAll ? '#66bb6a' : '#888899',
-                    backgroundColor: '#2a2a4e',
+                    fontFamily: "Arial",
+                    color: showAll ? "#66bb6a" : "#888899",
+                    backgroundColor: "#2a2a4e",
                     padding: { x: s(16), y: s(8) },
                 },
             )
@@ -194,43 +184,41 @@ export class TitleScene extends Phaser.Scene {
             .setInteractive({ useHandCursor: true });
 
         toggleText.on(
-            'pointerover',
-            () => toggleText.setStyle({ color: '#f5c518' }),
+            "pointerover",
+            () => toggleText.setStyle({ color: "#f5c518" }),
         );
-        toggleText.on('pointerout', () => {
-            const current = this.registry.get('showAllScores') ?? true;
-            toggleText.setStyle({ color: current ? '#66bb6a' : '#888899' });
+        toggleText.on("pointerout", () => {
+            const current = this.registry.get("showAllScores") ?? true;
+            toggleText.setStyle({ color: current ? "#66bb6a" : "#888899" });
         });
 
-        toggleText.on('pointerdown', () => {
-            const current = this.registry.get('showAllScores') ?? true;
+        toggleText.on("pointerdown", () => {
+            const current = this.registry.get("showAllScores") ?? true;
             const next = !current;
-            this.registry.set('showAllScores', next);
-            toggleText.setText(`Show all scores: ${next ? 'ON' : 'OFF'}`);
-            toggleText.setStyle({ color: next ? '#66bb6a' : '#888899' });
+            this.registry.set("showAllScores", next);
+            toggleText.setText(`Show all scores: ${next ? "ON" : "OFF"}`);
+            toggleText.setStyle({ color: next ? "#66bb6a" : "#888899" });
         });
 
         // Fullscreen button
         const fsBtn = this.add
-            .text(width * 0.9, s(40), '⛶ Fullscreen', {
+            .text(width * 0.9, s(40), "⛶ Fullscreen", {
                 fontSize: px(16),
-                fontFamily: 'Arial',
-                color: '#ffffff',
-                backgroundColor: '#2a2a4e',
+                fontFamily: "Arial",
+                color: "#ffffff",
+                backgroundColor: "#2a2a4e",
                 padding: { x: s(12), y: s(6) },
             })
             .setOrigin(0.5, 0)
             .setInteractive({ useHandCursor: true });
 
-        fsBtn.on('pointerdown', () => {
+        fsBtn.on("pointerdown", () => {
             const el = /** @type {any} */ (document.documentElement);
             if (el.requestFullscreen) {
                 el.requestFullscreen();
-            }
-            else if (el.webkitRequestFullscreen) {
+            } else if (el.webkitRequestFullscreen) {
                 el.webkitRequestFullscreen();
-            }
-            else if (el.msRequestFullscreen) {
+            } else if (el.msRequestFullscreen) {
                 el.msRequestFullscreen();
             }
         });
@@ -241,7 +229,7 @@ export class TitleScene extends Phaser.Scene {
     // ══════════════════════════════════════════════════════════════════
 
     showAISetup() {
-        this._currentScreen = 'setup';
+        this._currentScreen = "setup";
         this.children.removeAll(true);
         this.tweens.killAll();
 
@@ -250,34 +238,34 @@ export class TitleScene extends Phaser.Scene {
 
         const difficulties = [AIDifficulty.EASY, AIDifficulty.MEDIUM, AIDifficulty.HARD];
         const diffLabels = /** @type {Record<string,string>} */ ({
-            [AIDifficulty.EASY]: 'Easy',
-            [AIDifficulty.MEDIUM]: 'Medium',
-            [AIDifficulty.HARD]: 'Hard',
+            [AIDifficulty.EASY]: "Easy",
+            [AIDifficulty.MEDIUM]: "Medium",
+            [AIDifficulty.HARD]: "Hard",
         });
         const diffDots = /** @type {Record<string,string>} */ ({
-            [AIDifficulty.EASY]: '🟢',
-            [AIDifficulty.MEDIUM]: '🟡',
-            [AIDifficulty.HARD]: '🔴',
+            [AIDifficulty.EASY]: "🟢",
+            [AIDifficulty.MEDIUM]: "🟡",
+            [AIDifficulty.HARD]: "🔴",
         });
         const diffTextColors = /** @type {Record<string,string>} */ ({
-            [AIDifficulty.EASY]: '#66bb6a',
-            [AIDifficulty.MEDIUM]: '#ffa726',
-            [AIDifficulty.HARD]: '#ef5350',
+            [AIDifficulty.EASY]: "#66bb6a",
+            [AIDifficulty.MEDIUM]: "#ffa726",
+            [AIDifficulty.HARD]: "#ef5350",
         });
 
         // ── Header ──────────────────────────────────────────────────
-        if (this.textures.exists('ui_logo')) {
-            const logo = this.add.image(width / 2, s(90), 'ui_logo');
-            const logoRatio = 0.3643695015;
-            const logoWidth = 320;
-            logo.setDisplaySize(s(logoWidth), s(logoWidth * logoRatio));
-        }
+        const logoY = s(90);
+        const logo = this.add.image(width / 2, logoY, "ui_logo");
+        const logoRatio = logo.height / logo.width;
+        const logoWidth = 320;
+        logo.setDisplaySize(s(logoWidth), s(logoWidth * logoRatio));
 
+        // Subtitle
         this.add
-            .text(width / 2, s(175), 'Player Setup', {
+            .text(width / 2, logoY + s(100), "Player Setup", {
                 fontSize: px(28),
-                fontFamily: 'Georgia, serif',
-                color: '#ffd700',
+                fontFamily: "Georgia, serif",
+                color: "#ffd700",
             })
             .setOrigin(0.5);
 
@@ -286,7 +274,7 @@ export class TitleScene extends Phaser.Scene {
         const rowH = s(68);
         const headerH = s(34);
         const tableX = (width - tableW) / 2;
-        const tableY = s(205);
+        const tableY = logoY + s(160);
 
         // Column X positions (center-based, relative to tableX)
         const colAvatar = s(38);
@@ -299,22 +287,30 @@ export class TitleScene extends Phaser.Scene {
 
         // Table background
         this.add.rectangle(
-            tableX + tableW / 2, tableY + totalH / 2,
-            tableW, totalH, 0x12122a, 0.9,
+            tableX + tableW / 2,
+            tableY + totalH / 2,
+            tableW,
+            totalH,
+            0x12122a,
+            0.9,
         ).setStrokeStyle(s(2), 0x3a3a6a);
 
         // ── Table header ────────────────────────────────────────────
         const hdrY = tableY + headerH / 2;
         this.add.rectangle(
-            tableX + tableW / 2, hdrY, tableW, headerH, 0x1a1a3e,
+            tableX + tableW / 2,
+            hdrY,
+            tableW,
+            headerH,
+            0x1a1a3e,
         );
 
         /** @type {Phaser.Types.GameObjects.Text.TextStyle} */
-        const hdrStyle = { fontSize: px(11), fontFamily: 'Arial', color: '#888899' };
-        this.add.text(tableX + colName, hdrY, 'Player', hdrStyle).setOrigin(0, 0.5);
-        this.add.text(tableX + colColor, hdrY, 'Color', hdrStyle).setOrigin(0.5, 0.5);
-        this.add.text(tableX + colType, hdrY, 'Type', hdrStyle).setOrigin(0.5, 0.5);
-        this.add.text(tableX + colDiff, hdrY, 'Difficulty', hdrStyle).setOrigin(0.5, 0.5);
+        const hdrStyle = { fontSize: px(16), fontFamily: "Arial", color: "#888899" };
+        this.add.text(tableX + colName, hdrY, "Player", hdrStyle).setOrigin(0, 0.5);
+        this.add.text(tableX + colColor, hdrY, "Color", hdrStyle).setOrigin(0.5, 0.5);
+        this.add.text(tableX + colType, hdrY, "Type", hdrStyle).setOrigin(0.5, 0.5);
+        this.add.text(tableX + colDiff, hdrY, "Difficulty", hdrStyle).setOrigin(0.5, 0.5);
 
         // ── Player rows ─────────────────────────────────────────────
         for (let p = 0; p < count; p++) {
@@ -325,15 +321,24 @@ export class TitleScene extends Phaser.Scene {
             // Alternating row tint
             if (p % 2 === 1) {
                 this.add.rectangle(
-                    tableX + tableW / 2, rowCY, tableW, rowH, 0x1a1a30, 0.5,
+                    tableX + tableW / 2,
+                    rowCY,
+                    tableW,
+                    rowH,
+                    0x1a1a30,
+                    0.5,
                 );
             }
 
             // Row separator
             if (p > 0) {
                 this.add.rectangle(
-                    tableX + tableW / 2, rowCY - rowH / 2,
-                    tableW - s(16), s(1), 0x3a3a6a, 0.4,
+                    tableX + tableW / 2,
+                    rowCY - rowH / 2,
+                    tableW - s(16),
+                    s(1),
+                    0x3a3a6a,
+                    0.4,
                 );
             }
 
@@ -354,10 +359,10 @@ export class TitleScene extends Phaser.Scene {
             // ── Name ────────────────────────────────────────────────
             this.add
                 .text(tableX + colName, rowCY, `Player ${p + 1}`, {
-                    fontSize: px(15),
-                    fontFamily: 'Georgia, serif',
+                    fontSize: px(16),
+                    fontFamily: "Georgia, serif",
                     color: PlayerColors[ci],
-                    fontStyle: 'bold',
+                    fontStyle: "bold",
                 })
                 .setOrigin(0, 0.5);
 
@@ -370,14 +375,19 @@ export class TitleScene extends Phaser.Scene {
                 const sx = swatchStartX + c * swatchGap;
                 const isActive = this.playerColorMap[p] === c;
                 const swatch = this.add.circle(
-                    sx, rowCY, swatchR,
-                    PlayerColorsHex[c], isActive ? 1 : 0.25,
+                    sx,
+                    rowCY,
+                    swatchR,
+                    PlayerColorsHex[c],
+                    isActive ? 1 : 0.25,
                 )
                     .setStrokeStyle(isActive ? s(3) : s(1), isActive ? 0xffffff : 0x555577)
                     .setInteractive({ useHandCursor: true });
 
-                swatch.on('pointerdown', () => {
-                    if (this.playerColorMap[p] === c) return;
+                swatch.on("pointerdown", () => {
+                    if (this.playerColorMap[p] === c) {
+                        return;
+                    }
                     // Swap with whoever currently owns this color
                     const owner = this.playerColorMap.indexOf(c);
                     if (owner >= 0 && owner < count) {
@@ -391,18 +401,18 @@ export class TitleScene extends Phaser.Scene {
             // ── Type toggle ─────────────────────────────────────────
             if (isFirstPlayer) {
                 this.add
-                    .text(tableX + colType, rowCY, '👤 Human', {
-                        fontSize: px(14),
-                        fontFamily: 'Arial',
-                        color: '#66bb6a',
+                    .text(tableX + colType, rowCY, "👤 Human", {
+                        fontSize: px(16),
+                        fontFamily: "Arial",
+                        color: "#66bb6a",
                     })
                     .setOrigin(0.5, 0.5);
 
                 this.add
-                    .text(tableX + colDiff, rowCY, '—', {
-                        fontSize: px(14),
-                        fontFamily: 'Arial',
-                        color: '#555566',
+                    .text(tableX + colDiff, rowCY, "—", {
+                        fontSize: px(16),
+                        fontFamily: "Arial",
+                        color: "#555566",
                     })
                     .setOrigin(0.5, 0.5);
                 continue;
@@ -410,11 +420,11 @@ export class TitleScene extends Phaser.Scene {
 
             const isAI = this.aiConfig[p] !== null;
             const typeBtn = this.add
-                .text(tableX + colType, rowCY, isAI ? '🤖 AI' : '👤 Human', {
-                    fontSize: px(14),
-                    fontFamily: 'Arial',
-                    color: isAI ? '#ffa726' : '#66bb6a',
-                    backgroundColor: '#2a2a4e',
+                .text(tableX + colType, rowCY, isAI ? "🤖 AI" : "👤 Human", {
+                    fontSize: px(16),
+                    fontFamily: "Arial",
+                    color: isAI ? "#ffa726" : "#66bb6a",
+                    backgroundColor: "#2a2a4e",
                     padding: { x: s(12), y: s(5) },
                 })
                 .setOrigin(0.5, 0.5)
@@ -423,14 +433,18 @@ export class TitleScene extends Phaser.Scene {
             // Difficulty button
             const currentDiff = this.aiConfig[p] || AIDifficulty.MEDIUM;
             const diffBtn = this.add
-                .text(tableX + colDiff, rowCY,
-                    `${diffDots[currentDiff]} ${diffLabels[currentDiff]}`, {
-                    fontSize: px(13),
-                    fontFamily: 'Arial',
-                    color: diffTextColors[currentDiff] || '#ffa726',
-                    backgroundColor: '#2a2a4e',
-                    padding: { x: s(10), y: s(5) },
-                })
+                .text(
+                    tableX + colDiff,
+                    rowCY,
+                    `${diffDots[currentDiff]} ${diffLabels[currentDiff]}`,
+                    {
+                        fontSize: px(16),
+                        fontFamily: "Arial",
+                        color: diffTextColors[currentDiff] || "#ffa726",
+                        backgroundColor: "#2a2a4e",
+                        padding: { x: s(10), y: s(5) },
+                    },
+                )
                 .setOrigin(0.5, 0.5)
                 .setInteractive({ useHandCursor: true })
                 .setVisible(isAI);
@@ -438,16 +452,16 @@ export class TitleScene extends Phaser.Scene {
             if (!isAI) {
                 // Show placeholder for difficulty column
                 this.add
-                    .text(tableX + colDiff, rowCY, '—', {
+                    .text(tableX + colDiff, rowCY, "—", {
                         fontSize: px(14),
-                        fontFamily: 'Arial',
-                        color: '#555566',
+                        fontFamily: "Arial",
+                        color: "#555566",
                     })
                     .setOrigin(0.5, 0.5);
             }
 
             // Toggle human ↔ AI
-            typeBtn.on('pointerdown', () => {
+            typeBtn.on("pointerdown", () => {
                 if (this.aiConfig[p] === null) {
                     this.aiConfig[p] = AIDifficulty.MEDIUM;
                 } else {
@@ -457,7 +471,7 @@ export class TitleScene extends Phaser.Scene {
             });
 
             // Cycle difficulty
-            diffBtn.on('pointerdown', () => {
+            diffBtn.on("pointerdown", () => {
                 const idx = difficulties.indexOf(/** @type {typeof difficulties[number]} */ (this.aiConfig[p]));
                 const next = difficulties[(idx + 1) % difficulties.length];
                 this.aiConfig[p] = next;
@@ -468,11 +482,14 @@ export class TitleScene extends Phaser.Scene {
         // ── Next button ─────────────────────────────────────────────
         const btnY = tableY + totalH + s(85);
         const { hitArea: startHit } = createButton(
-            this, width / 2, btnY, 'Next \u2192',
+            this,
+            width / 2,
+            btnY,
+            "Next \u2192",
             { fontSize: 18, width: 200 },
         );
-        startHit.on('pointerdown', () => {
-            this.scene.start('TheaterSelectionScene', {
+        startHit.on("pointerdown", () => {
+            this.scene.start("TheaterSelectionScene", {
                 playerCount: count,
                 aiConfig: this.aiConfig.slice(0, count),
                 playerColorMap: this.playerColorMap.slice(0, count),
@@ -481,15 +498,15 @@ export class TitleScene extends Phaser.Scene {
 
         // ── Back button ─────────────────────────────────────────────
         const backBtn = this.add
-            .text(s(20), s(20), '\u2190 Back', {
+            .text(s(20), s(20), "\u2190 Back", {
                 fontSize: px(16),
-                fontFamily: 'Arial',
-                color: '#888899',
+                fontFamily: "Arial",
+                color: "#888899",
             })
             .setInteractive({ useHandCursor: true });
 
-        backBtn.on('pointerover', () => backBtn.setStyle({ color: '#f5c518' }));
-        backBtn.on('pointerout', () => backBtn.setStyle({ color: '#888899' }));
-        backBtn.on('pointerdown', () => this.showMainMenu());
+        backBtn.on("pointerover", () => backBtn.setStyle({ color: "#f5c518" }));
+        backBtn.on("pointerout", () => backBtn.setStyle({ color: "#888899" }));
+        backBtn.on("pointerdown", () => this.showMainMenu());
     }
 }
