@@ -455,7 +455,7 @@ Everything changes in the round. VIPs are strong everywhere (10 front-row seats!
 2. Each player's theater is scored as follows:
    - For each patron type calculate base VP and bonuses per seat.
      - Apply trait bonuses and penalties when adding each seat.
-   -  Add the theater house rule bonus
+   - Add the theater house rule bonus
 3. The player with the **highest total VP** wins!
 4. **Tiebreaker:**
    - The Lead Usher: The player who successfully seated the most Noisy patrons in their theater.
