@@ -400,15 +400,17 @@ Gaps between tables break adjacency — Noisy only hurts tablemates. Lovebirds p
 
 ---
 
-### The Balcony
+### The Ziegfeld Runway
 
 <p align="center">
-  <img src="images/theater-balcony.png" alt="The Balcony" width="600" />
+  <img src="images/theater-ziegfeld-runway.png" alt="The Ziegfeld Runway" width="600" />
 </p>
 
-**House Rule: "Bird's Eye View"** — Tall patrons in the balcony (top row) **don't penalize** anyone. Short patrons in the balcony **always get +2 VP** (no one in front).
+**House Rule: "Runway Pressure"** — A T-shaped stage runway splits the audience in two and shrinks total capacity to 15 seats.
 
-The balcony is a safe haven for problem cards — Tall and Short traits are neutralized. But it's also front-row real estate for VIPs and Bespectacled patrons. Waste it on damage control, or pack it with your best scorers?
+Only four seats count as **front**: the two front corners and the two row-1 inner seats beside the runway. Side seats on rows 1–3 are aisles. Row 3 is the only back row.
+
+The runway acts like a permanent wall where stage cells remove seat adjacency, so left and right sides are harder to coordinate. With so little space, every placement matters — this theater rewards precision over safety.
 
 ---
 

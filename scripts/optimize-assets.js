@@ -125,14 +125,20 @@ for (const bg of globFiles(ARCHIVE, "bg_", ".png")) {
     const fullPath = join(SRC, `${name}.jpg`);
     const thumbPath = join(SRC, `${name}_thumb.jpg`);
 
-    await resizeJpeg(bg, fullPath, 800, 85);
-    // Remove old PNG if it exists
+    if (!existsSync(fullPath)) {
+        await resizeJpeg(bg, fullPath, 800, 85);
+        console.log(`  ${name}: wrote full asset`);
+    } else {
+        console.log(`  ${name}: skipped (full asset exists)`);
+    }
     const oldPng = join(SRC, `${name}.png`);
     if (existsSync(oldPng)) unlinkSync(oldPng);
-    // Thumbnail for theater selection cards (320px covers 300×164 card + 1.04× zoom)
-    await resizeJpeg(bg, thumbPath, 320, 80);
-
-    console.log(`  ${name}: ${fileSize(fullPath)} (full), ${fileSize(thumbPath)} (thumb)`);
+    if (!existsSync(thumbPath)) {
+        await resizeJpeg(bg, thumbPath, 320, 80);
+        console.log(`  ${name}: wrote thumb`);
+    } else {
+        console.log(`  ${name}: skipped (thumb exists)`);
+    }
 }
 console.log("");
 
@@ -140,8 +146,12 @@ console.log("");
 console.log("--- Card Back (128px wide) ---");
 {
     const out = join(SRC, "card_back.png");
-    await resizePng(join(ARCHIVE, "card_back.png"), out, { width: 128 });
-    console.log(`  card_back: ${fileSize(out)}`);
+    if (!existsSync(out)) {
+        await resizePng(join(ARCHIVE, "card_back.png"), out, { width: 128 });
+        console.log(`  card_back: wrote`);
+    } else {
+        console.log(`  card_back: skipped (exists)`);
+    }
 }
 console.log("");
 
@@ -149,8 +159,12 @@ console.log("");
 console.log("--- UI Logo (600px wide) ---");
 {
     const out = join(SRC, "ui_logo.png");
-    await resizePng(join(ARCHIVE, "ui_logo.png"), out, { width: 600 });
-    console.log(`  ui_logo: ${fileSize(out)}`);
+    if (!existsSync(out)) {
+        await resizePng(join(ARCHIVE, "ui_logo.png"), out, { width: 600 });
+        console.log(`  ui_logo: wrote`);
+    } else {
+        console.log(`  ui_logo: skipped (exists)`);
+    }
 }
 console.log("");
 
@@ -158,8 +172,12 @@ console.log("");
 console.log("--- UI Button Frame (256px wide) ---");
 {
     const out = join(SRC, "ui_button_frame.png");
-    await resizePng(join(ARCHIVE, "ui_button_frame.png"), out, { width: 256 });
-    console.log(`  ui_button_frame: ${fileSize(out)}`);
+    if (!existsSync(out)) {
+        await resizePng(join(ARCHIVE, "ui_button_frame.png"), out, { width: 256 });
+        console.log(`  ui_button_frame: wrote`);
+    } else {
+        console.log(`  ui_button_frame: skipped (exists)`);
+    }
 }
 console.log("");
 
@@ -167,8 +185,12 @@ console.log("");
 console.log("--- UI Stage (640px wide) ---");
 {
     const out = join(SRC, "ui_stage.png");
-    await resizePng(join(ARCHIVE, "ui_stage.png"), out, { width: 640 });
-    console.log(`  ui_stage: ${fileSize(out)}`);
+    if (!existsSync(out)) {
+        await resizePng(join(ARCHIVE, "ui_stage.png"), out, { width: 640 });
+        console.log(`  ui_stage: wrote`);
+    } else {
+        console.log(`  ui_stage: skipped (exists)`);
+    }
 }
 console.log("");
 
@@ -177,8 +199,12 @@ console.log("--- Patron Cards (168px wide, trimmed) ---");
 for (const patron of globFiles(ARCHIVE, "patron_", ".png")) {
     const name = basename(patron, ".png");
     const out = join(SRC, `${name}.png`);
-    await resizePng(patron, out, { width: 168, trim: true });
-    console.log(`  ${name}: ${fileSize(out)}`);
+    if (!existsSync(out)) {
+        await resizePng(patron, out, { width: 168, trim: true });
+        console.log(`  ${name}: wrote`);
+    } else {
+        console.log(`  ${name}: skipped (exists)`);
+    }
 }
 console.log("");
 
@@ -187,8 +213,12 @@ console.log("--- Ushers (160px wide) ---");
 for (const usher of globFiles(ARCHIVE, "usher_", ".png")) {
     const name = basename(usher, ".png");
     const out = join(SRC, `${name}.png`);
-    await resizePng(usher, out, { width: 160 });
-    console.log(`  ${name}: ${fileSize(out)}`);
+    if (!existsSync(out)) {
+        await resizePng(usher, out, { width: 160 });
+        console.log(`  ${name}: wrote`);
+    } else {
+        console.log(`  ${name}: skipped (exists)`);
+    }
 }
 console.log("");
 
@@ -197,8 +227,12 @@ console.log("--- Badges (64px, trimmed) ---");
 for (const badge of globFiles(ARCHIVE, "badge_", ".png")) {
     const name = basename(badge, ".png");
     const out = join(SRC, `${name}.png`);
-    await resizePng(badge, out, { width: 64, height: 64, trim: true });
-    console.log(`  ${name}: ${fileSize(out)}`);
+    if (!existsSync(out)) {
+        await resizePng(badge, out, { width: 64, height: 64, trim: true });
+        console.log(`  ${name}: wrote`);
+    } else {
+        console.log(`  ${name}: skipped (exists)`);
+    }
 }
 console.log("");
 
@@ -212,8 +246,12 @@ console.log("--- Tokens (64px, trimmed) ---");
         for (const token of tokens) {
             const name = basename(token, ".png");
             const out = join(SRC, `${name}.png`);
-            await resizePng(token, out, { width: 64, height: 64, trim: true });
-            console.log(`  ${name}: ${fileSize(out)}`);
+            if (!existsSync(out)) {
+                await resizePng(token, out, { width: 64, height: 64, trim: true });
+                console.log(`  ${name}: wrote`);
+            } else {
+                console.log(`  ${name}: skipped (exists)`);
+            }
         }
     }
 }

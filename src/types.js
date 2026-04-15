@@ -420,7 +420,7 @@ Object.freeze(PlayerNames);
  * @property {number[]} [frontRows] - Row indices that count as "front" (default: [0, 1])
  * @property {{row: number, col: number}[]} [royalBoxes] - Seats that count as both aisle AND front row
  * @property {boolean[][]} [seatMask] - 2D array: true = seat exists, false = no seat. If absent, all seats exist.
- * @property {number[][]} [adjacencyBreaks] - Pairs [rowA, rowB] where adjacency between rows is severed (e.g. Balcony)
+ * @property {number[][]} [adjacencyBreaks] - Pairs [rowA, rowB] where adjacency between rows is severed
  * @property {{row: number, col: number}[][]} [tableGroups] - Groups of seat positions forming "tables" (Dinner Playhouse)
  * @property {boolean} [staggered] - If true, each row is offset by half a seat width (brick-pattern stagger)
  * @property {{frontColDeltas?: number[], backColDeltas?: number[]}} [extendedAdjacency] - Optional directional row-adjacency extension. Deltas are applied to col when stepping one row front/back.
@@ -546,7 +546,7 @@ export const OperaHouseLayout = {
     cols: 5,
     aisleCols: [0, 4],
     backRows: [3],
-    // Balcony-like front box row is visually/adjacency-separated from main house rows.
+    // Front box row is visually/adjacency-separated from main house rows.
     adjacencyBreaks: [[0, 1]],
     royalBoxes: [
         { row: 0, col: 0 },
@@ -682,22 +682,34 @@ buildSeatLabels(DinnerPlayhouseLayout);
 Object.freeze(DinnerPlayhouseLayout);
 
 /** @type {LayoutMeta} */
-export const BalconyLayout = {
-    id: "balcony",
-    name: "The Balcony",
-    bgKey: "bg_balcony",
-    bgThumbKey: "bg_balcony_thumb",
-    description: "Elevated balcony (row A) disconnected from the main floor.",
+export const ZiegfeldRunwayLayout = {
+    id: "ziegfeld-runway",
+    name: "The Ziegfeld Runway",
+    bgKey: "bg_ziegfeld_runway",
+    bgThumbKey: "bg_ziegfeld_runway_thumb",
+    description: "T-shaped runway splits the house. Tight space, high-value front seats.",
     rows: 4,
     cols: 5,
-    aisleCols: [0, 4],
+    aisleCols: [],
     backRows: [3],
-    adjacencyBreaks: [[0, 1]], // Row 0 (balcony) is NOT adjacent to row 1
-    houseRule: "birds-eye-view",
-    houseRuleDescription: "Bird's Eye View — Tall in balcony doesn't penalize. Short in balcony always gets +2 VP.",
+    seatMask: [
+        //       col: 0     1      2      3      4
+        /* Row 0 */ [true, false, false, false, true],
+        /* Row 1 */ [true, true, false, true, true],
+        /* Row 2 */ [true, true, false, true, true],
+        /* Row 3 */ [true, true, true, true, true],
+    ],
+    seatLabels: [
+        //       col: 0                  1          2   3          4
+        /* Row 0 */ [["front"], [], [], [], ["front"]],
+        /* Row 1 */ [["aisle"], ["front"], [], ["front"], ["aisle"]],
+        /* Row 2 */ [["aisle"], [], [], [], ["aisle"]],
+        /* Row 3 */ [["back", "aisle"], ["back"], ["back"], ["back"], ["back", "aisle"]],
+    ],
+    houseRule: null,
+    houseRuleDescription: "Runway Proximity — Front-row prestige is concentrated at the stage edge and top runway seats.",
 };
-buildSeatLabels(BalconyLayout);
-Object.freeze(BalconyLayout);
+Object.freeze(ZiegfeldRunwayLayout);
 
 /** @type {LayoutMeta} */
 export const RotundaLayout = {
@@ -742,7 +754,7 @@ export const Layouts = {
     [PromenadeLayout.id]: PromenadeLayout,
     [AmphitheaterLayout.id]: AmphitheaterLayout,
     [DinnerPlayhouseLayout.id]: DinnerPlayhouseLayout,
-    [BalconyLayout.id]: BalconyLayout,
+    [ZiegfeldRunwayLayout.id]: ZiegfeldRunwayLayout,
     [RotundaLayout.id]: RotundaLayout,
 };
 Object.freeze(Layouts);
@@ -758,7 +770,7 @@ export const LayoutOrder = [
     PromenadeLayout.id,
     AmphitheaterLayout.id,
     DinnerPlayhouseLayout.id,
-    BalconyLayout.id,
+    ZiegfeldRunwayLayout.id,
     RotundaLayout.id,
 ];
 Object.freeze(LayoutOrder);

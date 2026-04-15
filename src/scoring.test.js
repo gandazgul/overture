@@ -734,7 +734,7 @@ Deno.test("Opera House: Royal Box is NOT adjacent to row 0 front seats", () => {
 
 Deno.test("Opera House: front row seat (0,1) is not adjacent to box (0,0)", () => {
     const neighbors = getOrthogonalNeighbors(0, 1, 4, 5, OperaHouseLayout);
-    // (0,1) should see (0,2) to the right, but NOT (0,0) box and not row 1 due to balcony break.
+    // (0,1) should see (0,2) to the right, but NOT (0,0) box and not row 1 due to the front-row separation break.
     const hasBox = neighbors.some((n) => n.row === 0 && n.col === 0);
     assertEquals(hasBox, false);
     assertEquals(neighbors.length, 1); // (0,2)
@@ -836,7 +836,7 @@ Deno.test("Promenade: wandering critics — fewer than 3 in aisles gives no bonu
 // Amphitheater Layout Tests
 // ══════════════════════════════════════════════════════════════════
 
-import { AmphitheaterLayout, BalconyLayout, DinnerPlayhouseLayout } from "./types.js";
+import { AmphitheaterLayout, DinnerPlayhouseLayout, ZiegfeldRunwayLayout } from "./types.js";
 
 Deno.test("Amphitheater: 18 seats in tiered rows (3-4-5-6)", () => {
     const mask = /** @type {boolean[][]} */ (AmphitheaterLayout.seatMask);
@@ -1086,70 +1086,87 @@ Deno.test("Dinner Playhouse: one Teacher caps all Kids at the same table (TKKK)"
 });
 
 // ══════════════════════════════════════════════════════════════════
-// Balcony Layout Tests
+// Ziegfeld Runway Layout Tests
 // ══════════════════════════════════════════════════════════════════
 
-Deno.test("Balcony: adjacency broken between row 0 and row 1", () => {
-    const neighbors = getOrthogonalNeighbors(0, 2, 4, 5, BalconyLayout);
-    const hasRow1 = neighbors.some((n) => n.row === 1);
-    assertEquals(hasRow1, false);
-    // Row 1 also can't see row 0
-    const neighbors1 = getOrthogonalNeighbors(1, 2, 4, 5, BalconyLayout);
-    const hasRow0 = neighbors1.some((n) => n.row === 0);
-    assertEquals(hasRow0, false);
-    // Row 1 CAN see row 2
-    const hasRow2 = neighbors1.some((n) => n.row === 2);
-    assertEquals(hasRow2, true);
+Deno.test("Ziegfeld Runway: 15 playable seats", () => {
+    let seatCount = 0;
+    for (let r = 0; r < ZiegfeldRunwayLayout.rows; r++) {
+        for (let c = 0; c < ZiegfeldRunwayLayout.cols; c++) {
+            if (ZiegfeldRunwayLayout.seatMask?.[r]?.[c]) seatCount++;
+        }
+    }
+    assertEquals(seatCount, 15);
 });
 
-Deno.test("Balcony: Tall patron in balcony (row 0) doesn't penalize row 1", () => {
-    const grid = emptyGrid(BalconyLayout);
-    place(grid, 0, 2, PatronType.STANDARD, Trait.TALL);
-    place(grid, 1, 2, PatronType.STANDARD);
-    const result = scorePlayer(grid, BalconyLayout);
-    assertEquals(result.perSeat[0][2], 3); // Tall Standard: base 3
-    assertEquals(result.perSeat[1][2], 3); // Standard behind: NO penalty (adjacency broken)
+Deno.test("Ziegfeld Runway: center runway cells are not seats", () => {
+    assertEquals(ZiegfeldRunwayLayout.seatMask?.[0][2], false);
+    assertEquals(ZiegfeldRunwayLayout.seatMask?.[1][2], false);
+    assertEquals(ZiegfeldRunwayLayout.seatMask?.[2][2], false);
 });
 
-Deno.test("Balcony: Tall patron in row 1 still penalizes row 2", () => {
-    const grid = emptyGrid(BalconyLayout);
-    place(grid, 1, 2, PatronType.STANDARD, Trait.TALL);
-    place(grid, 2, 2, PatronType.STANDARD);
-    const result = scorePlayer(grid, BalconyLayout);
-    assertEquals(result.perSeat[1][2], 3);
-    assertEquals(result.perSeat[2][2], 1); // 3 - 2 penalty
+Deno.test("Ziegfeld Runway: front labels only on corners and row-1 inner seats", () => {
+    const expectedFront = [
+        [0, 0],
+        [0, 4],
+        [1, 1],
+        [1, 3],
+    ];
+
+    for (const [r, c] of expectedFront) {
+        assertEquals(hasSeatLabel(r, c, "front", ZiegfeldRunwayLayout), true);
+    }
+
+    // Explicitly non-front runway-adjacent seats
+    assertEquals(hasSeatLabel(2, 1, "front", ZiegfeldRunwayLayout), false);
+    assertEquals(hasSeatLabel(2, 3, "front", ZiegfeldRunwayLayout), false);
+    assertEquals(hasSeatLabel(3, 2, "front", ZiegfeldRunwayLayout), false);
 });
 
-Deno.test("Balcony: Short patron in balcony (row 0) always gets +2 VP bonus", () => {
-    const grid = emptyGrid(BalconyLayout);
-    place(grid, 0, 2, PatronType.STANDARD, Trait.SHORT);
-    const result = scorePlayer(grid, BalconyLayout);
-    assertEquals(result.perSeat[0][2], 5); // 3 + 2 (no one in front)
+Deno.test("Ziegfeld Runway: aisles are side seats on rows 1-3 only", () => {
+    const expectedAisles = [
+        [1, 0],
+        [1, 4],
+        [2, 0],
+        [2, 4],
+        [3, 0],
+        [3, 4],
+    ];
+    for (const [r, c] of expectedAisles) {
+        assertEquals(hasSeatLabel(r, c, "aisle", ZiegfeldRunwayLayout), true);
+    }
+    assertEquals(hasSeatLabel(0, 0, "aisle", ZiegfeldRunwayLayout), false);
+    assertEquals(hasSeatLabel(0, 4, "aisle", ZiegfeldRunwayLayout), false);
 });
 
-Deno.test("Balcony: Noisy in balcony doesn't affect row 1", () => {
-    const grid = emptyGrid(BalconyLayout);
-    place(grid, 0, 2, PatronType.STANDARD, Trait.NOISY);
-    place(grid, 1, 2, PatronType.STANDARD);
-    const result = scorePlayer(grid, BalconyLayout);
-    assertEquals(result.perSeat[1][2], 3); // unaffected by Noisy in balcony
+Deno.test("Ziegfeld Runway: back row labels apply to row 3", () => {
+    for (let c = 0; c < 5; c++) {
+        assertEquals(hasSeatLabel(3, c, "back", ZiegfeldRunwayLayout), true);
+    }
 });
 
-Deno.test("Balcony: Noisy in balcony still affects other balcony patrons", () => {
-    const grid = emptyGrid(BalconyLayout);
-    place(grid, 0, 2, PatronType.STANDARD, Trait.NOISY);
-    place(grid, 0, 3, PatronType.STANDARD);
-    const result = scorePlayer(grid, BalconyLayout);
-    assertEquals(result.perSeat[0][3], 2); // 3 - 1 noisy
+Deno.test("Ziegfeld Runway: stage cells split adjacency", () => {
+    const neighbors = getOrthogonalNeighbors(1, 1, 4, 5, ZiegfeldRunwayLayout);
+    const hasAcrossRunway = neighbors.some((n) => n.row === 1 && n.col === 3);
+    const hasRunwayCell = neighbors.some((n) => n.row === 1 && n.col === 2);
+    assertEquals(hasAcrossRunway, false);
+    assertEquals(hasRunwayCell, false);
 });
 
-Deno.test("Balcony: Lovebirds in back row (row 3) get +2 back bonus", () => {
-    const grid = emptyGrid(BalconyLayout);
-    place(grid, 3, 2, PatronType.LOVEBIRDS);
-    place(grid, 3, 3, PatronType.LOVEBIRDS);
-    const result = scorePlayer(grid, BalconyLayout);
-    assertEquals(result.perSeat[3][2], 6);
-    assertEquals(result.perSeat[3][3], 6);
+Deno.test("Ziegfeld Runway: VIP scores on labeled front seats only", () => {
+    const grid = emptyGrid(ZiegfeldRunwayLayout);
+    place(grid, 1, 1, PatronType.VIP); // front
+    place(grid, 2, 1, PatronType.VIP); // non-front
+    const result = scorePlayer(grid, ZiegfeldRunwayLayout);
+    assertEquals(result.perSeat[1][1], 6);
+    assertEquals(result.perSeat[2][1], 3);
+});
+
+Deno.test("Ziegfeld Runway: Short at row 3 center gets empty-front bonus (runway cell ahead)", () => {
+    const grid = emptyGrid(ZiegfeldRunwayLayout);
+    place(grid, 3, 2, PatronType.STANDARD, Trait.SHORT);
+    const result = scorePlayer(grid, ZiegfeldRunwayLayout);
+    assertEquals(result.perSeat[3][2], 5); // 3 base + 2 empty front (row 2, col 2 is stage)
 });
 
 // ── Rotunda Tests ───────────────────────────────────────────────────

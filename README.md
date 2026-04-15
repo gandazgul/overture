@@ -143,7 +143,7 @@ overture/
   - **The Promenade** — Wide 7×4 layout with center aisle
   - **The Amphitheater** — Expanding rows (3→4→5→6), narrow front to wide back
   - **The Dinner Playhouse** — Table-style seating with gaps between groups
-  - **The Balcony** — Two-tier layout with balcony and main floor
+  - **The Ziegfeld Runway** — T-shaped stage extension splits the theater into left/right houses
   - **The Rotunda** — 5×5 hollow ring, theater-in-the-round (16 seats, no back row)
 - **Theater Selection Screen** — Preview thumbnails with zoom animation and random theater option
 - **Seat Label System** — Front row, back row, aisle, and Royal Box seats are tagged and scored automatically per layout

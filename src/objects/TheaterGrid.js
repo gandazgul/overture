@@ -287,7 +287,7 @@ export class TheaterGrid extends Phaser.GameObjects.Container {
         const scene = this.scene;
         const { width } = scene.scale;
 
-        const bleedWidth = s(60);
+        const bleedWidth = s(120);
         const bleedHeight = s(30);
         const floorW = totalGridW + bleedWidth * 2;
         const floorH = totalGridH + bleedHeight * 2;
@@ -311,9 +311,9 @@ export class TheaterGrid extends Phaser.GameObjects.Container {
         const coverScale = Math.max(floorW / bgImg.width, floorH / bgImg.height);
         bgImg.setScale(coverScale);
 
-        const bgMaskGraphic = scene.make.graphics();
-        bgMaskGraphic.fillRect(floorLeft, floorTop, floorW, floorH);
-        bgImg.setMask(bgMaskGraphic.createGeometryMask());
+        // const bgMaskGraphic = scene.make.graphics();
+        // bgMaskGraphic.fillRect(floorLeft, floorTop, floorW, floorH);
+        // bgImg.setMask(bgMaskGraphic.createGeometryMask());
 
         this.add(bgImg);
         this.add(stage);

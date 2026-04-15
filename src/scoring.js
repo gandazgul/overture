@@ -45,7 +45,7 @@ export function seatExists(row, col, layout) {
 }
 
 /**
- * Check if adjacency between two rows is broken (e.g. Balcony gap).
+ * Check if adjacency between two rows is broken (layout-defined row gap).
  *
  * @param {number} rowA
  * @param {number} rowB
@@ -702,10 +702,6 @@ function scoreHouseRule(grid, layout, perSeat) {
             break;
         }
 
-        // Balcony: Bird's Eye View is handled in scoreSeat via adjacencyBreaks.
-        // No additional end-game bonus needed.
-        case "birds-eye-view":
-            break;
     }
 
     return bonus;

@@ -328,7 +328,7 @@ The house rule is a passive effect or audience demand baked into the venue-it
 changes what "good placement" means and creates tension with the standard
 scoring rules.
 
-### 🎭 The Grand Empress _(Default)_
+### The Grand Empress _(Default)_
 
 ```
     Col 0  1  2  3  4
@@ -346,15 +346,15 @@ Kid-Teacher chains. The baseline experience.
 
 ---
 
-### 🎭 The Blackbox
+### The Blackbox
 
 ```
-    Col 0  1  2  3
-Row 0: [ ][A][A][ ]       20 seats total
-Row 1: [ ][A][A][ ]       the aisle seats are in the center
-Row 2: [ ][A][A][ ]       4 columns, 5 rows deep
-Row 3: [ ][A][A][ ]
-Row 4: [ ][A][A][ ]
+    Col 0  1    2  3
+Row 0: [ ][A]  [A][ ]       20 seats total
+Row 1: [ ][A]  [A][ ]       10 aisle seats in the center
+Row 2: [ ][A]  [A][ ]       4 columns, 5 rows deep
+Row 3: [ ][A]  [A][ ]
+Row 4: [ ][A]  [A][ ]
 ```
 
 **House Rule: “Intimate Venue”** — Each patron adjacent to 3+ other patrons
@@ -368,7 +368,7 @@ bonuses.
 
 ---
 
-### 🎭 The Opera House
+### The Opera House
 
 ```
     Col 0  1  2  3  4
@@ -388,7 +388,7 @@ Box itself make the card your best?
 
 ---
 
-### 🎭 The Amphitheater
+### The Amphitheater
 
 ```
     Col 0  1  2  3  4  5
@@ -409,7 +409,7 @@ rows or go for the big back row?
 
 ---
 
-### 🎭 The Dinner Playhouse
+### The Dinner Playhouse
 
 ```
   Col   0  1     2  3     4  5
@@ -438,32 +438,35 @@ higher-scoring patrons. Critics score only 3 VP base (no aisle seats exist).
 
 ---
 
-### 🎭 The Balcony
+### The Ziegfeld Runway
 
-```
-  Col   0  1  2  3  4
-Row 0: [B][F][F][F][B]    Balcony (elevated, separate)
-      ────────────────    Gap: no adjacency between row 0 and row 1
-Row 1: [A][F][F][F][A]    Main floor, both the balcony and Row 1 are front rows for VIPs
-Row 2: [A][ ][ ][ ][A]    B = Box seat (counts as aisle + front row) but they are adjacent to the balcony seats
-Row 3: [A][ ][ ][ ][A]
-```
-
-**House Rule: "Bird's Eye View"** - Patrons in the balcony (row 0) are NOT
-adjacent to row 1. Balcony patrons with the Tall trait don't penalize anyone.
-Short patrons in the balcony always get their +2 VP (no one in front).
-
-**Strategic feel:** The balcony is a safe haven for problem cards-Tall patrons,
-Noisy patrons, misfits. But it's also "front row" for VIP/Bespectacled scoring.
-Do you waste premium front-row real estate on damage control, or pack it with
-your best scorers and deal with Tall/Noisy problems below?
-
----
-
-### 🎭 The Promenade
+<p align="center">
+  <img src="images/theater-ziegfeld-runway.png" alt="The Ziegfeld Runway" width="600" />
+</p>
 
 ```
   Col 0  1  2  3  4
+Row 0: [F][S][S][S][F]    S = Stage extension (no seats)
+Row 1: [A][F][S][F][A]
+Row 2: [A][ ][S][ ][A]
+Row 3: [ ][ ][ ][ ][ ]    15 seats total
+```
+
+**House Rule: Runway Pressure** - No special scoring; the geometry
+is the puzzle. The runway splits the house and dramatically reduces placement
+margin.
+
+**Strategic feel:** This theater creates a "space vs. value" crisis. Front-row
+premium is concentrated into just 4 seats, while the runway behaves like a
+permanent wall that fragments planning on left and right sides. Tall/Short
+chains are riskier because a single blocked lane can collapse a whole side.
+
+---
+
+### The Promenade
+
+```
+  Col   0  1  2  3  4
 Row 0: [A][F][F][F][A]    Staggered aisles:
 Row 1: [ ][ ][A][ ][ ]    different columns each row
 Row 2: [A][ ][ ][ ][A]    20 seats, 8 aisle seats
@@ -481,10 +484,10 @@ Forces spread-out thinking.
 
 ---
 
-### 🎪 The Rotunda
+### The Rotunda
 
 ```
-  Col 0  1  2  3  4
+  Col   0  1  2  3  4
 Row 0:    [F][F][F]        Hollow ring: 16 seats
 Row 1: [A][F]   [F][A]    Center = stage (no seats)
 Row 2: [A]         [A]    F = Front (stage-side)
@@ -513,7 +516,7 @@ Each game uses one Play card drawn from the Season Deck. The Play defines a
 **scoring twist** or **rule modification** for the session, and optionally adds
 **extra cards** from the Season Deck into the patron deck at setup.
 
-### 🎬 The Casting Call
+### The Casting Call
 
 **Rule:** At setup, deal one **Role card** to each player at random. Each Role
 gives a unique ability for the entire game. Role cards are played face-up-
@@ -539,7 +542,7 @@ players means you never see all roles in one game.
 
 ---
 
-### 🎬 The Understudy
+### The Understudy
 
 **Rule:** Normal scoring.
 
@@ -556,7 +559,7 @@ later. Rewards long-term planning and flexible positioning.
 
 ---
 
-### 🎬 The Dress Rehearsal
+### The Dress Rehearsal
 
 **Rule:** **Draft-and-pass.** Each turn, draw 2 cards from the deck. Place one
 (in your theater). The other goes face-up into the next player's
@@ -579,7 +582,7 @@ your offer pile-but that card stays there, growing your neighbor's options.
 
 ---
 
-### 🎬 The Rivalry
+### The Rivalry
 
 **Rule:** The **gifting** mechanic and the **Manager's Attention card** are
 active for this game.
@@ -605,7 +608,7 @@ higher-conflict, "mean" variant.
 
 ---
 
-### 🎬 Sold-Out Show
+### Sold-Out Show
 
 **Rule:** At setup, each player draws 2 patron cards from the deck and places
 them face-up in any seats in their theater. These pre-placed patrons score
@@ -620,7 +623,7 @@ left.
 
 ---
 
-### 🎬 The Matinee
+### The Matinee
 
 **Rule:** **Intermission.** After round 7 (half the deck is drawn), pause and
 score rows 0 and 1 only. Those points are banked. At end-game, score the full
@@ -636,7 +639,7 @@ end-game?
 
 ---
 
-### 🎬 The Avant-Garde
+### The Avant-Garde
 
 **Rule:** At end-game, each **empty seat** that is orthogonally adjacent to at
 least 2 occupied seats scores +2 VP. Empty seats are no longer dead space-
@@ -652,7 +655,7 @@ creates a direct contradiction-fill tables or leave breathing room?
 
 ---
 
-### 🎬 The Mystery
+### The Mystery
 
 **Rule:** At setup, shuffle the 10 Demand cards and deal 3 face-down. Reveal one
 after round 4, one after round 8, and one after round 12. Demands are end-game
@@ -682,7 +685,7 @@ contested.
 
 ---
 
-### 🎬 The Double Feature
+### The Double Feature
 
 **Rule:** each player gets a
 **second theater board** (same layout) on your turn you place into either theater. At end-game, score both theaters
@@ -723,14 +726,14 @@ referenced by specific Plays.
 | **Amphitheater + The Avant-Garde**  | "Fill rows for +2 VP" vs. "leave gaps for +2 VP." Direct contradiction forces hard choices every turn.                   |
 | **Dinner Playhouse + The Mystery**  | Table layout fragments adjacency; demand cards might require cross-table planning.                                       |
 | **Blackbox + The Understudy**       | Only 16 seats, almost full. Understudies in a cramped space with tons of adjacency-their flex value is huge.             |
-| **Balcony + The Matinee**           | Balcony IS row 0, scores twice at intermission. But it's disconnected from row 1. Stack it or protect it?                |
+| **Ziegfeld Runway + The Matinee**   | Limited front seats score twice at intermission, creating intense competition for just four premium placements.            |
 | **Promenade + The Dress Rehearsal** | Staggered aisles + draft-and-pass. You can see what your neighbor needs AND deny them the right aisle-seat card.         |
 | **Opera House + The Casting Call**  | The Collector role loves the Royal Boxes (diverse types for +6 VP). The Architect can swap a patron INTO a Box mid-game. |
 | **Grand Empress + The Mystery**     | Vanilla layout lets you focus purely on demand adaptation. Good for learning The Mystery without layout complexity.      |
 | **Rotunda + The Avant-Garde**       | Empty stage center already breaks adjacency; leaving outer-ring gaps for +2 VP each compounds the breathing-room bonus.  |
 | **Rotunda + The Matinee**           | Every inner-ring seat is "front row" and scores twice at intermission. VIPs and Bespectacled patrons are strong.         |
 | **Blackbox + The Rivalry**          | Most punishing gifting map: tight adjacency + 5-row depth makes gifted Tall/Noisy patrons brutal to absorb.              |
-| **Balcony + The Rivalry**           | Least punishing gifting map: the balcony is disconnected from row 1, giving a quarantine lane for gifted trouble cards.  |
+| **Ziegfeld Runway + The Rivalry**   | Tight 15-seat capacity means gifted trouble cards are brutal—you have almost no spare seats to absorb damage.            |
 
 ---
 

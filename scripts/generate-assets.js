@@ -150,9 +150,9 @@ const ASSETS = [
         aspectRatio: "16:9",
     },
     {
-        filename: "bg_balcony.png",
+        filename: "bg_ziegfeld_runway.png",
         prompt:
-            "A top-down stylized view of a theater showing a distinct split. The top edge features an ornate brass balcony railing overlooking a lower velvet carpeted floor. Rich crimson and gold tones. UI background illustration.",
+            "A top-down stylized view of an Art Deco theater with a dramatic T-shaped stage runway cutting into the audience. The center runway is clearly stage wood while seating zones are split left and right with rich crimson carpet and gold trim. Warm spotlight glow near the main stage edge. UI background illustration.",
         aspectRatio: "16:9",
     },
     {
