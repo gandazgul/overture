@@ -17,13 +17,11 @@ import {
   createDeck,
   DefaultLayout,
   hasSeatLabel,
-  PatronInfo,
   PatronType,
   PromenadeLayout,
   RotundaLayout,
   RoyalTheatreLayout,
   Trait,
-  TraitInfo,
 } from "./types.js";
 
 /** @typedef {import('./types.js').CardData} CardData */
@@ -52,7 +50,6 @@ function card(type, trait) {
   const c = {
     type,
     label: trait ? `${trait} ${type}` : type,
-    emoji: "",
     description: "",
   };
   if (trait) c.trait = trait;
@@ -474,7 +471,6 @@ Deno.test("Unknown patron type scores 0 VP", () => {
   grid[1][1] = {
     type: "UNKNOWN",
     label: "UNKNOWN",
-    emoji: "",
     description: "",
   };
   const result = scorePlayer(grid, DefaultLayout);
@@ -554,16 +550,12 @@ Deno.test("createDeck trait distribution: 7 Tall, 7 Short, 6 Bespectacled, 4 Noi
   assertEquals(traitCounts[Trait.NOISY], 4);
 });
 
-Deno.test("createDeck cards have emoji and description", () => {
+Deno.test("createDeck cards have, type, label & description", () => {
   const deck = createDeck();
   for (const c of deck) {
-    const typeInfo = PatronInfo[c.type];
-    if (c.trait) {
-      const traitInfo = TraitInfo[c.trait];
-      assertEquals(c.emoji, `${traitInfo.emoji}${typeInfo.emoji}`);
-    } else {
-      assertEquals(c.emoji, typeInfo.emoji);
-    }
+    assertEquals(!!c.type, true);
+    assertEquals(!!c.label, true);
+    assertEquals(!!c.description, true);
   }
 });
 

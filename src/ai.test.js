@@ -45,7 +45,7 @@ function emptyGrid(layout) {
  */
 function card(type, trait) {
     /** @type {CardData} */
-    const c = { type, label: trait ? `${trait} ${type}` : type, emoji: "🃏", description: "" };
+    const c = { type, label: trait ? `${trait} ${type}` : type, description: "" };
     if (trait) c.trait = trait;
     return c;
 }

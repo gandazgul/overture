@@ -2,7 +2,6 @@
 import Phaser from "phaser";
 import { px, s } from "../config.js";
 import {
-  PatronInfo,
   PatronType,
   PlayerColors,
   PlayerColorsHex,
@@ -251,7 +250,6 @@ export class EndGameScene extends Phaser.Scene {
 
     for (let i = 0; i < TYPE_ORDER.length; i++) {
       const type = TYPE_ORDER[i];
-      const info = PatronInfo[type];
       const rowY = dataStartY + i * dataRowH;
 
       // Alternating row background
@@ -260,12 +258,12 @@ export class EndGameScene extends Phaser.Scene {
         gfx.fillRect(tableLeft, rowY, tableW, dataRowH);
       }
 
-      // Row label: emoji + type name
+      // Row label: type name
       this.add
         .text(
           tableLeft + s(10),
           rowY + dataRowH / 2,
-          `${info.emoji}  ${type}`,
+          type,
           {
             fontSize: px(12),
             fontFamily: "Georgia, serif",

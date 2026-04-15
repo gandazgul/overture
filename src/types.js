@@ -90,7 +90,6 @@ Object.freeze(PlayerNames);
  * @property {string} type - One of the PatronType values (primary identity)
  * @property {string} [trait] - Optional secondary trait (one of Trait values)
  * @property {string} label - Display name (e.g. "Tall Kid")
- * @property {string} emoji - Visual icon(s) for the card
  * @property {string} description - Short tooltip text
  */
 
@@ -104,8 +103,8 @@ Object.freeze(PlayerNames);
 // ── Patron Info ────────────────────────────────────────────────────
 
 /**
- * Card definitions with emoji and descriptions for each primary patron type.
- * @type {Record<string, {emoji: string, description: string}>}
+ * Card definitions descriptions for each primary patron type.
+ * @type {Record<string, {description: string}>}
  *
  * TODO: collect ALL patron info here, the scoring, the score hint, etc right now its spread out around different files.
  */
@@ -135,8 +134,8 @@ export const PatronInfo = {
 Object.freeze(PatronInfo);
 
 /**
- * Info for secondary traits — emoji and descriptions.
- * @type {Record<string, {emoji: string, description: string}>}
+ * Info for secondary traits — descriptions.
+ * @type {Record<string, {description: string}>}
  */
 export const TraitInfo = {
   [Trait.TALL]: {
@@ -259,7 +258,6 @@ Object.freeze(TraitScoring);
  * @typedef {Object} LayoutMeta
  * @property {string} id - Unique layout identifier
  * @property {string} name - Display name (e.g. "The Grand Empress")
- * @property {string} emoji - Theater emoji for UI
  * @property {string} [bgKey] - Texture key for the full background image (game scene)
  * @property {string} [bgThumbKey] - Texture key for the thumbnail background (theater selection)
  * @property {string} description - Short description for selection screen
@@ -355,7 +353,6 @@ function buildSeatLabels(layout) {
 export const GrandEmpressLayout = {
   id: "grand-empress",
   name: "The Grand Empress",
-  emoji: "🏛️",
   bgKey: "bg_grand_empress",
   bgThumbKey: "bg_grand_empress_thumb",
   description: "Classic wide theater. Plentiful aisle seats. No house rule.",
@@ -373,7 +370,6 @@ Object.freeze(GrandEmpressLayout);
 export const BlackboxLayout = {
   id: "blackbox",
   name: "The Blackbox",
-  emoji: "🎭",
   bgKey: "bg_blackbox",
   bgThumbKey: "bg_blackbox_thumb",
   description: "Deep & narrow. Center aisles only. Dense packing rewarded.",
@@ -392,7 +388,6 @@ Object.freeze(BlackboxLayout);
 export const RoyalTheatreLayout = {
   id: "royal-theatre",
   name: "The Royal Theatre",
-  emoji: "👑",
   bgKey: "bg_royal_theatre",
   bgThumbKey: "bg_royal_theatre_thumb",
   description: "Royal Boxes in the front corners. Best patron gets +3 VP.",
@@ -415,7 +410,6 @@ Object.freeze(RoyalTheatreLayout);
 export const PromenadeLayout = {
   id: "promenade",
   name: "The Promenade",
-  emoji: "🚶",
   bgKey: "bg_promenade",
   bgThumbKey: "bg_promenade_thumb",
   description: "Staggered aisles every row. Critics spread out.",
@@ -442,7 +436,6 @@ Object.freeze(PromenadeLayout);
 export const AmphitheaterLayout = {
   id: "amphitheater",
   name: "The Amphitheater",
-  emoji: "🏛",
   bgKey: "bg_amphitheater",
   bgThumbKey: "bg_amphitheater_thumb",
   description: "Tiered rows widen toward the back. No aisles. Fill rows for bonus VP.",
@@ -485,7 +478,6 @@ function buildGappedMask(rows, cols, gapCols) {
 export const CabaretLayout = {
   id: "cabaret",
   name: "The Cabaret",
-  emoji: "🍸",
   bgKey: "bg_cabaret",
   bgThumbKey: "bg_cabaret_thumb",
   description: "Intimate tables of 4. Fill a table for +3 VP.",
@@ -537,7 +529,6 @@ Object.freeze(CabaretLayout);
 export const BalconyLayout = {
   id: "balcony",
   name: "The Balcony",
-  emoji: "🌃",
   bgKey: "bg_balcony",
   bgThumbKey: "bg_balcony_thumb",
   description:
@@ -558,7 +549,6 @@ Object.freeze(BalconyLayout);
 export const RotundaLayout = {
   id: "rotunda",
   name: "The Rotunda",
-  emoji: "🎪",
   bgKey: "bg_rotunda",
   bgThumbKey: "bg_rotunda_thumb",
   description:
@@ -689,16 +679,13 @@ export function createDeck() {
     const traitInfo = trait ? TraitInfo[trait] : null;
 
     const label = trait ? `${trait} ${type}` : type;
-    const emoji = traitInfo
-      ? `${traitInfo.emoji}${typeInfo.emoji}`
-      : typeInfo.emoji;
     const description = traitInfo
       ? `${typeInfo.description} ${traitInfo.description}`
       : typeInfo.description;
 
     for (let i = 0; i < count; i++) {
       /** @type {CardData} */
-      const card = { type, label, emoji, description };
+      const card = { type, label, description };
       if (trait) card.trait = trait;
       deck.push(card);
     }

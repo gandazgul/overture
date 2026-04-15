@@ -12,8 +12,8 @@
  * ========================================================================
  */
 
-import { scorePlayer, seatExists, getOrthogonalNeighbors } from "./scoring.js";
-import { hasSeatLabel, PatronType, Trait } from "./types.js";
+import { scorePlayer, seatExists, getOrthogonalNeighbors } from './scoring.js';
+import { hasSeatLabel, PatronType, Trait } from './types.js';
 
 /** @typedef {import('./types.js').CardData} CardData */
 /** @typedef {import('./types.js').LayoutMeta} LayoutMeta */
@@ -24,9 +24,9 @@ import { hasSeatLabel, PatronType, Trait } from "./types.js";
  * @enum {string}
  */
 export const AIDifficulty = /** @type {const} */ ({
-    EASY: "easy",
-    MEDIUM: "medium",
-    HARD: "hard",
+    EASY: 'easy',
+    MEDIUM: 'medium',
+    HARD: 'hard',
 });
 Object.freeze(AIDifficulty);
 
@@ -125,7 +125,7 @@ export function applyHeuristics(grid, card, row, col, layout) {
     switch (card.type) {
         case PatronType.LOVEBIRDS: {
             // Prefer back row for ×2 multiplier
-            if (hasSeatLabel(row, col, "back", layout)) {
+            if (hasSeatLabel(row, col, 'back', layout)) {
                 bonus += 2;
             }
             // Bonus for being near empty seats (future Lovebirds can pair up)
@@ -141,21 +141,25 @@ export function applyHeuristics(grid, card, row, col, layout) {
 
         case PatronType.VIP: {
             // Prefer front row seats
-            if (hasSeatLabel(row, col, "front", layout)) {
+            if (hasSeatLabel(row, col, 'front', layout)) {
                 bonus += 1.5;
             }
             // Avoid seats adjacent to Kids or Noisy patrons
             for (const n of neighbors) {
                 const nb = grid[n.row]?.[n.col];
-                if (nb?.type === PatronType.KID) bonus -= 1;
-                if (nb?.trait === Trait.NOISY) bonus -= 1;
+                if (nb?.type === PatronType.KID) {
+                    bonus -= 1;
+                }
+                if (nb?.trait === Trait.NOISY) {
+                    bonus -= 1;
+                }
             }
             break;
         }
 
         case PatronType.CRITIC: {
             // Strongly prefer aisle seats
-            if (hasSeatLabel(row, col, "aisle", layout)) {
+            if (hasSeatLabel(row, col, 'aisle', layout)) {
                 bonus += 3;
             }
             break;
@@ -166,12 +170,14 @@ export function applyHeuristics(grid, card, row, col, layout) {
             // Check if left or right neighbors are empty (potential Teacher spots)
             const leftEmpty = col > 0 && seatExists(row, col - 1, layout) && !grid[row][col - 1];
             const rightEmpty = col < cols - 1 && seatExists(row, col + 1, layout) && !grid[row][col + 1];
-            if (leftEmpty && rightEmpty) bonus += 1;
+            if (leftEmpty && rightEmpty) {
+                bonus += 1;
+            }
             // Bonus for being next to an existing Teacher
             const teacherNeighbors = neighbors.filter(
                 (n) => grid[n.row]?.[n.col]?.type === PatronType.TEACHER,
             );
-            bonus += teacherNeighbors.length * 1;
+            bonus += teacherNeighbors.length;
             // Bonus for being next to other Kids (Teacher can cap a chain)
             const kidNeighbors = neighbors.filter(
                 (n) => grid[n.row]?.[n.col]?.type === PatronType.KID && n.col === col - 1 || n.col === col + 1,
@@ -213,7 +219,7 @@ export function applyHeuristics(grid, card, row, col, layout) {
         switch (card.trait) {
             case Trait.TALL: {
                 // Prefer back row (no one behind to penalize)
-                if (hasSeatLabel(row, col, "back", layout)) {
+                if (hasSeatLabel(row, col, 'back', layout)) {
                     bonus += 2;
                 }
                 // Penalty if someone is already behind
@@ -232,7 +238,8 @@ export function applyHeuristics(grid, card, row, col, layout) {
                 // Prefer row 0 or seats with empty/no seat in front
                 if (row === 0) {
                     bonus += 1.5;
-                } else {
+                }
+                else {
                     const frontRow = row - 1;
                     if (!seatExists(frontRow, col, layout) || !grid[frontRow]?.[col]) {
                         bonus += 1;
@@ -247,7 +254,7 @@ export function applyHeuristics(grid, card, row, col, layout) {
 
             case Trait.BESPECTACLED: {
                 // Prefer non-back rows
-                if (!hasSeatLabel(row, col, "back", layout)) {
+                if (!hasSeatLabel(row, col, 'back', layout)) {
                     bonus += 1;
                 }
                 break;
@@ -258,7 +265,9 @@ export function applyHeuristics(grid, card, row, col, layout) {
                 const occupiedNeighbors = neighbors.filter((n) => grid[n.row]?.[n.col]);
                 bonus -= occupiedNeighbors.length * 0.5;
                 // Prefer edge/corner seats
-                if (neighbors.length <= 2) bonus += 1;
+                if (neighbors.length <= 2) {
+                    bonus += 1;
+                }
                 break;
             }
         }
@@ -267,7 +276,102 @@ export function applyHeuristics(grid, card, row, col, layout) {
     return bonus;
 }
 
-// ── Main entry points ───────────────────────────────────────────────
+// ── Drawing Logic ──────────────────────────────────────────────────────────
+
+/**
+ * Decide whether to draw from the lobby or the deck.
+ *
+ * @param {CardData[]} lobby - The lobby cards (index 0 is unavailable)
+ * @param {number} deckSize - Current size of the deck
+ * @param {string} difficulty - AI difficulty
+ * @param {(CardData | null)[][]} grid - Current grid to evaluate lobby cards
+ * @param {LayoutMeta} layout - Current theater layout
+ * @returns {{source: 'lobby' | 'deck', index?: number} | null} Action to take
+ */
+export function pickDrawAction(lobby, deckSize, difficulty, grid, layout) {
+    const availableLobby = lobby.slice(1); // Index 0 is unavailable
+    const hasLobby = availableLobby.length > 0;
+    const hasDeck = deckSize > 0;
+
+    if (import.meta.env.VITE_DEBUG_AI === 'true') {
+        console.log(`[AI DEBUG] Evaluating draw: LobbySize=${availableLobby.length}, DeckSize=${deckSize}, Difficulty=${difficulty}`);
+    }
+
+    if (!hasLobby && !hasDeck) {
+        return null;
+    }
+
+    switch (difficulty) {
+        case AIDifficulty.EASY: {
+            const sources = [];
+            if (hasLobby) {
+                sources.push('lobby');
+            }
+            if (hasDeck) {
+                sources.push('deck');
+            }
+            // TODO get better random numbers
+            const choice = sources[Math.floor(Math.random() * sources.length)];
+            if (choice === 'lobby') {
+                return { source: 'lobby', index: 1 + Math.floor(Math.random() * availableLobby.length) };
+            }
+
+            return { source: 'deck' };
+        }
+
+        case AIDifficulty.MEDIUM: {
+            if (hasLobby) {
+                let bestScore = -Infinity;
+                let bestIdx = -1;
+
+                for (let i = 0; i < availableLobby.length; i++) {
+                    const card = availableLobby[i];
+                    const seats = scoreAllSeats(grid, card, layout);
+                    const score = seats.length > 0 ? seats[0].score : 0;
+                    if (import.meta.env.VITE_DEBUG_AI === 'true') {
+                        console.log(`[AI DEBUG] Lobby Card ${i + 1} (${card.label || card.type}) potential: ${score} VP`);
+                    }
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestIdx = i + 1;
+                    }
+                }
+                return { source: 'lobby', index: bestIdx };
+            }
+            return hasDeck ? { source: 'deck' } : null;
+        }
+
+        case AIDifficulty.HARD: {
+            if (hasLobby) {
+                let bestScore = -Infinity;
+                let bestIdx = -1;
+
+                for (let i = 0; i < availableLobby.length; i++) {
+                    const card = availableLobby[i];
+                    const seats = scoreAllSeats(grid, card, layout);
+                    if (seats.length > 0) {
+                        const score = seats[0].score + applyHeuristics(grid, card, seats[0].row, seats[0].col, layout);
+                        if (import.meta.env.VITE_DEBUG_AI === 'true') {
+                            console.log(`[AI DEBUG] Lobby Card ${i + 1} (${card.label || card.type}) heuristic score: ${score} VP`);
+                        }
+                        if (score > bestScore) {
+                            bestScore = score;
+                            bestIdx = i + 1;
+                        }
+                    }
+                }
+
+                if (bestScore > 3) {
+                    return { source: 'lobby', index: bestIdx };
+                }
+            }
+            return hasDeck ? { source: 'deck' } : (hasLobby ? { source: 'lobby', index: 1 } : null);
+        }
+
+        default:
+            return hasDeck ? { source: 'deck' } : (hasLobby ? { source: 'lobby', index: 1 } : null);
+    }
+}
 
 /**
  * Pick the best seat for a card given the AI difficulty level.
@@ -280,7 +384,9 @@ export function applyHeuristics(grid, card, row, col, layout) {
  */
 export function pickSeat(grid, card, layout, difficulty) {
     const empty = getEmptySeats(grid, layout);
-    if (empty.length === 0) return null;
+    if (empty.length === 0) {
+        return null;
+    }
 
     switch (difficulty) {
         case AIDifficulty.EASY: {
@@ -298,7 +404,9 @@ export function pickSeat(grid, card, layout, difficulty) {
         case AIDifficulty.HARD: {
             // Greedy + heuristics + jitter
             const scored = scoreAllSeats(grid, card, layout);
-            if (scored.length === 0) return null;
+            if (scored.length === 0) {
+                return null;
+            }
 
             // Add heuristic bonus
             const enhanced = scored.map((s) => ({
@@ -328,43 +436,53 @@ export function pickSeat(grid, card, layout, difficulty) {
  *
  * @param {(CardData | null)[][]} grid
  * @param {CardData[]} hand - The player's hand (2+ cards)
+ * @param {number} payerCount - Number of payers in the game (to determine if discards matter)
  * @param {LayoutMeta} layout
  * @param {string} difficulty
- * @returns {{play: {card: CardData, row: number, col: number}, discard: CardData} | null}
+ * @returns {{play: {cardData: CardData, row: number, col: number}, discard?: {cardData: CardData}} | null}
  */
-export function pickCardAndSeat(grid, hand, layout, difficulty) {
-    if (hand.length === 0) return null;
+export function pickCardAndSeat(grid, hand, payerCount, layout, difficulty) {
+    if (hand.length === 0) { return null; }
 
     const empty = getEmptySeats(grid, layout);
-    if (empty.length === 0) return null;
+    if (empty.length === 0) { return null; }
 
+    // end of the game we only have 1 card
     if (hand.length === 1) {
         const seat = pickSeat(grid, hand[0], layout, difficulty);
-        if (!seat) return null;
-        return { play: { card: hand[0], ...seat }, discard: hand[0] }; // no real discard
+        if (!seat) { return null; }
+
+        return { play: { cardData: hand[0], ...seat } };
     }
 
     // Evaluate each card's best seat
-    /** @type {{card: CardData, row: number, col: number, score: number}[]} */
+    /** @type {{cardData: CardData, row: number, col: number, score: number}[]} */
     const candidates = [];
 
-    for (const card of hand) {
-        const seat = pickSeat(grid, card, layout, difficulty);
+    for (const cardData of hand) {
+        const seat = pickSeat(grid, cardData, layout, difficulty);
         if (seat) {
-            const score = evaluateSeat(grid, card, seat.row, seat.col, layout);
-            candidates.push({ card, ...seat, score });
+            const score = evaluateSeat(grid, cardData, seat.row, seat.col, layout);
+
+            candidates.push({ cardData, ...seat, score });
         }
     }
 
-    if (candidates.length === 0) return null;
+    if (candidates.length === 0) { return null; }
 
     // Sort by score descending — play the best, discard the worst
     candidates.sort((a, b) => b.score - a.score);
     const best = candidates[0];
-    const worst = candidates[candidates.length - 1];
+    const worst = candidates.at(-1);
+
+    if (payerCount === 2 && worst && worst.cardData !== best.cardData) {
+        return {
+            play: { cardData: best.cardData, row: best.row, col: best.col },
+            discard: { cardData: worst.cardData },
+        };
+    }
 
     return {
-        play: { card: best.card, row: best.row, col: best.col },
-        discard: worst.card === best.card && candidates.length > 1 ? candidates[1].card : worst.card,
+        play: { cardData: best.cardData, row: best.row, col: best.col },
     };
 }
