@@ -830,3 +830,9 @@ expansions:
 8. **Expansion-ready.** The Season Deck is designed for growth: new Theaters,
    new Plays, new Role cards, new Demand cards. Each addition multiplies variety
    without touching the core patron deck.
+
+### UX / Accessibility Backlog
+
+- Consider adding player-facing animation settings:
+  - **Animation speed** (e.g., Snappy / Normal / Slow)
+  - **Animations off** toggle for faster or accessibility-focused play

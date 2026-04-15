@@ -2,7 +2,8 @@
     "compilerOptions": {
         "checkJs": true,
         "lib": ["dom", "dom.iterable", "esnext"],
-        "strict": true
+        "strict": true,
+        "types": ["./src/vite-env.d.ts"]
     },
     "tasks": {
         "dev": "deno run -A npm:vite@5",

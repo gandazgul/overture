@@ -134,6 +134,9 @@ export class GameScene extends Phaser.Scene {
          * @type {(string | null)[]}
          */
         this.aiConfig = [];
+
+        /** @type {boolean} */
+        this.isDrawAnimating = false;
     }
 
     // ── Color mapping helpers ──────────────────────────────────────────
@@ -243,6 +246,7 @@ export class GameScene extends Phaser.Scene {
         this.round = 1;
         this.selectedCard = null;
         this.turnPhase = 'pass-screen';
+        this.isDrawAnimating = false;
         this.deck = createDeck();
         this.handCards = [];
         this.seatLabels = [];
@@ -910,18 +914,17 @@ export class GameScene extends Phaser.Scene {
      * Execute an AI player's turn automatically.
      * First, fills the hand to max capacity using drawing logic, then places/discards.
      */
-    playAITurn() {
+    async playAITurn() {
         const difficulty = this.aiConfig[this.currentPlayer];
         if (!difficulty) {
             return;
         }
 
-        const hand = this.playerHands[this.currentPlayer];
         const grid = this.placedPatrons[this.currentPlayer];
 
         // Create a sequence of AI actions to avoid instant jumps
         /**
-         * @typedef {{ type: 'draw', decision: { source: 'lobby' | 'deck', index?: number, cardData: import('../types.js').CardData } }
+         * @typedef {{ type: 'draw', decision: { source: 'lobby' | 'deck', index?: number } }
          *   | { type: 'select' | 'place', decision: { cardData: import('../types.js').CardData, row: number, col: number } }
          *   | { type: 'discard', decision: { cardData: import('../types.js').CardData } }} AIAction
          */
@@ -929,12 +932,15 @@ export class GameScene extends Phaser.Scene {
         const actions = [];
 
         // ── Drawing Phase ────────────────────────────────────────────
-        // Determine all needed draws first
-        const tempHand = [...hand];
+        // Determine all needed draws first using simulated state (do not mutate live arrays).
+        const tempHand = [...this.playerHands[this.currentPlayer]];
+        const tempLobby = [...this.lobbyCards];
+        let tempDeckCount = this.deck.length;
+
         while (tempHand.length < this.maxCardsInHand) {
             const action = pickDrawAction(
-                this.lobbyCards,
-                this.deck.length,
+                tempLobby,
+                tempDeckCount,
                 difficulty,
                 grid,
                 this.layout,
@@ -944,50 +950,48 @@ export class GameScene extends Phaser.Scene {
                 break;
             }
 
-            // draw the card into tempHand
             const { source, index: lobbyIdx } = action;
             if (ENV.VITE_DEBUG_AI === 'true') {
                 console.log(`[AI DEBUG] Action ${actions.length + 1}: Draw from ${source}${source === 'lobby' ? ` index ${lobbyIdx}` : ''}`);
             }
 
             /** @type {import('../types.js').CardData | null} */
-            let cardData = null;
-            if (source === 'lobby' && lobbyIdx !== undefined) {
-                const lobbyCard = this.lobbyCards[lobbyIdx];
-                if (lobbyCard) {
-                    cardData = lobbyCard;
-                    if (ENV.VITE_DEBUG_AI === 'true') {
-                        console.log(`[AI DEBUG] Drew from Lobby: ${cardData.label || cardData.type}`);
-                    }
-                    tempHand.push(cardData);
-                    this.lobbyCards.splice(lobbyIdx, 1);
+            let simulatedDrawn = null;
 
-                    if (this.deck.length > 0) {
-                        const refill = this.deck.pop();
+            if (source === 'lobby' && lobbyIdx !== undefined) {
+                const lobbyCard = tempLobby[lobbyIdx];
+                if (lobbyCard) {
+                    simulatedDrawn = lobbyCard;
+                    tempHand.push(simulatedDrawn);
+                    tempLobby.splice(lobbyIdx, 1);
+
+                    if (tempDeckCount > 0) {
+                        const refill = this.deck[tempDeckCount - 1];
+                        tempDeckCount -= 1;
                         if (refill) {
-                            this.lobbyCards.unshift(refill);
+                            tempLobby.unshift(refill);
                         }
                     }
+
+                    actions.push({ type: 'draw', decision: { source: 'lobby', index: lobbyIdx } });
                 }
             }
-            else if (source === 'deck' && this.deck.length > 0) {
-                const drawn = this.deck.pop();
-                if (drawn) {
-                    cardData = drawn;
-                    tempHand.push(cardData);
+            else if (source === 'deck' && tempDeckCount > 0) {
+                const deckTop = this.deck[tempDeckCount - 1];
+                tempDeckCount -= 1;
+                if (deckTop) {
+                    simulatedDrawn = deckTop;
+                    tempHand.push(simulatedDrawn);
+                    actions.push({ type: 'draw', decision: { source: 'deck' } });
                 }
             }
 
-            if (cardData) {
-                if (ENV.VITE_DEBUG_AI === 'true') {
-                    console.log(`[AI DEBUG] Drew from ${source}: ${cardData.label || cardData.type}`);
-                }
-
-                actions.push({ type: 'draw', decision: { ...action, cardData } });
+            if (simulatedDrawn && ENV.VITE_DEBUG_AI === 'true') {
+                console.log(`[AI DEBUG] Planned draw from ${source}: ${simulatedDrawn.label || simulatedDrawn.type}`);
             }
         }
 
-        // Determine placement/discard action
+        // Determine placement/discard action.
         if (tempHand.length > 0) {
             const playAndDiscard = pickCardAndSeat(
                 grid,
@@ -1007,45 +1011,42 @@ export class GameScene extends Phaser.Scene {
             }
         }
 
-        // Execute actions sequentially with delays
-        const executeNextAction = (/** @type {number} */ index) => {
-            const action = actions[index];
-            if (!action) {
-                return;
-            }
-            const { cardData } = action.decision;
+        // Execute actions sequentially.
+        for (let i = 0; i < actions.length; i++) {
+            const action = actions[i];
+            const isLast = i === actions.length - 1;
 
             switch (action.type) {
                 case 'draw': {
-                    hand.push(cardData);
-
-                    const card = new Card(this, 0, 0, cardData);
-                    this.handCards.push(card);
-
-                    this.renderHand();
-                    if (action.decision.source === 'lobby') {
-                        this.renderLobby();
+                    if (action.decision.source === 'lobby' && action.decision.index !== undefined) {
+                        await this.drawFromLobby(action.decision.index);
+                    }
+                    else {
+                        await this.drawFromDeck();
                     }
                     break;
                 }
-                case 'select':
+                case 'select': {
+                    const { cardData } = action.decision;
                     for (const card of this.handCards) {
                         if (card.cardData.label === cardData.label) {
                             this.selectCard(card);
                         }
                     }
                     break;
+                }
                 case 'place': {
-                    const { row, col } = action.decision;
+                    const { cardData, row, col } = action.decision;
 
                     if (ENV.VITE_DEBUG_AI === 'true') {
-                        console.log(`[AI DEBUG] Action ${index}: Place ${cardData.label || cardData.type} at (${row}, ${col})`);
+                        console.log(`[AI DEBUG] Action ${i}: Place ${cardData.label || cardData.type} at (${row}, ${col})`);
                     }
 
                     this.placeSeatCard(row, col);
                     break;
                 }
-                case 'discard':
+                case 'discard': {
+                    const { cardData } = action.decision;
                     if (ENV.VITE_DEBUG_AI === 'true') {
                         console.log(`[AI DEBUG] Discarding: ${cardData.label || cardData.type}`);
                     }
@@ -1056,17 +1057,16 @@ export class GameScene extends Phaser.Scene {
                         }
                     }
                     break;
+                }
             }
 
-            if (index < actions.length - 1) {
-                this.time.delayedCall(600, () => executeNextAction(index + 1));
+            if (!isLast) {
+                await this.waitMs(250);
             }
             else if (ENV.VITE_DEBUG_AI === 'true') {
                 console.log(`[AI DEBUG] Turn complete for player ${this.currentPlayer}. Advancing...`);
             }
-        };
-
-        executeNextAction(0);
+        }
     }
 
     /**
@@ -1241,19 +1241,6 @@ export class GameScene extends Phaser.Scene {
                 else {
                     this.hideScoringTooltip();
                 }
-            });
-
-            // Animate in
-            const targetY = card.y;
-            card.y = targetY + s(150);
-            card.setAlpha(1);
-            this.tweens.add({
-                targets: card,
-                y: targetY,
-                alpha: 1,
-                duration: 300,
-                delay: i * 100,
-                ease: 'Back.easeOut',
             });
 
             this.handCards.push(card);
@@ -1442,6 +1429,145 @@ export class GameScene extends Phaser.Scene {
     // LOBBY LOGIC — shared market of 3 cards
     // ══════════════════════════════════════════════════════════════════
 
+    getLobbyMetrics() {
+        return {
+            deckX: s(130),
+            deckY: s(250),
+            gap: s(20),
+        };
+    }
+
+    getNextHandSlotPosition() {
+        const { width, height } = this.scale;
+        const handSizeAfterDraw = this.playerHands[this.currentPlayer].length + 1;
+        const handStartX = width / 2 - ((handSizeAfterDraw - 1) * (Card.WIDTH + s(20))) / 2;
+
+        return {
+            x: handStartX + (handSizeAfterDraw - 1) * (Card.WIDTH + s(20)),
+            y: height - s(100),
+        };
+    }
+
+    /** @param {number} ms */
+    waitMs(ms) {
+        return new Promise((resolve) => {
+            this.time.delayedCall(ms, () => resolve(null));
+        });
+    }
+
+    /**
+     * @param {import('../types.js').CardData} cardData
+     * @param {number} sourceX
+     * @param {number} sourceY
+     */
+    async animateLobbyDrawToHand(cardData, sourceX, sourceY) {
+        const pickupScale = 1.14;
+        const travelScale = 1.08;
+        const target = this.getNextHandSlotPosition();
+
+        const animCard = new Card(this, sourceX, sourceY, cardData);
+        animCard.disableInteractive();
+        animCard.setDepth(500);
+
+        await new Promise((resolve) => {
+            this.tweens.add({
+                targets: animCard,
+                scaleX: pickupScale,
+                scaleY: pickupScale,
+                y: sourceY - s(16),
+                duration: 110,
+                ease: 'Back.easeOut',
+                onComplete: () => resolve(null),
+            });
+        });
+
+        await new Promise((resolve) => {
+            this.tweens.add({
+                targets: animCard,
+                x: target.x,
+                y: target.y,
+                scaleX: travelScale,
+                scaleY: travelScale,
+                duration: 230,
+                ease: 'Cubic.easeInOut',
+                onComplete: () => resolve(null),
+            });
+        });
+
+        animCard.destroy();
+    }
+
+    /**
+     * @param {import('../types.js').CardData} cardData
+     */
+    async animateDeckDrawToHand(cardData) {
+        const pickupScale = 1.14;
+        const travelScale = 1.08;
+        const { deckX, deckY } = this.getLobbyMetrics();
+        const target = this.getNextHandSlotPosition();
+
+        const back = this.add.container(deckX, deckY);
+        back.setDepth(500);
+
+        const backBorder = this.add
+            .rectangle(0, 0, Card.WIDTH, Card.HEIGHT, 0x000000)
+            .setStrokeStyle(s(2), 0x000000, 0.7);
+        const backImage = this.add.image(0, 0, 'card_back').setDisplaySize(Card.WIDTH, Card.HEIGHT);
+        back.add([backBorder, backImage]);
+
+        await new Promise((resolve) => {
+            this.tweens.add({
+                targets: back,
+                scaleX: pickupScale,
+                scaleY: pickupScale,
+                duration: 70,
+                ease: 'Sine.easeOut',
+                onComplete: () => resolve(null),
+            });
+        });
+
+        await new Promise((resolve) => {
+            this.tweens.add({
+                targets: back,
+                scaleX: 0,
+                duration: 120,
+                ease: 'Sine.easeIn',
+                onComplete: () => resolve(null),
+            });
+        });
+
+        const faceCard = new Card(this, deckX, deckY, cardData);
+        faceCard.disableInteractive();
+        faceCard.setDepth(501);
+        faceCard.setScale(0, pickupScale);
+        back.destroy();
+
+        await new Promise((resolve) => {
+            this.tweens.add({
+                targets: faceCard,
+                scaleX: pickupScale,
+                duration: 140,
+                ease: 'Sine.easeOut',
+                onComplete: () => resolve(null),
+            });
+        });
+
+        await new Promise((resolve) => {
+            this.tweens.add({
+                targets: faceCard,
+                x: target.x,
+                y: target.y,
+                scaleX: travelScale,
+                scaleY: travelScale,
+                duration: 230,
+                ease: 'Cubic.easeInOut',
+                onComplete: () => resolve(null),
+            });
+        });
+
+        faceCard.destroy();
+    }
+
     /**
      * Initial fills the lobby to 3 cards.
      */
@@ -1466,9 +1592,7 @@ export class GameScene extends Phaser.Scene {
         }
         this.lobbyCardVisuals = [];
 
-        const deckX = s(130);
-        const deckY = s(250);
-        const gap = s(20);
+        const { deckX, deckY, gap } = this.getLobbyMetrics();
         // Stack regular Image objects to form a card pile.
         const PILE_LAYERS = 10;
         const pileOffset = s(-1);
@@ -1499,7 +1623,9 @@ export class GameScene extends Phaser.Scene {
             hitAreaCallback: Phaser.Geom.Rectangle.Contains,
             useHandCursor: true,
         });
-        this.deckPileImage.on('pointerdown', () => this.drawFromDeck());
+        this.deckPileImage.on('pointerdown', () => {
+            void this.drawFromDeck();
+        });
 
         // Draw lobby cards
         for (let i = 0; i < this.lobbyCards.length; i++) {
@@ -1536,7 +1662,9 @@ export class GameScene extends Phaser.Scene {
             }
             else {
                 if (!isAI) {
-                    card.on('pointerdown', () => this.drawFromLobby(i));
+                    card.on('pointerdown', () => {
+                        void this.drawFromLobby(i);
+                    });
                 }
             }
 
@@ -1548,67 +1676,104 @@ export class GameScene extends Phaser.Scene {
      * Handles picking a card from the lobby.
      * @param {number} index
      */
-    drawFromLobby(index) {
-        if (this.turnPhase !== 'play') {
-            return;
+    async drawFromLobby(index) {
+        if (this.turnPhase !== 'play' || this.isDrawAnimating) {
+            return false;
         }
 
         const hand = this.playerHands[this.currentPlayer];
         // hand is full
         if (hand.length === this.maxCardsInHand) {
-            return;
+            return false;
         }
 
-        // TODO animate drawing the card
         const cardData = this.lobbyCards[index];
         if (!cardData) {
-            return;
+            return false;
         }
-        // Add to player hand
-        hand.push(cardData);
 
-        // Remove from lobby
-        this.lobbyCards.splice(index, 1);
+        const sourceVisual = this.lobbyCardVisuals[index];
+        const { deckX, deckY, gap } = this.getLobbyMetrics();
+        const fallbackY = deckY + (index + 1) * (Card.HEIGHT + gap);
 
-        // Refill from deck
-        // TODO animate this
-        if (this.deck.length > 0) {
-            const refill = this.deck.pop();
-            if (refill) {
-                this.lobbyCards.unshift(refill);
+        this.isDrawAnimating = true;
+        this.hideScoringTooltip();
+
+        if (sourceVisual) {
+            sourceVisual.setVisible(false);
+        }
+
+        try {
+            await this.animateLobbyDrawToHand(
+                cardData,
+                sourceVisual?.x ?? deckX,
+                sourceVisual?.y ?? fallbackY,
+            );
+
+            // Add to player hand
+            hand.push(cardData);
+
+            // Remove from lobby
+            this.lobbyCards.splice(index, 1);
+
+            // Refill from deck
+            if (this.deck.length > 0) {
+                const refill = this.deck.pop();
+                if (refill) {
+                    this.lobbyCards.unshift(refill);
+                }
             }
-        }
 
-        this.renderHand();
-        this.renderLobby();
-        this.updateUI();
+            this.renderHand();
+            this.updateUI();
+            return true;
+        }
+        finally {
+            this.isDrawAnimating = false;
+        }
     }
 
     /**
      * Blind draw from the deck.
      */
-    drawFromDeck() {
-        if (this.turnPhase !== 'play') {
-            return;
+    async drawFromDeck() {
+        if (this.turnPhase !== 'play' || this.isDrawAnimating) {
+            return false;
         }
         if (this.deck.length === 0) {
-            return;
+            return false;
         }
 
         const hand = this.playerHands[this.currentPlayer];
         // hand is full
         if (hand.length === this.maxCardsInHand) {
-            return;
+            return false;
         }
 
-        const cardData = this.deck.pop();
+        const cardData = this.deck[this.deck.length - 1];
         if (!cardData) {
-            return;
+            return false;
         }
-        hand.push(cardData);
 
-        this.renderHand();
-        this.updateUI();
+        this.isDrawAnimating = true;
+        this.hideScoringTooltip();
+
+        try {
+            await this.animateDeckDrawToHand(cardData);
+
+            const drawn = this.deck.pop();
+            if (!drawn) {
+                return false;
+            }
+            hand.push(drawn);
+
+            this.renderHand();
+            this.updateUI();
+            return true;
+        }
+        finally {
+            this.isDrawAnimating = false;
+        }
     }
 
     advanceTurn() {

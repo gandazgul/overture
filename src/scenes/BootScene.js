@@ -3,7 +3,6 @@ import Phaser from 'phaser';
 import { px, s } from '../config.js';
 import { Layouts } from '../types.js';
 
-const ENV = /** @type {{ VITE_START_THEATER?: string }} */ ((/** @type {any} */ (import.meta)).env ?? {});
 
 /**
  * Minimal boot scene that loads only the essential UI assets (logo + button frame)
@@ -71,7 +70,7 @@ export class BootScene extends Phaser.Scene {
 
     debugTheaterStart() {
         // ── Check for VITE_START_THEATER env (via Vite, browser-safe) ─────
-        const startTheater = ENV.VITE_START_THEATER || undefined;
+        const startTheater = import.meta.env.VITE_START_THEATER || undefined;
         if (startTheater) {
             // Import Layouts and find matching layout
             // Accept both layout id and layout name (case-insensitive)
