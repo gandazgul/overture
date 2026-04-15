@@ -9,7 +9,7 @@ import { px, s } from "../config.js";
  * @extends {Phaser.GameObjects.Container}
  */
 export class SpeechBubble extends Phaser.GameObjects.Container {
-    /** @type {Phaser.GameObjects.Container & { x: number, y: number, scaleY: number, height: number }} */
+    /** @type {Phaser.GameObjects.GameObject & { x: number, y: number, scaleY: number, height: number, active?: boolean }} */
     target;
 
     /** @type {number} Gap between the target's top edge and the bubble tail */
@@ -20,7 +20,7 @@ export class SpeechBubble extends Phaser.GameObjects.Container {
 
     /**
      * @param {Phaser.Scene} scene
-     * @param {Phaser.GameObjects.Container & { x: number, y: number, scaleY: number, height: number }} target - Object to follow
+     * @param {Phaser.GameObjects.GameObject & { x: number, y: number, scaleY: number, height: number, active?: boolean }} target - Object to follow
      * @param {string} title - Bold title line
      * @param {string} hint - Description text
      * @param {object} [options]

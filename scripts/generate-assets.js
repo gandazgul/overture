@@ -132,9 +132,9 @@ const ASSETS = [
         aspectRatio: "16:9",
     },
     {
-        filename: "bg_royal_theatre.png",
+        filename: "bg_opera_house.png",
         prompt:
-            "A top-down stylized view of an opulent royal theater floor. Deep purple carpets with intricate gold leaf embroidery, rich mahogany wood borders, extremely luxurious and regal. UI background illustration.",
+            "A top-down stylized view of an opulent opera house floor. Deep purple carpets with intricate gold leaf embroidery, rich mahogany wood borders, extremely luxurious and regal. UI background illustration.",
         aspectRatio: "16:9",
     },
     {
@@ -144,9 +144,9 @@ const ASSETS = [
         aspectRatio: "16:9",
     },
     {
-        filename: "bg_cabaret.png",
+        filename: "bg_dinner_playhouse.png",
         prompt:
-            "A top-down stylized view of a smoky 1920s cabaret club floor. Rich dark hardwood flooring, subtle checkered tile patterns, warm pink and amber club lighting reflecting off the floor. UI background illustration.",
+            "A top-down stylized view of a smoky 1920s dinner playhouse floor. Rich dark hardwood flooring, subtle checkered tile patterns, warm pink and amber club lighting reflecting off the floor. UI background illustration.",
         aspectRatio: "16:9",
     },
     {

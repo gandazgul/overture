@@ -3,8 +3,8 @@ import Phaser from "phaser";
 import { px, s } from "../config.js";
 import { PatronTypeOrder, PlayerColors, PlayerColorsHex, PlayerNames } from "../types.js";
 import { scorePlayer } from "../scoring.js";
-import { createButton } from "../objects/Button.js";
-import { createLogo } from "../objects/Logo.js";
+import { createButton } from "../factories/Button.js";
+import { createLogo } from "../factories/Logo.js";
 
 /** Usher avatar texture keys, indexed by player index. */
 const USHER_KEYS = ["usher_blue", "usher_red", "usher_green", "usher_orange"];
@@ -122,13 +122,14 @@ export class EndGameScene extends Phaser.Scene {
         const tableW = labelColW + this.playerCount * playerColW;
         const tableLeft = (width - tableW) / 2;
 
-        // Rows: avatar header + 6 patron types + divider + total = 9 visual rows
+        // Rows: avatar header + patron types + house-rule row + divider + total
         const avatarRowH = s(70);
         const dataRowCount = PatronTypeOrder.length;
+        const hasHouseRule = !!this.layout.houseRule;
         const totalRowH = s(38);
         const dataRowH = Math.min(
             s(34),
-            (tableAvailH - avatarRowH - totalRowH - s(10)) / dataRowCount,
+            (tableAvailH - avatarRowH - totalRowH - s(10)) / (dataRowCount + 1),
         );
 
         const gold = 0xd4af37;
@@ -138,7 +139,7 @@ export class EndGameScene extends Phaser.Scene {
         const gfx = this.add.graphics();
 
         // ── Table outer border + background ─────────────────────────────
-        const fullTableH = avatarRowH + dataRowCount * dataRowH + s(4) + totalRowH;
+        const fullTableH = avatarRowH + (dataRowCount + 1) * dataRowH + s(4) + totalRowH;
         gfx.fillStyle(darkBg, 0.95);
         gfx.fillRoundedRect(
             tableLeft - s(4),
@@ -269,8 +270,57 @@ export class EndGameScene extends Phaser.Scene {
             );
         }
 
+        // ── House rule row (always shown) ────────────────────────────────
+        const houseRuleY = dataStartY + dataRowCount * dataRowH;
+
+        if (dataRowCount % 2 === 1) {
+            gfx.fillStyle(altBg, 0.5);
+            gfx.fillRect(tableLeft, houseRuleY, tableW, dataRowH);
+        }
+
+        const houseRuleLabel = hasHouseRule
+            ? (this.layout.houseRuleDescription?.split(" — ")[0] ?? "House Rule")
+            : "House Rule";
+
+        this.add
+            .text(
+                tableLeft + s(10),
+                houseRuleY + dataRowH / 2,
+                houseRuleLabel,
+                {
+                    fontSize: px(12),
+                    fontFamily: "Georgia, serif",
+                    color: "#ccccdd",
+                },
+            )
+            .setOrigin(0, 0.5);
+
+        for (let p = 0; p < this.playerCount; p++) {
+            const colX = tableLeft + labelColW + p * playerColW + playerColW / 2;
+            const houseVp = playerScores[p].houseBonus;
+            const text = hasHouseRule ? `${houseVp ?? 0}` : "N/A";
+            const color = hasHouseRule ? ((houseVp ?? 0) > 0 ? "#ffffff" : "#666677") : "#666677";
+
+            this.add
+                .text(colX, houseRuleY + dataRowH / 2, text, {
+                    fontSize: px(13),
+                    fontFamily: "Arial",
+                    color,
+                    fontStyle: hasHouseRule && (houseVp ?? 0) !== 0 ? "bold" : "",
+                })
+                .setOrigin(0.5);
+        }
+
+        gfx.lineStyle(s(1), gold, 0.15);
+        gfx.lineBetween(
+            tableLeft,
+            houseRuleY + dataRowH,
+            tableLeft + tableW,
+            houseRuleY + dataRowH,
+        );
+
         // ── Total row ───────────────────────────────────────────────────
-        const totalY = dataStartY + dataRowCount * dataRowH + s(4);
+        const totalY = houseRuleY + dataRowH + s(4);
 
         // Gold background for totals
         gfx.fillStyle(gold, 0.12);

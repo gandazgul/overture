@@ -13,7 +13,8 @@
         "check": "deno check --doc **/*.js",
         "lint": "deno lint src/",
         "test": "deno test src/",
-        "ci": "deno task check && deno  && deno task lint && deno task test",
+        "format": "deno fmt",
+        "ci": "deno task check && deno fmt --check && deno task lint && deno task test",
         "generate": "deno run -A scripts/generate-assets.js",
         "optimize": "deno run -A scripts/optimize-assets.js"
     },
@@ -26,6 +27,8 @@
         "dist/",
         "node_modules/",
         "vite.config.js",
+        ".vite/",
+        ".vera/"
     ],
     "fmt": {
         "useTabs": false,

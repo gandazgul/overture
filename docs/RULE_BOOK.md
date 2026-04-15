@@ -326,19 +326,11 @@ Each game is played on one of **8 unique theaters**. The theater defines the gri
 
 ---
 
-### 🏛️ The Grand Empress
+### The Grand Empress
 
 <p align="center">
   <img src="images/theater-grand-empress.png" alt="The Grand Empress" width="600" />
 </p>
-
-```
-   Col 1  2  3  4  5
-[A][ ][ ][ ][A]     A = Aisle seat
-[A][ ][ ][ ][A]     20 seats · 8 aisle seats
-[A][ ][ ][ ][A]
-[A][ ][ ][ ][A]     ← Back row
-```
 
 **House Rule: "The Classics"** — No special demand. Vanilla scoring.
 
@@ -346,20 +338,11 @@ The learning theater. Wide aisles make Critics strong. Broad rows are ideal for 
 
 ---
 
-### 🎭 The Blackbox
+### The Blackbox
 
 <p align="center">
   <img src="images/theater-blackbox.png" alt="The Blackbox" width="600" />
 </p>
-
-```
-   Col 1  2  3  4
-[ ][A][A][ ]     A = Aisle seat (center)
-[ ][A][A][ ]     20 seats · 4 cols × 5 rows
-[ ][A][A][ ]     Center aisles only
-[ ][A][A][ ]
-[ ][A][A][ ]     ← Back row
-```
 
 **House Rule: "Intimate Venue"** — Each patron adjacent to 3+ others gets **+1 VP**.
 
@@ -367,19 +350,11 @@ Narrow and deep (5 rows). Aisle seats are center-only, making Critic placement u
 
 ---
 
-### 👑 The Royal Theatre
+### The Opera House
 
 <p align="center">
-  <img src="images/theater-royal-theatre.png" alt="The Royal Theatre" width="600" />
+  <img src="images/theater-opera-house.png" alt="The Opera House" width="600" />
 </p>
-
-```
-Col 1  2  3  4  5
-   [B][ ][ ][ ][B]     B = Royal Box (aisle + front, isolated)
-   [A][ ][ ][ ][A]     20 seats · 8 aisle seats · 2 Royal Boxes
-   [A][ ][ ][ ][A]
-   [A][ ][ ][ ][A]     ← Back row
-```
 
 **House Rule: "Royal Approval"** — Your single highest-scoring patron gets **+3 VP**. Tiebreaker: front-most, then left-most.
 
@@ -387,19 +362,11 @@ Royal Boxes are isolated — they're not adjacent to any regular seats. A Bespec
 
 ---
 
-### 🚶 The Promenade
+### The Promenade
 
 <p align="center">
   <img src="images/theater-promenade.png" alt="The Promenade" width="600" />
 </p>
-
-```
-Col 1  2  3  4  5
-   [A][ ][ ][ ][A]     Staggered aisles:
-   [ ][ ][A][ ][ ]     Different columns each row
-   [A][ ][ ][ ][A]     20 seats · 8 aisle seats
-   [ ][ ][A][ ][ ]
-```
 
 **House Rule: "Wandering Critics"** — +1 VP per Critic if you have **3+ Critics in aisle seats**.
 
@@ -407,19 +374,11 @@ Aisles shift row by row, so you can't stack Critics in one column. Spreading Cri
 
 ---
 
-### 🏛 The Amphitheater
+### The Amphitheater
 
 <p align="center">
   <img src="images/theater-amphitheater.png" alt="The Amphitheater" width="600" />
 </p>
-
-```
-Col 1  2  3  4  5  6
-      [ ][ ][ ]          Tiered: 3→4→5→6 = 18 seats
-     [ ][ ][ ][ ]        NO aisle seats
-    [ ][ ][ ][ ][ ]      Rows widen toward the back
-   [ ][ ][ ][ ][ ][ ]    ← Back row
-```
 
 **House Rule: "The Panorama"** — **+2 VP** for each completely filled row.
 
@@ -427,20 +386,11 @@ Zero aisles = Critics are dead (3 VP only, no aisle bonus). The narrow 3-seat fr
 
 ---
 
-### 🍸 The Cabaret
+### The Dinner Playhouse
 
 <p align="center">
-  <img src="images/theater-cabaret.png" alt="The Cabaret" width="600" />
+  <img src="images/theater-dinner-playhouse.png" alt="The Dinner Playhouse" width="600" />
 </p>
-
-```
-Col 1  2     3  4     5  6
-   [ ][ ]   [ ][ ]   [ ][ ]   6 tables of 2×2
-   [ ][ ]   [ ][ ]   [ ][ ]   Gaps between tables
-    ─── horizontal gap ───    24 seats · No aisles
-   [ ][ ]   [ ][ ]   [ ][ ]
-   [ ][ ]   [ ][ ]   [ ][ ]
-```
 
 **House Rule: "Full Tables"** — **+3 VP** for each 2×2 table where all 4 seats are occupied.
 
@@ -450,20 +400,11 @@ Gaps between tables break adjacency — Noisy only hurts tablemates. Lovebirds p
 
 ---
 
-### 🌃 The Balcony
+### The Balcony
 
 <p align="center">
   <img src="images/theater-balcony.png" alt="The Balcony" width="600" />
 </p>
-
-```
-Col 1  2  3  4  5
-   [A][ ][ ][ ][A]     Balcony (top row) — elevated, separate
-   ────────────────     Gap: NO adjacency between balcony and floor
-   [A][ ][ ][ ][A]     Main floor
-   [A][ ][ ][ ][A]     Both balcony and first floor row are front rows
-   [A][ ][ ][ ][A]     20 seats · 8 aisle seats
-```
 
 **House Rule: "Bird's Eye View"** — Tall patrons in the balcony (top row) **don't penalize** anyone. Short patrons in the balcony **always get +2 VP** (no one in front).
 
@@ -471,20 +412,11 @@ The balcony is a safe haven for problem cards — Tall and Short traits are neut
 
 ---
 
-### 🎪 The Rotunda
+### The Rotunda
 
 <p align="center">
   <img src="images/theater-rotunda.png" alt="The Rotunda" width="600" />
 </p>
-
-```text
-Col 1  2  3  4  5
-      [F][F][F]       Hollow ring: 16 seats
-   [A][F]   [F][A]    Center = stage (no seats)
-   [A]         [A]    F = Front (stage-side)
-   [A][F]   [F][A]    A = Aisle (outer ring)
-      [F][F][F]       No back row at all
-```
 
 **House Rule: "In the Round"** — No back row. 10 inner-ring seats are front row. 6 outer-ring seats are aisles.
 

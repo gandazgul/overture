@@ -2,8 +2,8 @@
 import Phaser from "phaser";
 import { loadSettings } from "../settings.js";
 import { px, s } from "../config.js";
-import { createButton } from "../objects/Button.js";
-import { createLogo } from "../objects/Logo.js";
+import { createButton } from "../factories/Button.js";
+import { createLogo } from "../factories/Logo.js";
 import { AIDifficulty } from "../ai.js";
 
 /**

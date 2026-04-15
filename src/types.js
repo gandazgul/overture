@@ -421,7 +421,7 @@ Object.freeze(PlayerNames);
  * @property {{row: number, col: number}[]} [royalBoxes] - Seats that count as both aisle AND front row
  * @property {boolean[][]} [seatMask] - 2D array: true = seat exists, false = no seat. If absent, all seats exist.
  * @property {number[][]} [adjacencyBreaks] - Pairs [rowA, rowB] where adjacency between rows is severed (e.g. Balcony)
- * @property {{row: number, col: number}[][]} [tableGroups] - Groups of seat positions forming "tables" (Cabaret)
+ * @property {{row: number, col: number}[][]} [tableGroups] - Groups of seat positions forming "tables" (Dinner Playhouse)
  * @property {boolean} [staggered] - If true, each row is offset by half a seat width (brick-pattern stagger)
  * @property {{frontColDeltas?: number[], backColDeltas?: number[]}} [extendedAdjacency] - Optional directional row-adjacency extension. Deltas are applied to col when stepping one row front/back.
  * @property {string|null} [houseRule] - House rule ID for scoring (null = none)
@@ -536,11 +536,11 @@ buildSeatLabels(BlackboxLayout);
 Object.freeze(BlackboxLayout);
 
 /** @type {LayoutMeta} */
-export const RoyalTheatreLayout = {
-    id: "royal-theatre",
-    name: "The Royal Theatre",
-    bgKey: "bg_royal_theatre",
-    bgThumbKey: "bg_royal_theatre_thumb",
+export const OperaHouseLayout = {
+    id: "opera-house",
+    name: "The Opera House",
+    bgKey: "bg_opera_house",
+    bgThumbKey: "bg_opera_house_thumb",
     description: "Royal Boxes in the front corners. Best patron gets +3 VP.",
     rows: 4,
     cols: 5,
@@ -553,8 +553,8 @@ export const RoyalTheatreLayout = {
     houseRule: "royal-approval",
     houseRuleDescription: "Royal Approval — Your highest-scoring patron gets +3 VP.",
 };
-buildSeatLabels(RoyalTheatreLayout);
-Object.freeze(RoyalTheatreLayout);
+buildSeatLabels(OperaHouseLayout);
+Object.freeze(OperaHouseLayout);
 
 /** @type {LayoutMeta} */
 export const PromenadeLayout = {
@@ -617,7 +617,7 @@ buildSeatLabels(AmphitheaterLayout);
 Object.freeze(AmphitheaterLayout);
 
 /**
- * Helper: build a seatMask with gap columns (for Cabaret tables).
+ * Helper: build a seatMask with gap columns (for Dinner Playhouse tables).
  * @param {number} rows
  * @param {number} cols
  * @param {number[]} gapCols - column indices that are gaps (no seats)
@@ -632,11 +632,11 @@ function buildGappedMask(rows, cols, gapCols) {
 }
 
 /** @type {LayoutMeta} */
-export const CabaretLayout = {
-    id: "cabaret",
-    name: "The Cabaret",
-    bgKey: "bg_cabaret",
-    bgThumbKey: "bg_cabaret_thumb",
+export const DinnerPlayhouseLayout = {
+    id: "dinner-playhouse",
+    name: "The Dinner Playhouse",
+    bgKey: "bg_dinner_playhouse",
+    bgThumbKey: "bg_dinner_playhouse_thumb",
     description: "Intimate tables of 4. Fill a table for +3 VP.",
     rows: 4,
     cols: 8,
@@ -678,8 +678,8 @@ export const CabaretLayout = {
     houseRule: "full-tables",
     houseRuleDescription: "Full Tables — +3 VP for each 2×2 table where all 4 seats are occupied.",
 };
-buildSeatLabels(CabaretLayout);
-Object.freeze(CabaretLayout);
+buildSeatLabels(DinnerPlayhouseLayout);
+Object.freeze(DinnerPlayhouseLayout);
 
 /** @type {LayoutMeta} */
 export const BalconyLayout = {
@@ -738,10 +738,10 @@ Object.freeze(RotundaLayout);
 export const Layouts = {
     [GrandEmpressLayout.id]: GrandEmpressLayout,
     [BlackboxLayout.id]: BlackboxLayout,
-    [RoyalTheatreLayout.id]: RoyalTheatreLayout,
+    [OperaHouseLayout.id]: OperaHouseLayout,
     [PromenadeLayout.id]: PromenadeLayout,
     [AmphitheaterLayout.id]: AmphitheaterLayout,
-    [CabaretLayout.id]: CabaretLayout,
+    [DinnerPlayhouseLayout.id]: DinnerPlayhouseLayout,
     [BalconyLayout.id]: BalconyLayout,
     [RotundaLayout.id]: RotundaLayout,
 };
@@ -754,10 +754,10 @@ Object.freeze(Layouts);
 export const LayoutOrder = [
     GrandEmpressLayout.id,
     BlackboxLayout.id,
-    RoyalTheatreLayout.id,
+    OperaHouseLayout.id,
     PromenadeLayout.id,
     AmphitheaterLayout.id,
-    CabaretLayout.id,
+    DinnerPlayhouseLayout.id,
     BalconyLayout.id,
     RotundaLayout.id,
 ];

@@ -398,7 +398,7 @@ bonuses.
 
 ---
 
-### 🎭 The Royal Theatre
+### 🎭 The Opera House
 
 ```
     Col 0  1  2  3  4
@@ -439,7 +439,7 @@ rows or go for the big back row?
 
 ---
 
-### 🎭 The Cabaret
+### 🎭 The Dinner Playhouse
 
 ```
   Col   0  1     2  3     4  5
@@ -453,7 +453,7 @@ Row 3: [ ][ ]   [ ][ ]   [ ][ ]    Kids and Teachers want to cluster at tables; 
 **House Rule: "Full Tables"** - +3 VP for each 2×2 table where all 4 seats are
 occupied.
 
-**Cabaret Capping Rule:** Kids cannot be capped by the normal horizontal chain
+**Dinner Playhouse Capping Rule:** Kids cannot be capped by the normal horizontal chain
 rule (tables are only 2 seats wide). Instead, a Kid is **capped if any Teacher
 is seated at the same 2×2 table**. One Teacher can cap up to 3 Kids at their
 table.
@@ -651,7 +651,7 @@ they're "breathing room."
 **Why it's interesting:** Completely inverts the default "fill as many seats as
 possible" instinct. Now you're intentionally leaving gaps. A checkerboard
 pattern might outscore a packed theater. Noisy patrons become less punishing
-because you want gaps anyway. In the Cabaret (Full Tables house rule), this
+because you want gaps anyway. In the Dinner Playhouse (Full Tables house rule), this
 creates a direct contradiction-fill tables or leave breathing room?
 
 ---
@@ -720,17 +720,17 @@ referenced by specific Plays.
 
 ### Notable Theater × Play Combos
 
-| Combo                                | Why It's Spicy                                                                                                           |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
-| **Amphitheater + The Avant-Garde**   | "Fill rows for +2 VP" vs. "leave gaps for +2 VP." Direct contradiction forces hard choices every turn.                   |
-| **Cabaret + The Mystery**            | Table layout fragments adjacency; demand cards might require cross-table planning.                                       |
-| **Blackbox + The Understudy**        | Only 16 seats, almost full. Understudies in a cramped space with tons of adjacency-their flex value is huge.             |
-| **Balcony + The Matinee**            | Balcony IS row 0, scores twice at intermission. But it's disconnected from row 1. Stack it or protect it?                |
-| **Promenade + The Dress Rehearsal**  | Staggered aisles + draft-and-pass. You can see what your neighbor needs AND deny them the right aisle-seat card.         |
-| **Royal Theatre + The Casting Call** | The Collector role loves the Royal Boxes (diverse types for +6 VP). The Architect can swap a patron INTO a Box mid-game. |
-| **Grand Empress + The Mystery**      | Vanilla layout lets you focus purely on demand adaptation. Good for learning The Mystery without layout complexity.      |
-| **Rotunda + The Avant-Garde**        | Empty stage center already breaks adjacency; leaving outer-ring gaps for +2 VP each compounds the breathing-room bonus.  |
-| **Rotunda + The Matinee**            | Every inner-ring seat is "front row" and scores twice at intermission. VIPs and Bespectacled patrons are strong.         |
+| Combo                               | Why It's Spicy                                                                                                           |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| **Amphitheater + The Avant-Garde**  | "Fill rows for +2 VP" vs. "leave gaps for +2 VP." Direct contradiction forces hard choices every turn.                   |
+| **Dinner Playhouse + The Mystery**  | Table layout fragments adjacency; demand cards might require cross-table planning.                                       |
+| **Blackbox + The Understudy**       | Only 16 seats, almost full. Understudies in a cramped space with tons of adjacency-their flex value is huge.             |
+| **Balcony + The Matinee**           | Balcony IS row 0, scores twice at intermission. But it's disconnected from row 1. Stack it or protect it?                |
+| **Promenade + The Dress Rehearsal** | Staggered aisles + draft-and-pass. You can see what your neighbor needs AND deny them the right aisle-seat card.         |
+| **Opera House + The Casting Call**  | The Collector role loves the Royal Boxes (diverse types for +6 VP). The Architect can swap a patron INTO a Box mid-game. |
+| **Grand Empress + The Mystery**     | Vanilla layout lets you focus purely on demand adaptation. Good for learning The Mystery without layout complexity.      |
+| **Rotunda + The Avant-Garde**       | Empty stage center already breaks adjacency; leaving outer-ring gaps for +2 VP each compounds the breathing-room bonus.  |
+| **Rotunda + The Matinee**           | Every inner-ring seat is "front row" and scores twice at intermission. VIPs and Bespectacled patrons are strong.         |
 
 ---
 

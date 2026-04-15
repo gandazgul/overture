@@ -3,17 +3,17 @@ import Phaser from "phaser";
 import { pickCardAndSeat, pickDrawAction } from "../ai.js";
 import { px, s } from "../config.js";
 import { ActivePlayerAvatar } from "../objects/ActivePlayerAvatar.js";
-import { createButton } from "../objects/Button.js";
+import { createButton } from "../factories/Button.js";
+import { createLogo } from "../factories/Logo.js";
 import { Card } from "../objects/Card.js";
 import { DrawReminderBanner } from "../objects/DrawReminderBanner.js";
 import { GameInfoPanel } from "../objects/GameInfoPanel.js";
-import { createLogo } from "../objects/Logo.js";
 import { SpeechBubble } from "../objects/SpeechBubble.js";
-import { scorePlayer, seatExists } from "../scoring.js";
+import { TheaterGrid } from "../objects/TheaterGrid.js";
+import { scorePlayer, scoreSeatBreakdown } from "../scoring.js";
 import {
     createDeck,
     GrandEmpressLayout,
-    hasSeatLabel,
     LayoutOrder,
     Layouts,
     PatronInfo,
@@ -23,14 +23,9 @@ import {
     PlayerColorsHex,
     PlayerNames,
     Trait,
-    TraitColors,
     TraitInfo,
     TraitOrder,
 } from "../types.js";
-
-const SEAT_SIZE = s(100);
-const SEAT_GAP = s(10);
-const AISLE_GAP = s(30); // wider gap for aisle walkways
 
 const ENV = /** @type {{ VITE_DEBUG_AI?: string }} */ ((/** @type {any} */ (import.meta)).env ?? {});
 
@@ -84,8 +79,8 @@ export class GameScene extends Phaser.Scene {
         this.turnPhase = "pass-screen";
 
         // Visual references
-        /** @type {(Phaser.GameObjects.Rectangle | null)[][]} */
-        this.seatGrid = [];
+        /** @type {TheaterGrid | null} */
+        this.theaterGrid = null;
 
         /** @type {Phaser.GameObjects.Container | null} */
         this.passOverlay = null;
@@ -99,23 +94,11 @@ export class GameScene extends Phaser.Scene {
         /** @type {Phaser.GameObjects.Container | null} */
         this.deckPileImage = null;
 
-        /** @type {Phaser.GameObjects.GameObject[]} */
-        this.seatLabels = [];
-
-        /** @type {number[]} center-x of each column (set in create) */
-        this.colX = [];
-
-        /** @type {number[]} per-row X offset for staggered layouts (set in create) */
-        this.staggerRowOffsets = [];
-
-        /** @type {number[]} center-y of each row (set in create) */
-        this.rowY = [];
-
-        /** @type {number} top of the seat grid (set in create) */
-        this.gridStartY = 0;
-
         /** @type {SpeechBubble | null} */
         this.scoringTooltip = null;
+
+        /** @type {SpeechBubble | null} */
+        this.seatScoreTooltip = null;
 
         /** @type {DrawReminderBanner | null} */
         this.drawReminderBanner = null;
@@ -237,11 +220,8 @@ export class GameScene extends Phaser.Scene {
      * @param {{ playerCount?: number, layoutId?: string, aiConfig?: (string | null)[], playerColorMap?: number[] }} data
      */
     init(data) {
-        if (data?.layoutId && Layouts[data.layoutId]) {
-            this.layout = Layouts[data.layoutId];
-        } else {
-            this.layout = GrandEmpressLayout;
-        }
+        const requestedLayoutId = data?.layoutId ?? "";
+        this.layout = Layouts[requestedLayoutId] || GrandEmpressLayout;
         this.playerCount = data.playerCount || 2;
         this.maxCardsInHand = this.playerCount === 2 ? 3 : 2;
         this.currentPlayer = 0;
@@ -251,7 +231,6 @@ export class GameScene extends Phaser.Scene {
         this.isDrawAnimating = false;
         this.deck = createDeck();
         this.handCards = [];
-        this.seatLabels = [];
         this.aiConfig = data.aiConfig || Array.from({ length: this.playerCount }, () => null);
         /** @type {number[]} */
         this.playerColorMap = data.playerColorMap || Array.from({ length: this.playerCount }, (_, i) => i);
@@ -282,10 +261,12 @@ export class GameScene extends Phaser.Scene {
             this.deck.pop();
         }
 
-        this.seatGrid = [];
+        this.theaterGrid = null;
         this.gameInfoPanel = null;
         this.activePlayerAvatar = null;
         this.deckPileImage = null;
+        this.scoringTooltip = null;
+        this.seatScoreTooltip = null;
     }
 
     debugSetup() {
@@ -362,344 +343,14 @@ export class GameScene extends Phaser.Scene {
 
         this.debugSetup();
 
-        // ── Compute aisle walkway positions ────────────────────────────
-        const ROWS = this.layout.rows;
-        const COLS = this.layout.cols;
-        const aisleCols = this.layout.aisleCols ?? [];
-        const hasPerRowAisles = !!this.layout.aisleColsByRow;
+        this.theaterGrid = new TheaterGrid(this, {
+            layout: this.layout,
+            onSeatPointerOver: (row, col, seat) => this.handleSeatPointerOver(row, col, seat),
+            onSeatPointerOut: (row, col, seat) => this.handleSeatPointerOut(row, col, seat),
+            onSeatPointerDown: (row, col, seat) => this.handleSeatPointerDown(row, col, seat),
+        });
 
-        // Determine where walkway gaps go (edges and between seats).
-        // For per-row aisles (Promenade), we skip structural gaps and
-        // only use per-seat colour tints.
-        /** @type {Set<number>} gaps between col c and col c+1 */
-        const centerAisleGaps = new Set();
-        if (!hasPerRowAisles) {
-            for (let c = 0; c < COLS - 1; c++) {
-                if (aisleCols.includes(c) && aisleCols.includes(c + 1)) {
-                    centerAisleGaps.add(c);
-                }
-            }
-        }
-
-        // Detect seatMask gap columns (Cabaret: cols where no row has a seat)
-        /** @type {Set<number>} columns that are entirely empty (gap columns) */
-        const gapCols = new Set();
-        if (this.layout.seatMask) {
-            for (let c = 0; c < COLS; c++) {
-                if (this.layout.seatMask.every((row) => !row[c])) {
-                    gapCols.add(c);
-                }
-            }
-        }
-
-        // Detect adjacency breaks for visual row gaps (Balcony)
-        /** @type {Set<number>} row indices after which there's a visual break */
-        const rowBreaksAfter = new Set();
-        if (this.layout.adjacencyBreaks) {
-            for (const [a, b] of this.layout.adjacencyBreaks) {
-                rowBreaksAfter.add(Math.min(a, b));
-            }
-        }
-
-        // ── Compute column X positions with variable gaps ────────────
-        const GAP_COL_WIDTH = AISLE_GAP; // gap columns rendered as aisles (Cabaret tables)
-        const ROW_BREAK_GAP = s(20); // extra gap for adjacency breaks
-        /** @type {number[]} center-x of each column */
-        const colX = [];
-        let cursor = 0;
-        for (let c = 0; c < COLS; c++) {
-            if (gapCols.has(c)) {
-                // Gap column: skip it (just add gap space)
-                colX[c] = cursor + GAP_COL_WIDTH / 2; // position for reference
-                cursor += GAP_COL_WIDTH;
-            } else {
-                colX[c] = cursor + SEAT_SIZE / 2;
-                cursor += SEAT_SIZE;
-            }
-            if (c < COLS - 1) {
-                if (centerAisleGaps.has(c)) {
-                    cursor += AISLE_GAP;
-                } else if (!gapCols.has(c) && !gapCols.has(c + 1)) {
-                    cursor += SEAT_GAP;
-                }
-            }
-        }
-        const totalGridW = cursor;
-
-        // ── Compute row Y positions with adjacency break gaps ───────
-        /** @type {number[]} center-y of each row */
-        const rowY = [];
-        let yCursor = 0;
-        for (let r = 0; r < ROWS; r++) {
-            rowY[r] = yCursor + SEAT_SIZE / 2;
-            yCursor += SEAT_SIZE;
-            if (r < ROWS - 1) {
-                yCursor += rowBreaksAfter.has(r) ? SEAT_GAP + ROW_BREAK_GAP : SEAT_GAP;
-            }
-        }
-        const totalGridH = yCursor;
-
-        const bleed = s(30);
-        const floorW = totalGridW + bleed * 2; // grid centered on screen
-        const floorH = totalGridH + bleed * 2; // grid centered on screen
-        // TODO: get this from the texture
-        const stageAspectRatio = 222 / 978;
-        const stageRenderWidth = floorW + bleed * 2; // the stage bleeds again
-        const actualStageH = stageRenderWidth * stageAspectRatio;
-        const stageTop = s(10);
-        // Center the entire floor (label pad + grid) on screen
-        const floorTop = stageTop + actualStageH - bleed / 2;
-        const floorLeft = (width - floorW) / 2;
-        const gridStartX = floorLeft + bleed;
-        const gridStartY = floorTop + bleed;
-
-        // ── Compute per-row stagger offsets (brick-pattern pyramid) ──
-        /** @type {number[]} per-row X shift for staggered layouts */
-        const staggerRowOffsets = [];
-        const halfSeat = (SEAT_SIZE + SEAT_GAP) / 2;
-        if (this.layout.staggered && this.layout.seatMask) {
-            // Find the widest row as the baseline (no offset needed)
-            let maxSeats = 0;
-            let widestFirstCol = 0;
-            for (let r = 0; r < ROWS; r++) {
-                let seats = 0;
-                let first = -1;
-                for (let c = 0; c < COLS; c++) {
-                    if (this.layout.seatMask[r][c]) {
-                        seats++;
-                        if (first < 0) {
-                            first = c;
-                        }
-                    }
-                }
-                if (seats > maxSeats) {
-                    maxSeats = seats;
-                    widestFirstCol = first;
-                }
-            }
-            // Each row offsets by (seatDifference * halfSeat) for the brick stagger,
-            // minus the inherent grid offset from the seatMask column positions
-            for (let r = 0; r < ROWS; r++) {
-                let seatCount = 0;
-                let firstCol = 0;
-                for (let c = 0; c < COLS; c++) {
-                    if (this.layout.seatMask[r][c]) {
-                        seatCount++;
-                        if (seatCount === 1) {
-                            firstCol = c;
-                        }
-                    }
-                }
-                const seatDiff = maxSeats - seatCount;
-                const desiredOffset = seatDiff * halfSeat;
-                const inherentOffset = (firstCol - widestFirstCol) *
-                    (SEAT_SIZE + SEAT_GAP);
-                staggerRowOffsets[r] = desiredOffset - inherentOffset;
-            }
-        } else {
-            for (let r = 0; r < ROWS; r++) {
-                staggerRowOffsets[r] = 0;
-            }
-        }
-
-        // Offset colX and rowY so they're relative to gridStartX/gridStartY
-        for (let c = 0; c < COLS; c++) {
-            colX[c] += gridStartX;
-        }
-        for (let r = 0; r < ROWS; r++) {
-            rowY[r] += gridStartY;
-        }
-
-        // ── Theater floor background ─────────────────────────────────
-        const floorCenterX = floorLeft + floorW / 2;
-        const floorCenterY = floorTop + floorH / 2;
-        const bgKey = `bg_${this.layout.id}`;
-        // Draw the background image with cover scaling (maintain aspect ratio)
-        const bgImg = this.add.image(
-            floorCenterX,
-            floorCenterY,
-            bgKey,
-        );
-        const texW = bgImg.width;
-        const texH = bgImg.height;
-        const coverScale = Math.max(floorW / texW, floorH / texH);
-        bgImg.setScale(coverScale);
-
-        const bgMask = this.make.graphics();
-        bgMask.fillRect(
-            floorLeft,
-            floorTop,
-            floorW,
-            floorH,
-        );
-        bgImg.setMask(bgMask.createGeometryMask());
-
-        // ── Aisle walkway strips ──────────────────────────────────────
-        const aisleColor = 0x4D0D0F;
-        const aisleBorderColor = 0x493D18;
-        const aisleDashColor = 0x493D18;
-
-        /**
-         * Draw a single aisle walkway strip with gold-tinted borders and dashes.
-         * @param {number} centerX - center X
-         * @param {number} aisleWidth  - strip width
-         */
-        const drawAisleStrip = (centerX, aisleWidth) => {
-            const aisleWidthWithBorder = aisleWidth - s(6);
-            const centerY = floorTop + floorH / 2;
-
-            // Main walkway background
-            this.add
-                .rectangle(centerX, centerY, aisleWidthWithBorder, totalGridH, aisleColor)
-                .setStrokeStyle(s(2), aisleBorderColor);
-            // Center dashed line
-            for (let dy = bleed + s(2); dy < floorH - bleed; dy += s(14)) {
-                this.add
-                    .rectangle(centerX, floorTop + dy + s(2), s(2), s(7), aisleDashColor);
-            }
-        };
-
-        // Only draw walkway strips for Blackbox (center aisle is the defining feature)
-        if (this.layout.id === "blackbox") {
-            for (const gapAfterCol of centerAisleGaps) {
-                const leftEdge = colX[gapAfterCol] + SEAT_SIZE / 2 + s(1);
-                const rightEdge = colX[gapAfterCol + 1] - SEAT_SIZE / 2 - s(1);
-                drawAisleStrip((leftEdge + rightEdge) / 2, rightEdge - leftEdge);
-            }
-        }
-
-        // ── Stage platform ───────────────────────────────────────────
-        const stageX = floorCenterX;
-        const stageY = stageTop + actualStageH / 2;
-
-        if (this.textures.exists("ui_stage")) {
-            const stageImg = this.add.image(
-                stageX,
-                stageY,
-                "ui_stage",
-            );
-            stageImg.setDisplaySize(stageRenderWidth, actualStageH);
-            stageImg.setDepth(2);
-        } else {
-            this.add
-                .rectangle(
-                    stageX,
-                    stageY,
-                    floorW,
-                    actualStageH,
-                    0x8b4513,
-                )
-                .setStrokeStyle(s(1), 0xdaa520);
-        }
-
-        this.add
-            .text(floorCenterX, stageY, this.layout.name, {
-                fontSize: px(36),
-                color: "#ffd700",
-                fontFamily: "Georgia, serif",
-                fontStyle: "italic",
-                shadow: { blur: 8, color: "#000000", fill: true },
-            })
-            .setOrigin(0.5)
-            .setDepth(3);
-
-        // Store positions for use in renderTheater
-        this.colX = colX;
-        this.staggerRowOffsets = staggerRowOffsets;
-        this.rowY = rowY;
-        this.gridStartY = gridStartY;
-
-        // ── Draw balcony break line if applicable ───────────────────
-        for (const breakRow of rowBreaksAfter) {
-            const y1 = rowY[breakRow] + SEAT_SIZE / 2;
-            const y2 = rowY[breakRow + 1] - SEAT_SIZE / 2;
-            const midY = (y1 + y2) / 2;
-            // Dashed horizontal line
-            for (let dx = 0; dx < totalGridW; dx += s(12)) {
-                this.add
-                    .rectangle(gridStartX + dx + s(3), midY, s(6), s(2), 0x555577)
-                    .setAlpha(0.5);
-            }
-        }
-
-        // ── Build theater grid ──────────────────────────────────────────
-        for (let row = 0; row < ROWS; row++) {
-            this.seatGrid[row] = [];
-            const y = rowY[row];
-            const rowStagger = staggerRowOffsets[row] || 0;
-
-            for (let col = 0; col < COLS; col++) {
-                // Skip non-existent seats (seatMask or gap columns)
-                if (!seatExists(row, col, this.layout)) {
-                    this.seatGrid[row][col] = null;
-                    continue;
-                }
-
-                const x = colX[col] + rowStagger;
-                const isAisle = hasSeatLabel(row, col, "aisle", this.layout);
-                const isRoyalBox = this.layout.royalBoxes?.some(
-                    (b) => b.row === row && b.col === col,
-                );
-
-                // Visual styling per seat type
-                let emptyFill = 0x1a1a3e;
-                let emptyStroke = 0x3a3a5e;
-                let strokeWidth = s(2);
-                if (isRoyalBox) {
-                    emptyFill = 0x2a2040;
-                    emptyStroke = 0xdaa520;
-                    strokeWidth = s(3);
-                } else if (isAisle) {
-                    emptyFill = 0x1e1e38;
-                    emptyStroke = 0xb89a3e;
-                    strokeWidth = s(3);
-                }
-
-                const seat = this.add
-                    .rectangle(x, y, SEAT_SIZE, SEAT_SIZE, emptyFill)
-                    .setStrokeStyle(strokeWidth, emptyStroke)
-                    .setInteractive({ useHandCursor: true });
-
-                seat.setData("row", row);
-                seat.setData("col", col);
-                seat.setData("emptyFill", emptyFill);
-                seat.setData("emptyStroke", emptyStroke);
-                seat.setData("strokeWidth", strokeWidth);
-
-                seat.on("pointerover", () => {
-                    if (
-                        this.turnPhase === "play" &&
-                        !this.placedPatrons[this.currentPlayer][row][col] &&
-                        this.selectedCard
-                    ) {
-                        seat.setFillStyle(0x2a2a5e);
-                        seat.setStrokeStyle(s(2), 0xf5c518);
-                    }
-                });
-
-                seat.on("pointerout", () => {
-                    if (!this.placedPatrons[this.currentPlayer][row][col]) {
-                        seat.setFillStyle(emptyFill);
-                        seat.setStrokeStyle(strokeWidth, emptyStroke);
-                    }
-                });
-
-                seat.on("pointerdown", () => {
-                    if (this.turnPhase === "play") {
-                        this.placeSeatCard(row, col);
-                    }
-                });
-
-                // Royal Box tag (centered on empty seat)
-                if (isRoyalBox && this.textures.exists("tag_royal_box")) {
-                    const tag = this.add.image(x, y, "tag_royal_box")
-                        .setDisplaySize(s(64), s(64)).setAlpha(0.85);
-                    this.seatLabels.push(tag);
-                }
-
-                this.seatGrid[row][col] = seat;
-            }
-        }
+        const { floorTop } = this.theaterGrid.build();
 
         // ── HUD Panel (Game Information) ────────────────────────────────
         const hudW = s(260);
@@ -734,11 +385,15 @@ export class GameScene extends Phaser.Scene {
         this.input.on(
             "pointerdown",
             (/** @type {any} */ _pointer, /** @type {any[]} */ gameObjects) => {
-                if (gameObjects.length === 0 && this.selectedCard) {
+                if (gameObjects.length !== 0) {
+                    return;
+                }
+                if (this.selectedCard) {
                     this.selectedCard.setSelected(false);
                     this.selectedCard = null;
                     this.hideScoringTooltip();
                 }
+                this.hideSeatScoreTooltip();
             },
         );
 
@@ -756,6 +411,7 @@ export class GameScene extends Phaser.Scene {
 
     showPassScreen() {
         this.turnPhase = "pass-screen";
+        this.hideSeatScoreTooltip();
 
         // Skip the pass screen for AI players, and for the sole human in an AI game
         const isAI = !!this.aiConfig[this.currentPlayer];
@@ -1067,117 +723,145 @@ export class GameScene extends Phaser.Scene {
         }
     }
 
-    /**
-     * Render a played patron card (and badge) on a seat, with animatable entry and masking.
-     * Returns the created sprites for animation if needed.
-     *
-     * @param {Phaser.GameObjects.Rectangle} seat
-     * @param {import('../types.js').CardData} cardData
-     * @param {{ animate?: boolean }} [options]
-     * @returns {Phaser.GameObjects.GameObject[]} The created visual objects (seat, baseImg, badge?)
-     */
-    renderPlacedCardOnSeat(seat, cardData, { animate = true } = {}) {
-        seat.setFillStyle(0x000000, 0);
-        seat.setStrokeStyle(
-            s(2),
-            cardData.trait ? TraitColors[cardData.trait] || 0xffffff : 0x4a4a6a,
-            0.8,
-        );
-        // Patron image
-        const baseImgKey = `patron_${cardData.type.toLowerCase()}`;
-        // The mask will use seat dimensions, not SEAT_SIZE (for flexibility)
-        const seatImgW = (seat.width ?? SEAT_SIZE) - s(2);
-        const seatImgH = seatImgW * (140 / 105);
-
-        const baseImg = this.add.image(seat.x, seat.y, baseImgKey);
-        baseImg.setDisplaySize(seatImgW, seatImgH);
-        // Pin to bottom of seat rect
-        baseImg.setPosition(seat.x, seat.y + seatImgH / 2 - (seat.height ?? SEAT_SIZE) / 2);
-        // Mask so patron never escapes seat boundary
-        const bgMask = this.make.graphics();
-        bgMask.fillRect(
-            seat.x - (seat.width ?? SEAT_SIZE) / 2,
-            seat.y - (seat.height ?? SEAT_SIZE) / 2,
-            seat.width ?? SEAT_SIZE,
-            seat.height ?? SEAT_SIZE,
-        );
-        baseImg.setMask(bgMask.createGeometryMask());
-        this.seatLabels.push(baseImg);
-        const visuals = [seat, baseImg];
-        if (cardData.trait) {
-            const badgeKey = `badge_${cardData.trait.toLowerCase()}`;
-            // Position in top-right of the seat rect
-            const badge = this.add.image(
-                seat.x + (seat.width ?? SEAT_SIZE) / 2 - s(15),
-                seat.y - (seat.height ?? SEAT_SIZE) / 2 + s(16),
-                badgeKey,
-            );
-            badge.setDisplaySize(s(30), s(30));
-            this.seatLabels.push(badge);
-            visuals.push(badge);
-        }
-        if (animate) {
-            baseImg.setAlpha(0);
-            this.tweens.add({
-                targets: visuals,
-                alpha: 1,
-                duration: 150,
-            });
-            this.tweens.add({
-                targets: visuals,
-                scaleX: 1.05,
-                scaleY: 1.05,
-                duration: 150,
-                yoyo: true,
-            });
-        }
-        return visuals;
-    }
-
     // ══════════════════════════════════════════════════════════════════
     // THEATER RENDERING — show current player's grid
     // ══════════════════════════════════════════════════════════════════
 
     renderTheater() {
         const grid = this.placedPatrons[this.currentPlayer];
-        const ROWS = this.layout.rows;
-        const COLS = this.layout.cols;
+        this.hideSeatScoreTooltip();
+        this.theaterGrid?.renderTheater(grid);
+    }
 
-        // Clear old seat labels
-        for (const lbl of this.seatLabels) {
-            lbl.destroy();
+    /**
+     * @param {number} row
+     * @param {number} col
+     * @param {Phaser.GameObjects.Rectangle} seat
+     */
+    handleSeatPointerOver(row, col, seat) {
+        const occupied = !!this.placedPatrons[this.currentPlayer]?.[row]?.[col];
+        if (occupied) {
+            this.showSeatScoreTooltip(row, col, seat);
+            return;
         }
-        this.seatLabels = [];
 
-        for (let row = 0; row < ROWS; row++) {
-            for (let col = 0; col < COLS; col++) {
-                const seat = this.seatGrid[row][col];
-                if (!seat) {
-                    continue;
-                }
+        if (this.turnPhase === "play" && this.selectedCard) {
+            seat.setFillStyle(0x2a2a5e);
+            seat.setStrokeStyle(s(2), 0xf5c518);
+        }
+    }
 
-                const cardData = grid[row][col];
-                if (cardData) {
-                    this.renderPlacedCardOnSeat(seat, cardData, { animate: false });
-                } else {
-                    // Restore empty-state appearance from seat data
-                    const emptyFill = seat.getData("emptyFill") ?? 0x1a1a3e;
-                    const emptyStroke = seat.getData("emptyStroke") ?? 0x3a3a5e;
-                    const sw = seat.getData("strokeWidth") ?? s(2);
-                    seat.setFillStyle(emptyFill);
-                    seat.setStrokeStyle(sw, emptyStroke);
+    /**
+     * @param {number} row
+     * @param {number} col
+     * @param {Phaser.GameObjects.Rectangle} seat
+     */
+    handleSeatPointerOut(row, col, seat) {
+        const occupied = !!this.placedPatrons[this.currentPlayer]?.[row]?.[col];
+        if (occupied) {
+            this.hideSeatScoreTooltip();
+            return;
+        }
 
-                    // Re-add seat tags for empty seats
-                    const isRoyalBox = this.layout.royalBoxes?.some(
-                        (b) => b.row === row && b.col === col,
-                    );
-                    if (isRoyalBox && this.textures.exists("tag_royal_box")) {
-                        const tag = this.add.image(seat.x, seat.y, "tag_royal_box")
-                            .setDisplaySize(s(64), s(64)).setAlpha(0.85);
-                        this.seatLabels.push(tag);
-                    }
-                }
+        const emptyFill = seat.getData("emptyFill") ?? 0x1a1a3e;
+        const emptyStroke = seat.getData("emptyStroke") ?? 0x3a3a5e;
+        const strokeWidth = seat.getData("strokeWidth") ?? s(2);
+        seat.setFillStyle(emptyFill);
+        seat.setStrokeStyle(strokeWidth, emptyStroke);
+    }
+
+    /**
+     * @param {number} row
+     * @param {number} col
+     * @param {Phaser.GameObjects.Rectangle} seat
+     */
+    handleSeatPointerDown(row, col, seat) {
+        const occupied = !!this.placedPatrons[this.currentPlayer]?.[row]?.[col];
+        if (occupied) {
+            // Mobile/touch fallback for hover-driven tooltip.
+            this.showSeatScoreTooltip(row, col, seat);
+            return;
+        }
+
+        if (this.turnPhase === "play") {
+            this.placeSeatCard(row, col);
+        }
+    }
+
+    /** @param {string} text */
+    strikeFallback(text) {
+        return `~~${text}~~`;
+    }
+
+    /**
+     * @param {number} value
+     */
+    formatSigned(value) {
+        return `${value >= 0 ? "+" : ""}${value}`;
+    }
+
+    /**
+     * @param {number} row
+     * @param {number} col
+     */
+    getSeatScoreTooltipText(row, col) {
+        const grid = this.placedPatrons[this.currentPlayer];
+        const card = grid[row]?.[col];
+        if (!card) {
+            return null;
+        }
+
+        const breakdown = scoreSeatBreakdown(grid, row, col, this.layout);
+        const lines = [`Base: ${this.formatSigned(breakdown.base)} VP`];
+
+        for (const mod of breakdown.modifiers) {
+            const line = `${this.formatSigned(mod.value)} VP ${mod.label}`;
+            if (mod.applied) {
+                lines.push(line);
+            } else {
+                const why = mod.reason ? ` (nullified: ${mod.reason})` : " (nullified)";
+                lines.push(`${this.strikeFallback(line)}${why}`);
             }
+        }
+
+        lines.push(`Total: ${this.formatSigned(breakdown.total)} VP`);
+        return {
+            title: card.label,
+            hint: lines.join("\n"),
+        };
+    }
+
+    /**
+     * @param {number} row
+     * @param {number} col
+     * @param {Phaser.GameObjects.Rectangle} seat
+     */
+    showSeatScoreTooltip(row, col, seat) {
+        const tooltip = this.getSeatScoreTooltipText(row, col);
+        if (!tooltip) {
+            return;
+        }
+
+        this.hideSeatScoreTooltip();
+        this.seatScoreTooltip = new SpeechBubble(this, seat, tooltip.title, tooltip.hint, {
+            width: 250,
+            height: 108,
+            gap: 4,
+        });
+
+        this.seatScoreTooltip.setAlpha(0);
+        this.tweens.add({
+            targets: this.seatScoreTooltip,
+            alpha: 1,
+            duration: 130,
+            ease: "Sine.easeOut",
+        });
+    }
+
+    hideSeatScoreTooltip() {
+        if (this.seatScoreTooltip) {
+            this.seatScoreTooltip.destroy();
+            this.seatScoreTooltip = null;
         }
     }
 
@@ -1187,6 +871,7 @@ export class GameScene extends Phaser.Scene {
 
     clearHandVisuals() {
         this.hideScoringTooltip();
+        this.hideSeatScoreTooltip();
         for (const card of this.handCards) {
             card.destroy();
         }
@@ -1276,6 +961,7 @@ export class GameScene extends Phaser.Scene {
             this.showDrawReminderBanner();
             return;
         }
+        this.hideSeatScoreTooltip();
         for (const c of this.handCards) {
             c.setSelected(false);
         }
@@ -1367,15 +1053,16 @@ export class GameScene extends Phaser.Scene {
             return;
         }
 
-        const seat = this.seatGrid[row][col];
-        if (!seat) {
+        const seat = this.theaterGrid?.getSeat(row, col);
+        if (!seat || !this.theaterGrid) {
             return;
         }
 
         const cardData = this.selectedCard.cardData;
         // Update logical state
         this.placedPatrons[this.currentPlayer][row][col] = cardData;
-        this.renderPlacedCardOnSeat(seat, cardData, { animate: true });
+        this.hideSeatScoreTooltip();
+        this.theaterGrid.renderPlacedCardOnSeat(seat, cardData, { animate: true });
         // Recalculate scores after placement
         this.updateScoreboard();
 

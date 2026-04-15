@@ -24,7 +24,8 @@ import { DefaultLayout, hasSeatLabel, PatronScoring, PatronType, Trait, TraitSco
 /**
  * @typedef {Object} PlayerScore
  * @property {number} total - Total VP for the player
- * @property {number[][]} perSeat - VP per seat: perSeat[row][col]
+ * @property {number[][]} perSeat - VP per seat: perSeat[row][col] (patron/trait scoring only)
+ * @property {number | null} houseBonus - Aggregate VP from layout house rule (null when no house rule)
  */
 
 /**
@@ -287,7 +288,7 @@ function buildCappedKidMap(grid, rows, cols, layout) {
         cappedKids[r] = new Set();
     }
 
-    // Cabaret table-based capping: a Kid is capped if any Teacher sits at the same table
+    // Dinner Playhouse table-based capping: a Kid is capped if any Teacher sits at the same table
     if (layout && layout.tableGroups) {
         for (const table of layout.tableGroups) {
             const hasTeacher = table.some(
@@ -319,6 +320,233 @@ function buildCappedKidMap(grid, rows, cols, layout) {
 }
 
 /**
+ * @typedef {Object} ScoreModifier
+ * @property {string} label
+ * @property {number} value
+ * @property {boolean} applied
+ * @property {string} [reason]
+ */
+
+/**
+ * @typedef {Object} SeatScoreBreakdown
+ * @property {number} base
+ * @property {number} total
+ * @property {ScoreModifier[]} modifiers
+ */
+
+/**
+ * Score breakdown for one occupied seat.
+ *
+ * @param {(CardData | null)[][]} grid
+ * @param {number} row
+ * @param {number} col
+ * @param {LayoutMeta} layout
+ * @param {Set<number>[]} cappedKids
+ * @param {Set<string>} lovebirdsPairs
+ * @returns {SeatScoreBreakdown}
+ */
+function buildSeatScoreBreakdown(grid, row, col, layout, cappedKids, lovebirdsPairs) {
+    const card = grid[row][col];
+    const scoring = card ? PatronScoring[card.type] : null;
+    if (!card || !scoring) {
+        return { base: 0, total: 0, modifiers: [] };
+    }
+
+    const { rows, cols } = layout;
+    let vp = scoring.base;
+    /** @type {ScoreModifier[]} */
+    const modifiers = [];
+
+    /**
+     * @param {string} label
+     * @param {number} value
+     * @param {boolean} [applied]
+     * @param {string} [reason]
+     */
+    const pushModifier = (label, value, applied = true, reason) => {
+        if (value === 0) {
+            return;
+        }
+        modifiers.push({ label, value, applied, reason });
+        if (applied) {
+            vp += value;
+        }
+    };
+
+    switch (card.type) {
+        case PatronType.STANDARD:
+            break;
+
+        case PatronType.VIP: {
+            if (hasSeatLabel(row, col, "front", layout) && scoring.rowBonusValue) {
+                pushModifier("Front row bonus", scoring.rowBonusValue);
+            }
+            if (scoring.adjacencyPenaltyTypes && scoring.adjacencyPenaltyPer) {
+                const neighbors = getOrthogonalNeighbors(row, col, rows, cols, layout);
+                for (const n of neighbors) {
+                    const neighbor = grid[n.row][n.col];
+                    if (neighbor && scoring.adjacencyPenaltyTypes.includes(neighbor.type)) {
+                        pushModifier("Adjacent Kid penalty", scoring.adjacencyPenaltyPer);
+                    }
+                }
+            }
+            if (scoring.adjacencyPenaltyNoisyTrait && scoring.adjacencyPenaltyPer) {
+                const neighbors = getOrthogonalNeighbors(row, col, rows, cols, layout);
+                for (const n of neighbors) {
+                    const neighbor = grid[n.row][n.col];
+                    if (neighbor && neighbor.trait === Trait.NOISY) {
+                        pushModifier("Adjacent Noisy penalty", scoring.adjacencyPenaltyPer);
+                    }
+                }
+            }
+            break;
+        }
+
+        case PatronType.LOVEBIRDS: {
+            const isPaired = lovebirdsPairs.has(`${row},${col}`);
+            if (isPaired && scoring.adjacentMatchBonus) {
+                pushModifier("Paired Lovebirds bonus", scoring.adjacentMatchBonus);
+            }
+            if (isPaired && hasSeatLabel(row, col, "back", layout) && scoring.backRowBonus) {
+                pushModifier("Back row pair bonus", scoring.backRowBonus);
+            }
+            break;
+        }
+
+        case PatronType.KID: {
+            if (cappedKids[row].has(col) && scoring.cappedValue !== undefined) {
+                const delta = scoring.cappedValue - scoring.base;
+                if (delta !== 0) {
+                    pushModifier("Capped by Teachers", delta);
+                }
+            }
+            break;
+        }
+
+        case PatronType.TEACHER: {
+            if (scoring.perCappedKidBonus) {
+                // Dinner Playhouse/table layouts: Teacher scores from capped Kids at the same table
+                if (layout.tableGroups) {
+                    const table = layout.tableGroups.find((group) =>
+                        group.some((pos) => pos.row === row && pos.col === col)
+                    );
+
+                    if (table) {
+                        let cappedKidCount = 0;
+                        for (const pos of table) {
+                            const neighbor = grid[pos.row]?.[pos.col];
+                            if (neighbor && neighbor.type === PatronType.KID && cappedKids[pos.row].has(pos.col)) {
+                                cappedKidCount += 1;
+                            }
+                        }
+
+                        if (cappedKidCount > 0) {
+                            pushModifier(
+                                "Capped Kid table bonus",
+                                scoring.perCappedKidBonus * cappedKidCount,
+                            );
+                        }
+                        break;
+                    }
+                }
+
+                // Default layouts: Teacher scores from orthogonally adjacent capped Kids
+                const neighbors = getOrthogonalNeighbors(row, col, rows, cols, layout);
+                for (const n of neighbors) {
+                    const neighbor = grid[n.row][n.col];
+                    if (neighbor && neighbor.type === PatronType.KID && cappedKids[n.row].has(n.col)) {
+                        pushModifier("Adjacent capped Kid bonus", scoring.perCappedKidBonus);
+                    }
+                }
+            }
+            break;
+        }
+
+        case PatronType.CRITIC: {
+            if (isAisleSeat(row, col, layout) && scoring.aisleBonus) {
+                const neighbors = getOrthogonalNeighbors(row, col, rows, cols, layout);
+                let hasNoisyNeighbor = false;
+                for (const n of neighbors) {
+                    const neighbor = grid[n.row][n.col];
+                    if (neighbor && neighbor.trait === Trait.NOISY) {
+                        hasNoisyNeighbor = true;
+                        break;
+                    }
+                }
+                pushModifier(
+                    "Aisle bonus",
+                    scoring.aisleBonus,
+                    !hasNoisyNeighbor,
+                    hasNoisyNeighbor ? "Noisy neighbor" : undefined,
+                );
+            }
+            break;
+        }
+
+        case PatronType.FRIENDS: {
+            if (scoring.perNeighborMatchBonus) {
+                const neighbors = getOrthogonalNeighbors(row, col, rows, cols, layout);
+                for (const n of neighbors) {
+                    const neighbor = grid[n.row][n.col];
+                    if (neighbor && neighbor.type === PatronType.FRIENDS) {
+                        pushModifier("Adjacent Friend bonus", scoring.perNeighborMatchBonus);
+                    }
+                }
+            }
+            break;
+        }
+    }
+
+    if (card.trait) {
+        const traitScoring = TraitScoring[card.trait];
+
+        if (traitScoring) {
+            if (
+                card.trait === Trait.BESPECTACLED &&
+                !hasSeatLabel(row, col, "back", layout) &&
+                traitScoring.rowBonusValue
+            ) {
+                pushModifier("Bespectacled row bonus", traitScoring.rowBonusValue);
+            }
+
+            if (card.trait === Trait.SHORT) {
+                const frontNeighbors = getFrontRowNeighbors(row, col, rows, cols, layout);
+                const frontCards = frontNeighbors
+                    .map((n) => grid[n.row]?.[n.col])
+                    .filter((x) => !!x);
+
+                if (frontCards.length === 0) {
+                    pushModifier("Short: empty front bonus", traitScoring.emptyFrontBonus ?? 0);
+                } else if (frontCards.some((x) => x?.trait === Trait.TALL)) {
+                    pushModifier("Short: Tall in front penalty", traitScoring.tallInFrontPenalty ?? 0);
+                }
+            }
+        }
+    }
+
+    if (card.trait !== Trait.SHORT) {
+        const frontNeighbors = getFrontRowNeighbors(row, col, rows, cols, layout);
+        for (const n of frontNeighbors) {
+            if (grid[n.row]?.[n.col]?.trait === Trait.TALL) {
+                pushModifier("Tall ahead penalty", TraitScoring[Trait.TALL].behindPenalty ?? 0);
+            }
+        }
+    }
+
+    {
+        const neighbors = getOrthogonalNeighbors(row, col, rows, cols, layout);
+        for (const n of neighbors) {
+            const neighbor = grid[n.row][n.col];
+            if (neighbor && neighbor.trait === Trait.NOISY) {
+                pushModifier("Adjacent Noisy penalty", TraitScoring[Trait.NOISY].adjacentPenalty ?? 0);
+            }
+        }
+    }
+
+    return { base: scoring.base, total: vp, modifiers };
+}
+
+/**
  * Score a single seat on the grid.
  * Two-phase: primary type scoring, then trait scoring.
  *
@@ -331,195 +559,23 @@ function buildCappedKidMap(grid, rows, cols, layout) {
  * @returns {number} VP for this seat
  */
 export function scoreSeat(grid, row, col, layout, cappedKids, lovebirdsPairs) {
-    const card = grid[row][col];
-    if (!card) return 0;
+    return buildSeatScoreBreakdown(grid, row, col, layout, cappedKids, lovebirdsPairs).total;
+}
 
+/**
+ * Public helper for UI: score breakdown for one occupied seat.
+ *
+ * @param {(CardData | null)[][]} grid
+ * @param {number} row
+ * @param {number} col
+ * @param {LayoutMeta} [layout]
+ * @returns {SeatScoreBreakdown}
+ */
+export function scoreSeatBreakdown(grid, row, col, layout = DefaultLayout) {
     const { rows, cols } = layout;
-    const scoring = PatronScoring[card.type];
-    if (!scoring) return 0;
-
-    let vp = scoring.base;
-
-    // ── Phase 1: Primary type scoring ───────────────────────────────
-
-    switch (card.type) {
-        case PatronType.STANDARD: {
-            // Standard has no special primary scoring (just base VP)
-            break;
-        }
-
-        case PatronType.VIP: {
-            // Front seat bonus
-            if (
-                hasSeatLabel(row, col, "front", layout) &&
-                scoring.rowBonusValue
-            ) {
-                vp += scoring.rowBonusValue;
-            }
-            // Adjacency penalty for Kid neighbors
-            if (scoring.adjacencyPenaltyTypes && scoring.adjacencyPenaltyPer) {
-                const neighbors = getOrthogonalNeighbors(row, col, rows, cols, layout);
-                for (const n of neighbors) {
-                    const neighbor = grid[n.row][n.col];
-                    if (
-                        neighbor &&
-                        scoring.adjacencyPenaltyTypes.includes(neighbor.type)
-                    ) {
-                        vp += scoring.adjacencyPenaltyPer;
-                    }
-                }
-            }
-            // VIP is also penalized by adjacent Noisy-trait patrons
-            if (scoring.adjacencyPenaltyNoisyTrait && scoring.adjacencyPenaltyPer) {
-                const neighbors = getOrthogonalNeighbors(row, col, rows, cols, layout);
-                for (const n of neighbors) {
-                    const neighbor = grid[n.row][n.col];
-                    if (neighbor && neighbor.trait === Trait.NOISY) {
-                        vp += scoring.adjacencyPenaltyPer;
-                    }
-                }
-            }
-            break;
-        }
-
-        case PatronType.LOVEBIRDS: {
-            // Score pair bonus only if this Lovebird is part of a valid horizontal pair
-            const isPaired = lovebirdsPairs.has(`${row},${col}`);
-            if (isPaired && scoring.adjacentMatchBonus) {
-                vp += scoring.adjacentMatchBonus;
-            }
-            // Back row bonus (additive)
-            if (
-                isPaired &&
-                hasSeatLabel(row, col, "back", layout) &&
-                scoring.backRowBonus
-            ) {
-                vp += scoring.backRowBonus;
-            }
-            break;
-        }
-
-        case PatronType.KID: {
-            if (cappedKids[row].has(col) && scoring.cappedValue !== undefined) {
-                vp = scoring.cappedValue;
-            }
-            // else stays at base (0 uncapped)
-            break;
-        }
-
-        case PatronType.TEACHER: {
-            // Bonus per adjacent Kid that is capped
-            if (scoring.perCappedKidBonus) {
-                const neighbors = getOrthogonalNeighbors(row, col, rows, cols, layout);
-                for (const n of neighbors) {
-                    const neighbor = grid[n.row][n.col];
-                    if (
-                        neighbor &&
-                        neighbor.type === PatronType.KID &&
-                        cappedKids[n.row].has(n.col)
-                    ) {
-                        vp += scoring.perCappedKidBonus;
-                    }
-                }
-            }
-            break;
-        }
-
-        case PatronType.CRITIC: {
-            // Aisle bonus (additive), but nullified by adjacent Noisy
-            if (isAisleSeat(row, col, layout) && scoring.aisleBonus) {
-                // Check if any adjacent patron has the Noisy trait
-                const neighbors = getOrthogonalNeighbors(row, col, rows, cols, layout);
-                let hasNoisyNeighbor = false;
-                for (const n of neighbors) {
-                    const neighbor = grid[n.row][n.col];
-                    if (neighbor && neighbor.trait === Trait.NOISY) {
-                        hasNoisyNeighbor = true;
-                        break;
-                    }
-                }
-                if (!hasNoisyNeighbor) {
-                    vp += scoring.aisleBonus;
-                }
-            }
-            break;
-        }
-
-        case PatronType.FRIENDS: {
-            // +1 VP per orthogonally adjacent Friends
-            if (scoring.perNeighborMatchBonus) {
-                const neighbors = getOrthogonalNeighbors(row, col, rows, cols, layout);
-                for (const n of neighbors) {
-                    const neighbor = grid[n.row][n.col];
-                    if (neighbor && neighbor.type === PatronType.FRIENDS) {
-                        vp += scoring.perNeighborMatchBonus;
-                    }
-                }
-            }
-            break;
-        }
-    }
-
-    // ── Phase 2: Trait scoring ──────────────────────────────────────
-
-    if (card.trait) {
-        const traitScoring = TraitScoring[card.trait];
-
-        if (traitScoring) {
-            // Bespectacled trait: bonus unless in back row
-            if (
-                card.trait === Trait.BESPECTACLED &&
-                !hasSeatLabel(row, col, "back", layout) &&
-                traitScoring.rowBonusValue
-            ) {
-                vp += traitScoring.rowBonusValue;
-            }
-
-            // Short trait: check adjacent seat(s) in front row via shared adjacency model.
-            if (card.trait === Trait.SHORT) {
-                const frontNeighbors = getFrontRowNeighbors(row, col, rows, cols, layout);
-                const frontCards = frontNeighbors
-                    .map((n) => grid[n.row]?.[n.col])
-                    .filter((x) => !!x);
-
-                if (frontCards.length === 0) {
-                    // No adjacent patron in front row — bonus
-                    vp += traitScoring.emptyFrontBonus ?? 0;
-                } else if (frontCards.some((x) => x?.trait === Trait.TALL)) {
-                    // Any Tall-trait patron in front row adjacency — penalty
-                    vp += traitScoring.tallInFrontPenalty ?? 0;
-                }
-            }
-        }
-    }
-
-    // ── Cross-type modifiers (applied to ANY patron) ────────────────
-
-    // Tall trait behind penalty: for each adjacent Tall patron in front row,
-    // this patron gets the behind penalty (unless this patron is Short,
-    // which has its own tallInFrontPenalty already handled above).
-    if (card.trait !== Trait.SHORT) {
-        const frontNeighbors = getFrontRowNeighbors(row, col, rows, cols, layout);
-        for (const n of frontNeighbors) {
-            if (grid[n.row]?.[n.col]?.trait === Trait.TALL) {
-                vp += TraitScoring[Trait.TALL].behindPenalty ?? 0;
-            }
-        }
-    }
-
-    // Noisy trait adjacency penalty: for each neighbor with the Noisy trait,
-    // this patron gets -1 VP.
-    {
-        const neighbors = getOrthogonalNeighbors(row, col, rows, cols, layout);
-        for (const n of neighbors) {
-            const neighbor = grid[n.row][n.col];
-            if (neighbor && neighbor.trait === Trait.NOISY) {
-                vp += TraitScoring[Trait.NOISY].adjacentPenalty ?? 0;
-            }
-        }
-    }
-
-    return vp;
+    const cappedKids = buildCappedKidMap(grid, rows, cols, layout);
+    const lovebirdsPairs = buildLovebirdsPairMap(grid, rows, cols, layout);
+    return buildSeatScoreBreakdown(grid, row, col, layout, cappedKids, lovebirdsPairs);
 }
 
 /**
@@ -555,7 +611,7 @@ function scoreHouseRule(grid, layout, perSeat) {
             break;
         }
 
-        // Royal Theatre: +3 VP to the single highest-scoring patron
+        // Opera House: +3 VP to the single highest-scoring patron
         // Tiebreak: front-most row, then left-most column
         case "royal-approval": {
             let bestR = -1;
@@ -632,14 +688,13 @@ function scoreHouseRule(grid, layout, perSeat) {
             break;
         }
 
-        // Cabaret: +3 VP for each 2×2 table where all 4 seats are occupied
+        // Dinner Playhouse: +3 VP for each 2×2 table where all 4 seats are occupied
         case "full-tables": {
             if (layout.tableGroups) {
                 for (const table of layout.tableGroups) {
                     const full = table.every((pos) => grid[pos.row]?.[pos.col] != null);
                     if (full) {
-                        // Award +3 VP to the top-left seat of the table
-                        perSeat[table[0].row][table[0].col] += 3;
+                        // Award +3 VP to total only (table-level bonus, not seat-level)
                         bonus += 3;
                     }
                 }
@@ -686,9 +741,12 @@ export function scorePlayer(grid, layout = DefaultLayout) {
     }
 
     // Phase 4: House rule scoring
+    /** @type {number | null} */
+    let houseBonus = null;
     if (layout.houseRule) {
-        total += scoreHouseRule(grid, layout, perSeat);
+        houseBonus = scoreHouseRule(grid, layout, perSeat);
+        total += houseBonus;
     }
 
-    return { total, perSeat };
+    return { total, perSeat, houseBonus };
 }

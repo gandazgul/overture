@@ -2,8 +2,8 @@
 import Phaser from "phaser";
 import { px, s } from "../config.js";
 import { LayoutOrder, Layouts } from "../types.js";
-import { createButton } from "../objects/Button.js";
-import { createLogo } from "../objects/Logo.js";
+import { createButton } from "../factories/Button.js";
+import { createLogo } from "../factories/Logo.js";
 
 /**
  * Scene for selecting a theater layout before starting the game.

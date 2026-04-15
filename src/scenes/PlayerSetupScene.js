@@ -1,8 +1,8 @@
 // @ts-check
 import Phaser from "phaser";
 import { px, s } from "../config.js";
-import { createButton } from "../objects/Button.js";
-import { createLogo } from "../objects/Logo.js";
+import { createButton } from "../factories/Button.js";
+import { createLogo } from "../factories/Logo.js";
 import { AIDifficulty } from "../ai.js";
 import { PlayerColors, PlayerColorsHex } from "../types.js";
 

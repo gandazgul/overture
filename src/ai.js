@@ -337,7 +337,9 @@ export function pickDrawAction(lobby, deckSize, difficulty, grid, layout) {
                     const score = seats.length > 0 ? seats[0].score : 0;
                     if (debugAI) {
                         console.log(
-                            `[AI DEBUG] Lobby Card ${i + lobbyStartIndex} (${card.label || card.type}) potential: ${score} VP`,
+                            `[AI DEBUG] Lobby Card ${i + lobbyStartIndex} (${
+                                card.label || card.type
+                            }) potential: ${score} VP`,
                         );
                     }
                     if (score > bestScore) {
@@ -362,7 +364,9 @@ export function pickDrawAction(lobby, deckSize, difficulty, grid, layout) {
                         const score = seats[0].score + applyHeuristics(grid, card, seats[0].row, seats[0].col, layout);
                         if (debugAI) {
                             console.log(
-                                `[AI DEBUG] Lobby Card ${i + lobbyStartIndex} (${card.label || card.type}) heuristic score: ${score} VP`,
+                                `[AI DEBUG] Lobby Card ${i + lobbyStartIndex} (${
+                                    card.label || card.type
+                                }) heuristic score: ${score} VP`,
                             );
                         }
                         if (score > bestScore) {
@@ -376,15 +380,11 @@ export function pickDrawAction(lobby, deckSize, difficulty, grid, layout) {
                     return { source: "lobby", index: bestIdx };
                 }
             }
-            return hasDeck
-                ? { source: "deck" }
-                : (hasLobby ? { source: "lobby", index: lobbyStartIndex } : null);
+            return hasDeck ? { source: "deck" } : (hasLobby ? { source: "lobby", index: lobbyStartIndex } : null);
         }
 
         default:
-            return hasDeck
-                ? { source: "deck" }
-                : (hasLobby ? { source: "lobby", index: lobbyStartIndex } : null);
+            return hasDeck ? { source: "deck" } : (hasLobby ? { source: "lobby", index: lobbyStartIndex } : null);
     }
 }
 
