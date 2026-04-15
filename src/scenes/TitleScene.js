@@ -14,10 +14,7 @@ export class TitleScene extends Phaser.Scene {
         super("TitleScene");
     }
 
-    create() {
-        // Hydrate settings from localStorage into the Phaser registry
-        loadSettings(this.registry);
-
+    setupDebug() {
         // ── DEV DEBUG SKIP (Shift+D) ────────────────────────────────────
         this.input.keyboard?.on("keydown-D", (/** @type {KeyboardEvent} */ e) => {
             if (!e.shiftKey) {
@@ -34,6 +31,30 @@ export class TitleScene extends Phaser.Scene {
                 playerColorMap: [0, 1, 2, 3],
             });
         });
+
+        // ── DEV DEBUG CYCLE (Shift+S) — enter non-title/game cycle ─────
+        this.input.keyboard?.on("keydown-S", (/** @type {KeyboardEvent} */ e) => {
+            if (!e.shiftKey) {
+                return;
+            }
+
+            console.log("DEBUG: Cycle skip to Player Setup (4 players)");
+            this.scene.start("PlayerSetupScene", {
+                playerCount: 4,
+                aiConfig: Array.from(
+                    { length: 4 },
+                    (_, i) => i === 0 ? null : AIDifficulty.MEDIUM,
+                ),
+                playerColorMap: [0, 1, 2, 3],
+            });
+        });
+    }
+
+    create() {
+        // Hydrate settings from localStorage into the Phaser registry
+        loadSettings(this.registry);
+
+        this.setupDebug();
 
         this.showMainMenu();
     }

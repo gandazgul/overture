@@ -59,7 +59,7 @@ export class TheaterSelectionScene extends Phaser.Scene {
         }
     }
 
-    create() {
+    setupDebug() {
         // ── DEV DEBUG SKIP (Shift+D) ────────────────────────────────────
         this.input.keyboard?.on("keydown-D", (/** @type {KeyboardEvent} */ e) => {
             if (!e.shiftKey) {
@@ -73,6 +73,31 @@ export class TheaterSelectionScene extends Phaser.Scene {
                 playerColorMap: this.playerColorMap,
             });
         });
+
+        // ── DEV DEBUG CYCLE (Shift+S) — cycle without Title/Game ───────
+        this.input.keyboard?.on("keydown-S", (/** @type {KeyboardEvent} */ e) => {
+            if (!e.shiftKey) {
+                return;
+            }
+            console.log("DEBUG: Cycle skip to EndGameScene");
+            const count = this.selectedPlayerCount ?? 2;
+            const layout = Layouts[LayoutOrder[0]];
+            const placedPatrons = Array.from(
+                { length: count },
+                () => Array.from({ length: layout.rows }, () => Array.from({ length: layout.cols }, () => null)),
+            );
+            this.scene.start("EndGameScene", {
+                playerCount: count,
+                layout,
+                placedPatrons,
+                aiConfig: this.aiConfig,
+                playerColorMap: this.playerColorMap,
+            });
+        });
+    }
+
+    create() {
+        this.setupDebug();
 
         this.showTheaterSelect();
     }

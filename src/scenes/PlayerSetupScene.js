@@ -1,9 +1,9 @@
 // @ts-check
 import Phaser from "phaser";
+import { AIDifficulty } from "../ai.js";
 import { px, s } from "../config.js";
 import { createButton } from "../factories/Button.js";
 import { createLogo } from "../factories/Logo.js";
-import { AIDifficulty } from "../ai.js";
 import { PlayerColors, PlayerColorsHex } from "../types.js";
 
 /** Usher avatar texture keys indexed by color slot. */
@@ -45,7 +45,8 @@ export class PlayerSetupScene extends Phaser.Scene {
         this.playerColorMap = data?.playerColorMap || [0, 1, 2, 3];
     }
 
-    create() {
+    setupDebug() {
+        // ── DEV DEBUG CYCLE (Shift+D) — cycle through all screens ───────
         this.input.keyboard?.on("keydown-D", (/** @type {KeyboardEvent} */ e) => {
             if (!e.shiftKey) {
                 return;
@@ -58,6 +59,24 @@ export class PlayerSetupScene extends Phaser.Scene {
                 playerColorMap: this.playerColorMap.slice(0, count),
             });
         });
+
+        // ── DEV DEBUG CYCLE (Shift+S) — cycle without Title/Game ───────
+        this.input.keyboard?.on("keydown-S", (/** @type {KeyboardEvent} */ e) => {
+            if (!e.shiftKey) {
+                return;
+            }
+            console.log("DEBUG: Cycle skip to Theater Selection");
+            const count = this.selectedPlayerCount;
+            this.scene.start("TheaterSelectionScene", {
+                playerCount: count,
+                aiConfig: this.aiConfig.slice(0, count),
+                playerColorMap: this.playerColorMap.slice(0, count),
+            });
+        });
+    }
+
+    create() {
+        this.setupDebug();
 
         this.showPlayerSetup();
     }
@@ -294,8 +313,7 @@ export class PlayerSetupScene extends Phaser.Scene {
 
             diffBtn.on("pointerdown", () => {
                 const idx = difficulties.indexOf(/** @type {typeof difficulties[number]} */ (this.aiConfig[p]));
-                const next = difficulties[(idx + 1) % difficulties.length];
-                this.aiConfig[p] = next;
+                this.aiConfig[p] = difficulties[(idx + 1) % difficulties.length];
                 this.showPlayerSetup();
             });
         }

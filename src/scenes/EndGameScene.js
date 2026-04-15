@@ -44,9 +44,7 @@ export class EndGameScene extends Phaser.Scene {
         this.aiConfig = data.aiConfig || Array.from({ length: this.playerCount }, () => null);
     }
 
-    create() {
-        const { width, height } = this.scale;
-
+    setupDebug() {
         // ── DEV DEBUG SKIP (Shift+D) ────────────────────────────────────
         this.input.keyboard?.on("keydown-D", (/** @type {KeyboardEvent} */ e) => {
             if (!e.shiftKey) return;
@@ -54,14 +52,29 @@ export class EndGameScene extends Phaser.Scene {
             this.scene.start("TitleScene");
         });
 
+        // ── DEV DEBUG CYCLE (Shift+S) — cycle without Title/Game ───────
+        this.input.keyboard?.on("keydown-S", (/** @type {KeyboardEvent} */ e) => {
+            if (!e.shiftKey) return;
+            console.log("DEBUG: Cycle skip to PlayerSetupScene");
+            this.scene.start("PlayerSetupScene", {
+                playerCount: this.playerCount,
+                aiConfig: this.aiConfig,
+                playerColorMap: this.playerColorMap,
+            });
+        });
+    }
+
+    create() {
+        const { width, height } = this.scale;
+
+        this.setupDebug();
+
         // ── Dark background ─────────────────────────────────────────────
         this.cameras.main.setBackgroundColor(0x0a0a1a);
 
-        // ── Logo (same position as TitleScene) ──────────────────────────
-        createLogo(this, width / 2, height / 5 - s(30), {
-            width: 480,
-            fallbackFontSize: 52,
-        });
+        // ── Header (match setup/selection scenes) ───────────────────────
+        const logoY = s(90);
+        createLogo(this, width / 2, logoY, { width: 320 });
 
         // ── Compute scores ──────────────────────────────────────────────
         /** @type {import('../scoring.js').PlayerScore[]} */
@@ -100,19 +113,19 @@ export class EndGameScene extends Phaser.Scene {
             .map((sc, i) => (sc === maxScore ? PlayerNames[i] : null))
             .filter(Boolean);
         const isTie = winners.length > 1;
-        const winnerMsg = isTie ? `It's a tie! ${winners.join(" & ")}` : `🏆 ${winners[0]} wins! 🏆`;
+        const winnerMsg = isTie ? `It's a tie! ${winners.join(" & ")}` : `${winners[0]} wins!`;
 
-        const winnerY = height / 4 + s(50);
+        // Subtitle position/style to match setup/selection scenes
         this.add
-            .text(width / 2, winnerY, winnerMsg, {
-                fontSize: px(isTie ? 22 : 26),
+            .text(width / 2, logoY + s(100), winnerMsg, {
+                fontSize: px(28),
                 fontFamily: "Georgia, serif",
-                color: "#f5c518",
+                color: "#ffd700",
             })
             .setOrigin(0.5);
 
         // ── Scoring Card Table ──────────────────────────────────────────
-        const tableTop = winnerY + s(45);
+        const tableTop = logoY + s(160);
         const tableBottom = height - s(90);
         const tableAvailH = tableBottom - tableTop;
 
@@ -162,7 +175,7 @@ export class EndGameScene extends Phaser.Scene {
         // "Score Card" label in top-left
         this.add
             .text(tableLeft + labelColW / 2, headerY + avatarRowH / 2, "Score Card", {
-                fontSize: px(13),
+                fontSize: px(16),
                 fontFamily: "Georgia, serif",
                 color: "#d4af37",
                 fontStyle: "italic",
@@ -191,7 +204,7 @@ export class EndGameScene extends Phaser.Scene {
                 : PlayerNames[p].replace("Player ", "P");
             this.add
                 .text(colX, headerY + s(46), nameLabel, {
-                    fontSize: px(11),
+                    fontSize: px(16),
                     fontFamily: "Georgia, serif",
                     color: PlayerColors[this.colorOf(p)],
                     fontStyle: "bold",
@@ -237,7 +250,7 @@ export class EndGameScene extends Phaser.Scene {
                     rowY + dataRowH / 2,
                     type,
                     {
-                        fontSize: px(12),
+                        fontSize: px(16),
                         fontFamily: "Georgia, serif",
                         color: "#ccccdd",
                     },
@@ -252,7 +265,7 @@ export class EndGameScene extends Phaser.Scene {
 
                 this.add
                     .text(colX, rowY + dataRowH / 2, `${vp}`, {
-                        fontSize: px(13),
+                        fontSize: px(16),
                         fontFamily: "Arial",
                         color,
                         fontStyle: vp !== 0 ? "bold" : "",
@@ -288,7 +301,7 @@ export class EndGameScene extends Phaser.Scene {
                 houseRuleY + dataRowH / 2,
                 houseRuleLabel,
                 {
-                    fontSize: px(12),
+                    fontSize: px(16),
                     fontFamily: "Georgia, serif",
                     color: "#ccccdd",
                 },
@@ -303,7 +316,7 @@ export class EndGameScene extends Phaser.Scene {
 
             this.add
                 .text(colX, houseRuleY + dataRowH / 2, text, {
-                    fontSize: px(13),
+                    fontSize: px(16),
                     fontFamily: "Arial",
                     color,
                     fontStyle: hasHouseRule && (houseVp ?? 0) !== 0 ? "bold" : "",
@@ -331,7 +344,7 @@ export class EndGameScene extends Phaser.Scene {
         // "Total" label
         this.add
             .text(tableLeft + s(10), totalY + totalRowH / 2, "Total VP", {
-                fontSize: px(14),
+                fontSize: px(16),
                 fontFamily: "Georgia, serif",
                 color: "#d4af37",
                 fontStyle: "bold",
@@ -356,7 +369,7 @@ export class EndGameScene extends Phaser.Scene {
             if (isWinner) {
                 this.add
                     .text(colX + s(18), totalY + totalRowH / 2 - s(1), "🏆", {
-                        fontSize: px(12),
+                        fontSize: px(16),
                     })
                     .setOrigin(0, 0.5);
             }
@@ -377,10 +390,11 @@ export class EndGameScene extends Phaser.Scene {
         }
 
         // ── Play Again Button ───────────────────────────────────────────
+        const playAgainY = Math.min(height - s(30), totalY + totalRowH + s(85));
         const { hitArea: playAgainHit } = createButton(
             this,
             width / 2,
-            height - s(140),
+            playAgainY,
             "Play Again",
             { fontSize: 20 },
         );

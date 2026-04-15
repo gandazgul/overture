@@ -269,13 +269,23 @@ export class GameScene extends Phaser.Scene {
         this.seatScoreTooltip = null;
     }
 
-    debugSetup() {
+    setupDebug() {
         // ── DEV DEBUG SKIP (Shift+D) ────────────────────────────────────
         this.input.keyboard?.on("keydown-D", (/** @type {KeyboardEvent} */ e) => {
             if (!e.shiftKey) {
                 return;
             }
             console.log("DEBUG: Skipping to end screen");
+            this.turnPhase = "game-over";
+            this.endGame();
+        });
+
+        // ── DEV DEBUG CYCLE (Shift+S) — cycle without Title/Game ───────
+        this.input.keyboard?.on("keydown-S", (/** @type {KeyboardEvent} */ e) => {
+            if (!e.shiftKey) {
+                return;
+            }
+            console.log("DEBUG: Cycle skip to EndGameScene");
             this.turnPhase = "game-over";
             this.endGame();
         });
@@ -341,7 +351,7 @@ export class GameScene extends Phaser.Scene {
     create() {
         const { width, height } = this.scale;
 
-        this.debugSetup();
+        this.setupDebug();
 
         this.theaterGrid = new TheaterGrid(this, {
             layout: this.layout,
