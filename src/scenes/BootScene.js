@@ -2,6 +2,7 @@
 import Phaser from "phaser";
 import { px, s } from "../config.js";
 import { Layouts } from "../types.js";
+import { ProgressBar } from "../objects/ProgressBar.js";
 
 /**
  * Minimal boot scene that loads only the essential UI assets (logo + button frame)
@@ -24,36 +25,22 @@ export class BootScene extends Phaser.Scene {
             })
             .setOrigin(0.5);
 
-        // ── Progress bar (drawn with rectangles, no images) ─────────────
+        // ── Progress bar ────────────────────────────────────────────────
         const barW = s(300);
         const barH = s(20);
-        const barCenterY = height / 2 + barH / 2;
-
-        // Outer border (center origin)
-        const barBorder = this.add.rectangle(
-            width / 2,
-            barCenterY,
-            barW + s(4),
-            barH + s(4),
-        );
-        barBorder.setStrokeStyle(s(2), 0xd4af37);
-        barBorder.setFillStyle(0x0a0a1a);
-
-        // Inner fill (left-aligned, grows with progress)
-        const barFill = this.add.rectangle(
-            width / 2 - barW / 2,
-            barCenterY,
-            0,
-            barH,
-            0xd4af37,
-        ).setOrigin(0, 0.5);
+        const progressBar = new ProgressBar(this, width / 2, height / 2 + barH / 2, barW, barH);
 
         this.load.on("progress", (/** @type {number} */ value) => {
-            barFill.width = barW * value;
+            progressBar.updateProgress(value, barW);
         });
 
         this.load.on("complete", () => {
             loadingText.setText("Ready!");
+            // Small delay then destroy loading visuals
+            this.time.delayedCall(s(200), () => {
+                progressBar.destroy();
+                loadingText.destroy();
+            });
         });
 
         // ── Load only essential UI assets ───────────────────────────────
@@ -95,8 +82,12 @@ export class BootScene extends Phaser.Scene {
     }
 
     create() {
-        this.debugTheaterStart();
+        const startTheater = import.meta.env.VITE_START_THEATER;
 
-        this.scene.start("TitleScene");
+        if (startTheater) {
+            this.debugTheaterStart();
+        } else {
+            this.scene.start("TitleScene");
+        }
     }
 }

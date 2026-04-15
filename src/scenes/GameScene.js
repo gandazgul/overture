@@ -10,6 +10,7 @@ import { DrawReminderBanner } from "../objects/DrawReminderBanner.js";
 import { GameInfoPanel } from "../objects/GameInfoPanel.js";
 import { SpeechBubble } from "../objects/SpeechBubble.js";
 import { TheaterGrid } from "../objects/TheaterGrid.js";
+import { ProgressBar } from "../objects/ProgressBar.js";
 import { scorePlayer, scoreSeatBreakdown } from "../scoring.js";
 import {
     createDeck,
@@ -109,6 +110,9 @@ export class GameScene extends Phaser.Scene {
         /** @type {Card[]} */
         this.lobbyCardVisuals = [];
 
+        /** @type {Phaser.GameObjects.GameObject[]} */
+        this.lobbyBarrierVisuals = [];
+
         /** @type {number} */
         this.maxCardsInHand = 0;
 
@@ -156,24 +160,16 @@ export class GameScene extends Phaser.Scene {
         // ── Progress bar ────────────────────────────────────────────────
         const barW = s(300);
         const barH = s(16);
-        const barBorder = this.add.rectangle(
-            width / 2,
-            height / 2,
-            barW + s(4),
-            barH + s(4),
-        );
-        barBorder.setStrokeStyle(s(2), 0xd4af37);
-        barBorder.setFillStyle(0x0a0a1a);
-        const barFill = this.add.rectangle(
-            width / 2 - barW / 2 + s(2),
-            height / 2,
-            0,
-            barH,
-            0xd4af37,
-        ).setOrigin(0, 0.5);
+        const progressBar = new ProgressBar(this, width / 2, height / 2, barW, barH);
 
         this.load.on("progress", (/** @type {number} */ value) => {
-            barFill.width = barW * value;
+            progressBar.updateProgress(value, barW);
+        });
+
+        this.load.on("complete", () => {
+            this.time.delayedCall(s(200), () => {
+                progressBar.destroy();
+            });
         });
 
         // ── Helper: only load if not already cached ─────────────────────
@@ -214,6 +210,7 @@ export class GameScene extends Phaser.Scene {
         loadIfMissing("usher_red", "assets/usher_red.png");
         loadIfMissing("usher_green", "assets/usher_green.png");
         loadIfMissing("usher_orange", "assets/usher_orange.png");
+        loadIfMissing("ui_brass_stanchion", "assets/ui_brass_stanchion.png");
     }
 
     /**
@@ -361,6 +358,10 @@ export class GameScene extends Phaser.Scene {
         });
 
         const { floorTop } = this.theaterGrid.build();
+
+        // ── Full Background Fill ──────────────────────────────────────────────
+        // Ensure we cover the TitleScene/other scenes since theater floor is masked
+        this.add.rectangle(width / 2, height / 2, width, height, 0x0a0a1a).setDepth(-1);
 
         // ── HUD Panel (Game Information) ────────────────────────────────
         const hudW = s(260);
@@ -1175,6 +1176,75 @@ export class GameScene extends Phaser.Scene {
         };
     }
 
+    clearLobbyBarrierVisuals() {
+        for (const v of this.lobbyBarrierVisuals) {
+            v.destroy();
+        }
+        this.lobbyBarrierVisuals = [];
+    }
+
+    /**
+     * Theater-style decorative barrier for the locked lobby slot (index 0).
+     * @param {number} cardX
+     * @param {number} cardY
+     */
+    renderLockedLobbyBarrier(cardX, cardY) {
+        if (!this.textures.exists("ui_brass_stanchion")) {
+            return;
+        }
+
+        const stanchionTexture = this.textures.get("ui_brass_stanchion").getSourceImage();
+        const targetStanchionHeight = Card.HEIGHT / 2;
+        const stanchionScale = targetStanchionHeight / stanchionTexture.height;
+        const stanchionDisplayW = stanchionTexture.width * stanchionScale;
+
+        const cardBottomY = cardY + Card.HEIGHT / 2;
+        const stanchionY = cardBottomY - targetStanchionHeight / 2 + s(2);
+        const stanchionInset = s(5);
+
+        const leftX = cardX - Card.WIDTH / 2 - stanchionDisplayW * 0.2 + stanchionInset;
+        const rightX = cardX + Card.WIDTH / 2 + stanchionDisplayW * 0.2 - stanchionInset;
+
+        const leftStanchion = this.add.image(leftX, stanchionY, "ui_brass_stanchion");
+        leftStanchion.setDisplaySize(stanchionDisplayW, targetStanchionHeight);
+        leftStanchion.setDepth(171);
+
+        const rightStanchion = this.add.image(rightX, stanchionY, "ui_brass_stanchion");
+        rightStanchion.setDisplaySize(stanchionDisplayW, targetStanchionHeight);
+        rightStanchion.setFlipX(true);
+        rightStanchion.setDepth(171);
+
+        const stanchionTopY = cardBottomY - targetStanchionHeight;
+        const ropeAnchorY = stanchionTopY + s(18);
+        const leftAnchorX = leftX + stanchionDisplayW * 0.15 + s(2);
+        const rightAnchorX = rightX - stanchionDisplayW * 0.15 - s(2);
+        const ropeSag = s(18);
+
+        const ropeCurve = new Phaser.Curves.QuadraticBezier(
+            new Phaser.Math.Vector2(leftAnchorX, ropeAnchorY),
+            new Phaser.Math.Vector2((leftAnchorX + rightAnchorX) / 2, ropeAnchorY + ropeSag),
+            new Phaser.Math.Vector2(rightAnchorX, ropeAnchorY),
+        );
+        const ropePoints = ropeCurve.getPoints(40);
+
+        const ropeShadow = this.add.graphics();
+        ropeShadow.lineStyle(s(10), 0x2b0708, 0.5);
+        ropeShadow.strokePoints(ropePoints.map((p) => new Phaser.Math.Vector2(p.x, p.y + s(2))), false, false);
+        ropeShadow.setDepth(172);
+
+        const ropeBase = this.add.graphics();
+        ropeBase.lineStyle(s(8), 0x4d0d0f, 1);
+        ropeBase.strokePoints(ropePoints, false, false);
+        ropeBase.setDepth(173);
+
+        const ropeHighlight = this.add.graphics();
+        ropeHighlight.lineStyle(s(3), 0x8f3033, 0.7);
+        ropeHighlight.strokePoints(ropePoints.map((p) => new Phaser.Math.Vector2(p.x, p.y - s(2))), false, false);
+        ropeHighlight.setDepth(174);
+
+        this.lobbyBarrierVisuals.push(leftStanchion, rightStanchion, ropeShadow, ropeBase, ropeHighlight);
+    }
+
     /** @param {number} ms */
     waitMs(ms) {
         return new Promise((resolve) => {
@@ -1235,7 +1305,7 @@ export class GameScene extends Phaser.Scene {
         const { deckX, deckY } = this.getLobbyMetrics();
 
         const back = this.add.container(deckX, deckY);
-        back.setDepth(500);
+        back.setDepth(165);
 
         const backBorder = this.add
             .rectangle(0, 0, Card.WIDTH, Card.HEIGHT, 0x000000)
@@ -1266,7 +1336,7 @@ export class GameScene extends Phaser.Scene {
 
         const faceCard = new Card(this, deckX, deckY, cardData);
         faceCard.disableInteractive();
-        faceCard.setDepth(501);
+        faceCard.setDepth(165);
         faceCard.setScale(0, pickupScale);
         back.destroy();
 
@@ -1392,6 +1462,7 @@ export class GameScene extends Phaser.Scene {
             v.destroy();
         }
         this.lobbyCardVisuals = [];
+        this.clearLobbyBarrierVisuals();
 
         const { deckX, deckY } = this.getLobbyMetrics();
         // Stack regular Image objects to form a card pile.
@@ -1456,8 +1527,7 @@ export class GameScene extends Phaser.Scene {
             const slotZeroLocked = i === 0 && this.deck.length > 0;
             if (slotZeroLocked) {
                 card.setInteractive(false);
-                // TODO: how to make the card look unavailable
-                card.setStrokeColor(0xf44336);
+                this.renderLockedLobbyBarrier(slot.x, slot.y);
             } else if (!isAI) {
                 card.on("pointerdown", () => {
                     void this.drawFromLobby(i);

@@ -46,12 +46,13 @@ export class GameInfoPanel extends Phaser.GameObjects.Container {
 
         this.setDepth(150);
 
+        const scoreHeight = s(playerCount * 48);
         const houseRuleExtra = houseRuleDescription ? s(60) : 0;
         const panelBg = scene.add.rectangle(
             0,
             0,
             width,
-            s(260 + playerCount * 48) + houseRuleExtra,
+            s(90) + scoreHeight + houseRuleExtra,
             0x0f0f1c,
             0.95,
         )
@@ -59,8 +60,9 @@ export class GameInfoPanel extends Phaser.GameObjects.Container {
             .setStrokeStyle(s(3), 0xd4af37);
         this.add(panelBg);
 
+        const turnTextY = s(20);
         this.turnText = scene.add
-            .text(width / 2, s(20), "", {
+            .text(width / 2, turnTextY, "", {
                 fontSize: px(20),
                 fontFamily: "Georgia, serif",
                 color: "#d4af37",
@@ -69,8 +71,9 @@ export class GameInfoPanel extends Phaser.GameObjects.Container {
             .setOrigin(0.5, 0);
         this.add(this.turnText);
 
+        const deckTextY = turnTextY + s(30);
         this.deckText = scene.add
-            .text(width / 2, s(50), "", {
+            .text(width / 2, deckTextY, "", {
                 fontSize: px(15),
                 fontFamily: "Georgia, serif",
                 color: "#aaaacc",
@@ -78,7 +81,7 @@ export class GameInfoPanel extends Phaser.GameObjects.Container {
             .setOrigin(0.5, 0);
         this.add(this.deckText);
 
-        const scoreStartY = s(220);
+        const scoreStartY = deckTextY + s(30);
         for (let p = 0; p < playerCount; p++) {
             const panel = scene.add.container(s(15), scoreStartY + p * s(48));
             const key = usherKey(p);
@@ -117,7 +120,7 @@ export class GameInfoPanel extends Phaser.GameObjects.Container {
         }
 
         if (houseRuleDescription) {
-            const ruleY = scoreStartY + playerCount * s(48) + s(8);
+            const ruleY = scoreStartY + scoreHeight + s(10);
             const divider = scene.add.rectangle(
                 width / 2,
                 ruleY,

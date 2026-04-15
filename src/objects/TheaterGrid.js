@@ -144,17 +144,18 @@ export class TheaterGrid extends Phaser.GameObjects.Container {
         }
         const totalGridH = yCursor;
 
-        const bleed = s(30);
-        const floorW = totalGridW + bleed * 2;
-        const floorH = totalGridH + bleed * 2;
+        const bleedWidth = s(60);
+        const bleedHeight = s(30);
+        const floorW = totalGridW + bleedWidth * 2;
+        const floorH = totalGridH + bleedHeight * 2;
         const stageAspectRatio = 222 / 978;
-        const stageRenderWidth = floorW + bleed * 2;
+        const stageRenderWidth = floorW + bleedWidth * 2;
         const actualStageH = stageRenderWidth * stageAspectRatio;
         const stageTop = s(10);
-        const floorTop = stageTop + actualStageH - bleed / 2;
+        const floorTop = stageTop + actualStageH - bleedHeight / 2;
         const floorLeft = (width - floorW) / 2;
-        const gridStartX = floorLeft + bleed;
-        const gridStartY = floorTop + bleed;
+        const gridStartX = floorLeft + bleedWidth;
+        const gridStartY = floorTop + bleedHeight;
 
         /** @type {number[]} */
         const staggerRowOffsets = [];
@@ -225,7 +226,7 @@ export class TheaterGrid extends Phaser.GameObjects.Container {
                 .setStrokeStyle(s(2), aisleBorderColor);
             this.add(strip);
 
-            for (let dy = bleed + s(2); dy < floorH - bleed; dy += s(14)) {
+            for (let dy = bleedHeight + s(2); dy < floorH - bleedHeight; dy += s(14)) {
                 this.add(scene.add.rectangle(centerX, floorTop + dy + s(2), s(2), s(7), aisleDashColor));
             }
         };
@@ -264,18 +265,6 @@ export class TheaterGrid extends Phaser.GameObjects.Container {
             .setOrigin(0.5)
             .setDepth(3);
         this.add(stageLabel);
-
-        for (const breakRow of rowBreaksAfter) {
-            const y1 = rowY[breakRow] + SEAT_SIZE / 2;
-            const y2 = rowY[breakRow + 1] - SEAT_SIZE / 2;
-            const midY = (y1 + y2) / 2;
-            for (let dx = 0; dx < totalGridW; dx += s(12)) {
-                const line = scene.add
-                    .rectangle(gridStartX + dx + s(3), midY, s(6), s(2), 0x555577)
-                    .setAlpha(0.5);
-                this.add(line);
-            }
-        }
 
         // ── Build theater grid ──────────────────────────────────────
         for (let row = 0; row < ROWS; row++) {
@@ -330,6 +319,46 @@ export class TheaterGrid extends Phaser.GameObjects.Container {
 
                 this.seatGrid[row][col] = seat;
                 this.add(seat);
+            }
+        }
+
+        for (const breakRow of rowBreaksAfter) {
+            const y1 = rowY[breakRow] + SEAT_SIZE / 2;
+            const y2 = rowY[breakRow + 1] - SEAT_SIZE / 2;
+            const midY = (y1 + y2) / 2;
+            for (let dx = 0; dx < totalGridW; dx += s(12)) {
+                const line = scene.add
+                    .rectangle(gridStartX + dx + s(3), midY, s(6), s(2), 0x555577)
+                    .setAlpha(0.5);
+                line.setDepth(5);
+                this.add(line);
+            }
+        }
+
+        // ── Column breaks (vertical dashed lines) ──────────────────────────
+        if (this.layout.adjacencyBreaks) {
+            // Use the same line style as row breaks.
+            // We look for columns that separate the theater into distinct "table" zones.
+            // In Dinner Playhouse, this typically means a gap between col 1 and 2.
+            const colBreaks = [];
+            // Identify gaps where seats exist on both sides but there is a visual "break"
+            // For Dinner Playhouse, the adjacency breaks are usually defined by row,
+            // but for vertical separators we look at the Gap Columns.
+            for (let c = 0; c < COLS - 1; c++) {
+                if (gapCols.has(c) || centerAisleGaps.has(c)) {
+                    const midX = colX[c];
+                    colBreaks.push(midX);
+                }
+            }
+
+            for (const midX of colBreaks) {
+                for (let dy = 0; dy < totalGridH; dy += s(12)) {
+                    const line = scene.add
+                        .rectangle(midX, gridStartY + dy + s(3), s(2), s(6), 0x555577)
+                        .setAlpha(0.5);
+                    line.setDepth(5);
+                    this.add(line);
+                }
             }
         }
 
