@@ -14,6 +14,7 @@
 
 import { scorePlayer, seatExists, getOrthogonalNeighbors } from './scoring.js';
 import { hasSeatLabel, PatronType, Trait } from './types.js';
+import { random, randomInt } from './utils.js';
 
 /** @typedef {import('./types.js').CardData} CardData */
 /** @typedef {import('./types.js').LayoutMeta} LayoutMeta */
@@ -312,10 +313,9 @@ export function pickDrawAction(lobby, deckSize, difficulty, grid, layout) {
             if (hasDeck) {
                 sources.push('deck');
             }
-            // TODO get better random numbers
-            const choice = sources[Math.floor(Math.random() * sources.length)];
+            const choice = sources[randomInt(sources.length - 1)];
             if (choice === 'lobby') {
-                return { source: 'lobby', index: 1 + Math.floor(Math.random() * availableLobby.length) };
+                return { source: 'lobby', index: 1 + randomInt(availableLobby.length - 1) };
             }
 
             return { source: 'deck' };
@@ -393,7 +393,7 @@ export function pickSeat(grid, card, layout, difficulty) {
     switch (difficulty) {
         case AIDifficulty.EASY: {
             // Random seat
-            const idx = Math.floor(Math.random() * empty.length);
+            const idx = randomInt(empty.length - 1);
             return empty[idx];
         }
 
@@ -419,7 +419,7 @@ export function pickSeat(grid, card, layout, difficulty) {
 
             // Add slight jitter (±0.5) to avoid perfectly predictable play
             for (const e of enhanced) {
-                e.score += (Math.random() - 0.5);
+                e.score += (random() - 0.5);
             }
 
             enhanced.sort((a, b) => b.score - a.score);
@@ -428,7 +428,7 @@ export function pickSeat(grid, card, layout, difficulty) {
 
         default:
             // Fallback to random
-            return empty[Math.floor(Math.random() * empty.length)];
+            return empty[randomInt(empty.length - 1)];
     }
 }
 
