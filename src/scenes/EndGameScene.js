@@ -13,8 +13,6 @@ import { createButton } from "../objects/Button.js";
 /** Usher avatar texture keys, indexed by player index. */
 const USHER_KEYS = ["usher_blue", "usher_red", "usher_green", "usher_orange"];
 
-/** Patron types in display order for the scorecard rows. */
-const TYPE_ORDER = PatronTypeOrder;
 
 /**
  * End-game scene — polished scorecard styled to match the title screen.
@@ -99,7 +97,7 @@ export class EndGameScene extends Phaser.Scene {
     for (let p = 0; p < this.playerCount; p++) {
       /** @type {Record<string, number>} */
       const breakdown = {};
-      for (const t of TYPE_ORDER) breakdown[t] = 0;
+      for (const t of PatronTypeOrder) breakdown[t] = 0;
       const grid = this.placedPatrons[p];
       for (let r = 0; r < this.layout.rows; r++) {
         for (let c = 0; c < this.layout.cols; c++) {
@@ -145,7 +143,7 @@ export class EndGameScene extends Phaser.Scene {
 
     // Rows: avatar header + 6 patron types + divider + total = 9 visual rows
     const avatarRowH = s(70);
-    const dataRowCount = TYPE_ORDER.length;
+    const dataRowCount = PatronTypeOrder.length;
     const totalRowH = s(38);
     const dataRowH = Math.min(
       s(34),
@@ -240,8 +238,8 @@ export class EndGameScene extends Phaser.Scene {
     // ── Data rows (one per patron type) ─────────────────────────────
     const dataStartY = headerY + avatarRowH;
 
-    for (let i = 0; i < TYPE_ORDER.length; i++) {
-      const type = TYPE_ORDER[i];
+    for (let i = 0; i < PatronTypeOrder.length; i++) {
+      const type = PatronTypeOrder[i];
       const rowY = dataStartY + i * dataRowH;
 
       // Alternating row background
