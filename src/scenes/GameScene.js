@@ -17,12 +17,14 @@ import {
     Layouts,
     PatronInfo,
     PatronType,
+    PatronTypeOrder,
     PlayerColors,
     PlayerColorsHex,
     PlayerNames,
     Trait,
     TraitColors,
     TraitInfo,
+    TraitOrder,
 } from '../types.js';
 
 const SEAT_SIZE = s(100);
@@ -31,30 +33,6 @@ const AISLE_GAP = s(30); // wider gap for aisle walkways
 
 const ENV = /** @type {{ VITE_DEBUG_AI?: string }} */ ((/** @type {any} */ (import.meta)).env ?? {});
 
-/**
- * Concise scoring reminders shown when a card is selected.
- * @type {Record<string, string>}
- */
-const SCORING_HINTS = {
-    'Patron': 'Base 3VP',
-    'VIP': 'Base 3 VP\n+3VP in the front 2 rows\n⚠ −3VP per adjacent Kid or Noisy',
-    'Lovebirds': '+3VP if paired side by side with another.\n+2VP in back row\n⚠ 0 VP if alone',
-    'Kid': 'Base 1VP\n+2VP when capped e.g. T-K-T',
-    'Teacher': 'Base 3VP\n+1VP per capped Kid in its chain',
-    'Critic': 'Base 3VP\n+3VP in an aisle seat (gold border)',
-    'Friends': 'Base 3VP\n+1VP per adjacent Friend',
-};
-
-/**
- * Scoring hints for secondary traits.
- * @type {Record<string, string>}
- */
-const TRAIT_HINTS = {
-    'Tall': '⚠ Patron behind gets −2VP',
-    'Short': '+2VP if no one in front\n⚠ −3 VP if Tall in front',
-    'Bespectacled': '+2VP unless seated on the back row',
-    'Noisy': '⚠ Each adjacent patron gets −1VP',
-};
 
 export class GameScene extends Phaser.Scene {
     constructor() {
@@ -220,19 +198,16 @@ export class GameScene extends Phaser.Scene {
         };
 
         // ── Patron cards ────────────────────────────────────────────────
-        loadIfMissing('patron_patron', 'assets/patron_patron.png');
-        loadIfMissing('patron_vip', 'assets/patron_vip.png');
-        loadIfMissing('patron_lovebirds', 'assets/patron_lovebirds.png');
-        loadIfMissing('patron_kid', 'assets/patron_kid.png');
-        loadIfMissing('patron_teacher', 'assets/patron_teacher.png');
-        loadIfMissing('patron_critic', 'assets/patron_critic.png');
-        loadIfMissing('patron_friends', 'assets/patron_friends.png');
+        for (const type of PatronTypeOrder) {
+            const info = PatronInfo[type];
+            loadIfMissing(info.assetKey, info.assetPath);
+        }
 
         // ── Trait badges ────────────────────────────────────────────────
-        loadIfMissing('badge_tall', 'assets/badge_tall.png');
-        loadIfMissing('badge_short', 'assets/badge_short.png');
-        loadIfMissing('badge_bespectacled', 'assets/badge_bespectacled.png');
-        loadIfMissing('badge_noisy', 'assets/badge_noisy.png');
+        for (const trait of TraitOrder) {
+            const info = TraitInfo[trait];
+            loadIfMissing(info.badgeAssetKey, info.badgeAssetPath);
+        }
 
         // ── Seat tags ──────────────────────────────────────────────────────────
         loadIfMissing('tag_royal_box', 'assets/tag_royal_box.png');
@@ -1315,9 +1290,9 @@ export class GameScene extends Phaser.Scene {
     showScoringTooltip(card) {
         this.hideScoringTooltip();
 
-        let hint = SCORING_HINTS[card.cardData.type] || '';
+        let hint = PatronInfo[card.cardData.type]?.scoringHint || '';
         if (card.cardData.trait) {
-            const traitHint = TRAIT_HINTS[card.cardData.trait];
+            const traitHint = TraitInfo[card.cardData.trait]?.scoringHint;
             if (traitHint) {
                 hint = hint ? `${hint}\n${traitHint}` : traitHint;
             }

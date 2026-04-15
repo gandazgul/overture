@@ -40,34 +40,332 @@ export const Trait = /** @type {const} */ ({
 });
 Object.freeze(Trait);
 
-// ── Colors ─────────────────────────────────────────────────────────
+// ── Shared Patron/Trait Metadata ───────────────────────────────────
+
+/**
+ * Scoring parameters for each primary patron type.
+ * Keeps all tuning knobs in one place for easy playtesting adjustments.
+ *
+ * @typedef {Object} ScoringParams
+ * @property {number} base - Base VP awarded for placing this patron
+ * @property {number} [rowBonusValue] - Extra VP per qualifying row
+ * @property {number[]} [rowBonusRows] - Row indices that grant the bonus (0 = front)
+ * @property {number} [aisleBonus] - Extra VP if seated in an aisle seat (additive)
+ * @property {number} [adjacencyPenaltyPer] - VP penalty per adjacent patron of a triggering type
+ * @property {string[]} [adjacencyPenaltyTypes] - Patron types that trigger the adjacency penalty
+ * @property {boolean} [adjacencyPenaltyNoisyTrait] - Also penalized by adjacent Noisy-trait patrons
+ * @property {number} [cappedValue] - VP when this patron is "capped" (Kid-specific)
+ * @property {number} [perCappedKidBonus] - VP bonus per adjacent capped Kid (Teacher-specific)
+ * @property {number} [adjacentMatchBonus] - VP if orthogonally adjacent to same type (Lovebirds)
+ * @property {number} [backRowBonus] - Extra VP if in the designated back row (additive)
+ * @property {number[]} [backRows] - Row indices that count as "back" for multiplier
+ * @property {number} [perNeighborMatchBonus] - VP bonus per orthogonally adjacent patron of the same type (Friends)
+ */
+
+/**
+ * Scoring parameters for secondary traits.
+ *
+ * @typedef {Object} TraitScoringParams
+ * @property {number} [behindPenalty] - VP penalty applied to the patron directly behind
+ * @property {number} [emptyFrontBonus] - VP bonus if no patron is directly in front
+ * @property {number} [tallInFrontPenalty] - VP penalty if a Tall-trait patron is directly in front
+ * @property {number} [rowBonusValue] - Extra VP per qualifying row
+ * @property {number[]} [rowBonusRows] - Row indices that grant the bonus
+ * @property {number} [adjacentPenalty] - VP penalty applied to each adjacent patron
+ */
+
+/**
+ * Per-type deck composition.
+ * @typedef {Object} PatronDeckInfo
+ * @property {number} clean - Count of non-trait cards for this patron type
+ * @property {Record<string, number>} traits - Count by trait for this patron type
+ */
+
+/**
+ * Canonical patron type metadata.
+ * This is the single source of truth for visuals, scoring, tooltips and deck composition.
+ *
+ * @type {Record<string, {
+ *   color: number,
+ *   description: string,
+ *   scoringHint: string,
+ *   scoring: ScoringParams,
+ *   deck: PatronDeckInfo,
+ *   assetKey: string,
+ *   assetPath: string,
+ * }>}
+ */
+export const PatronInfo = {
+  [PatronType.STANDARD]: {
+    color: 0x607d8b,
+    description: "A regular patron. Worth 3 VP anywhere.",
+    scoringHint: "Base 3VP",
+    scoring: { base: 3 },
+    deck: {
+      clean: 5,
+      traits: {
+        [Trait.TALL]: 2,
+        [Trait.SHORT]: 2,
+        [Trait.BESPECTACLED]: 2,
+        [Trait.NOISY]: 2,
+      },
+    },
+    assetKey: "patron_patron",
+    assetPath: "assets/patron_patron.png",
+  },
+  [PatronType.VIP]: {
+    color: 0xffc107,
+    description: "3 VP base. +3 VP in front rows. −3 per adjacent Kid or Noisy.",
+    scoringHint: "Base 3 VP\n+3VP in the front 2 rows\n⚠ −3VP per adjacent Kid or Noisy",
+    scoring: {
+      base: 3,
+      rowBonusValue: 3,
+      rowBonusRows: [0, 1],
+      adjacencyPenaltyPer: -3,
+      adjacencyPenaltyTypes: [PatronType.KID],
+      adjacencyPenaltyNoisyTrait: true,
+    },
+    deck: {
+      clean: 3,
+      traits: { [Trait.BESPECTACLED]: 1 },
+    },
+    assetKey: "patron_vip",
+    assetPath: "assets/patron_vip.png",
+  },
+  [PatronType.LOVEBIRDS]: {
+    color: 0xe91e63,
+    description: "1 VP alone. +3 if horizontally paired. +2 in back row.",
+    scoringHint: "+3VP if paired side by side with another.\n+2VP in back row\n⚠ 0 VP if alone",
+    scoring: {
+      base: 1,
+      adjacentMatchBonus: 3,
+      backRowBonus: 2,
+    },
+    deck: {
+      clean: 8,
+      traits: {
+        [Trait.TALL]: 1,
+        [Trait.NOISY]: 1,
+      },
+    },
+    assetKey: "patron_lovebirds",
+    assetPath: "assets/patron_lovebirds.png",
+  },
+  [PatronType.KID]: {
+    color: 0x4caf50,
+    description: "1 VP uncapped. 3 VP when capped by Teachers!",
+    scoringHint: "Base 1VP\n+2VP when capped e.g. T-K-T",
+    scoring: {
+      base: 1,
+      cappedValue: 3,
+    },
+    deck: {
+      clean: 5,
+      traits: {
+        [Trait.TALL]: 1,
+        [Trait.SHORT]: 1,
+        [Trait.NOISY]: 1,
+      },
+    },
+    assetKey: "patron_kid",
+    assetPath: "assets/patron_kid.png",
+  },
+  [PatronType.TEACHER]: {
+    color: 0x8bc34a,
+    description: "3 VP base. +1 VP per adjacent capped Kid.",
+    scoringHint: "Base 3VP\n+1VP per capped Kid in its chain",
+    scoring: {
+      base: 3,
+      perCappedKidBonus: 1,
+    },
+    deck: {
+      clean: 3,
+      traits: {
+        [Trait.TALL]: 1,
+        [Trait.SHORT]: 1,
+        [Trait.BESPECTACLED]: 1,
+      },
+    },
+    assetKey: "patron_teacher",
+    assetPath: "assets/patron_teacher.png",
+  },
+  [PatronType.CRITIC]: {
+    color: 0x9c27b0,
+    description: "+3 VP in aisle seat. Noisy neighbors nullify the bonus!",
+    scoringHint: "Base 3VP\n+3VP in an aisle seat (gold border)",
+    scoring: {
+      base: 3,
+      aisleBonus: 3,
+    },
+    deck: {
+      clean: 3,
+      traits: {
+        [Trait.TALL]: 1,
+        [Trait.SHORT]: 2,
+        [Trait.BESPECTACLED]: 1,
+      },
+    },
+    assetKey: "patron_critic",
+    assetPath: "assets/patron_critic.png",
+  },
+  [PatronType.FRIENDS]: {
+    color: 0x00bcd4,
+    description: "3 VP base. +1 VP per adjacent Friend.",
+    scoringHint: "Base 3VP\n+1VP per adjacent Friend",
+    scoring: {
+      base: 3,
+      perNeighborMatchBonus: 1,
+    },
+    deck: {
+      clean: 5,
+      traits: {
+        [Trait.TALL]: 1,
+        [Trait.SHORT]: 1,
+        [Trait.BESPECTACLED]: 1,
+      },
+    },
+    assetKey: "patron_friends",
+    assetPath: "assets/patron_friends.png",
+  },
+};
+Object.freeze(PatronInfo);
+
+/**
+ * Canonical trait metadata.
+ *
+ * @type {Record<string, {
+ *   color: number,
+ *   description: string,
+ *   scoringHint: string,
+ *   scoring: TraitScoringParams,
+ *   badgeAssetKey: string,
+ *   badgeAssetPath: string,
+ * }>}
+ */
+export const TraitInfo = {
+  [Trait.TALL]: {
+    color: 0x795548,
+    description: "Patron behind gets −2 VP.",
+    scoringHint: "⚠ Patron behind gets −2VP",
+    scoring: { behindPenalty: -2 },
+    badgeAssetKey: "badge_tall",
+    badgeAssetPath: "assets/badge_tall.png",
+  },
+  [Trait.SHORT]: {
+    color: 0xff9800,
+    description: "+2 VP if no one in front. −3 VP if Tall is in front.",
+    scoringHint: "+2VP if no one in front\n⚠ −3 VP if Tall in front",
+    scoring: {
+      emptyFrontBonus: 2,
+      tallInFrontPenalty: -3,
+    },
+    badgeAssetKey: "badge_short",
+    badgeAssetPath: "assets/badge_short.png",
+  },
+  [Trait.BESPECTACLED]: {
+    color: 0x2196f3,
+    description: "+2 VP in front 3 rows (closer to stage).",
+    scoringHint: "+2VP unless seated on the back row",
+    scoring: {
+      rowBonusValue: 2,
+      rowBonusRows: [0, 1, 2],
+    },
+    badgeAssetKey: "badge_bespectacled",
+    badgeAssetPath: "assets/badge_bespectacled.png",
+  },
+  [Trait.NOISY]: {
+    color: 0xf44336,
+    description: "Each adjacent patron gets −1 VP.",
+    scoringHint: "⚠ Each adjacent patron gets −1VP",
+    scoring: { adjacentPenalty: -1 },
+    badgeAssetKey: "badge_noisy",
+    badgeAssetPath: "assets/badge_noisy.png",
+  },
+};
+Object.freeze(TraitInfo);
+
+/** Primary patron type display order. */
+export const PatronTypeOrder = [
+  PatronType.STANDARD,
+  PatronType.VIP,
+  PatronType.LOVEBIRDS,
+  PatronType.KID,
+  PatronType.TEACHER,
+  PatronType.CRITIC,
+  PatronType.FRIENDS,
+];
+Object.freeze(PatronTypeOrder);
+
+/** Trait display order. */
+export const TraitOrder = [
+  Trait.TALL,
+  Trait.SHORT,
+  Trait.BESPECTACLED,
+  Trait.NOISY,
+];
+Object.freeze(TraitOrder);
+
+// ── Derived Patron/Trait Maps (Backward-compatible exports) ───────
 
 /**
  * The color associated with each primary patron type (for card rendering).
  * @type {Record<string, number>}
  */
-export const PatronColors = {
-  [PatronType.STANDARD]: 0x607d8b, // Blue-grey
-  [PatronType.VIP]: 0xffc107, // Gold
-  [PatronType.LOVEBIRDS]: 0xe91e63, // Pink
-  [PatronType.KID]: 0x4caf50, // Green
-  [PatronType.TEACHER]: 0x8bc34a, // Light green
-  [PatronType.CRITIC]: 0x9c27b0, // Purple
-  [PatronType.FRIENDS]: 0x00bcd4, // Teal/Cyan
-};
-Object.freeze(PatronColors);
+export const PatronColors = Object.freeze(
+  PatronTypeOrder.reduce((acc, type) => {
+    acc[type] = PatronInfo[type].color;
+    return acc;
+  }, /** @type {Record<string, number>} */ ({})),
+);
 
 /**
  * Optional tint overlays for traits — used to add a visual indicator.
  * @type {Record<string, number>}
  */
-export const TraitColors = {
-  [Trait.TALL]: 0x795548, // Brown
-  [Trait.SHORT]: 0xff9800, // Orange
-  [Trait.BESPECTACLED]: 0x2196f3, // Blue
-  [Trait.NOISY]: 0xf44336, // Red
-};
-Object.freeze(TraitColors);
+export const TraitColors = Object.freeze(
+  TraitOrder.reduce((acc, trait) => {
+    acc[trait] = TraitInfo[trait].color;
+    return acc;
+  }, /** @type {Record<string, number>} */ ({})),
+);
+
+/**
+ * Scoring configuration keyed by PatronType.
+ * @type {Record<string, ScoringParams>}
+ */
+export const PatronScoring = Object.freeze(
+  PatronTypeOrder.reduce((acc, type) => {
+    acc[type] = PatronInfo[type].scoring;
+    return acc;
+  }, /** @type {Record<string, ScoringParams>} */ ({})),
+);
+
+/**
+ * Scoring configuration keyed by Trait.
+ * @type {Record<string, TraitScoringParams>}
+ */
+export const TraitScoring = Object.freeze(
+  TraitOrder.reduce((acc, trait) => {
+    acc[trait] = TraitInfo[trait].scoring;
+    return acc;
+  }, /** @type {Record<string, TraitScoringParams>} */ ({})),
+);
+
+/**
+ * Flat deck tuples [type, trait, count] generated from PatronInfo.
+ * @type {ReadonlyArray<readonly [string, string | null, number]>}
+ */
+export const PatronDeckSpec = Object.freeze(
+  PatronTypeOrder.flatMap((type) => {
+    const info = PatronInfo[type];
+    const entries = /** @type {Array<[string, string | null, number]>} */ ([]);
+    entries.push([type, null, info.deck.clean]);
+    for (const [trait, count] of Object.entries(info.deck.traits)) {
+      entries.push([type, trait, count]);
+    }
+    return entries;
+  }),
+);
 
 /**
  * Player colors and names for up to 4 players.
@@ -101,155 +399,6 @@ Object.freeze(PlayerNames);
  * @property {number} row - Row index (0 = front/stage, 3 = back)
  * @property {number} col - Column index (0 = left)
  */
-
-// ── Patron Info ────────────────────────────────────────────────────
-
-/**
- * Card definitions descriptions for each primary patron type.
- * @type {Record<string, {description: string}>}
- *
- * TODO: collect ALL patron info here, the scoring, the score hint, etc right now its spread out around different files.
- */
-export const PatronInfo = {
-  [PatronType.STANDARD]: {
-    description: "A regular patron. Worth 3 VP anywhere.",
-  },
-  [PatronType.VIP]: {
-    description: "3 VP base. +3 VP in front rows. −3 per adjacent Kid or Noisy.",
-  },
-  [PatronType.LOVEBIRDS]: {
-    description: "1 VP alone. +3 if horizontally paired. +2 in back row.",
-  },
-  [PatronType.KID]: {
-    description: "1 VP uncapped. 3 VP when capped by Teachers!",
-  },
-  [PatronType.TEACHER]: {
-    description: "3 VP base. +1 VP per adjacent capped Kid.",
-  },
-  [PatronType.CRITIC]: {
-    description: "+3 VP in aisle seat. Noisy neighbors nullify the bonus!",
-  },
-  [PatronType.FRIENDS]: {
-    description: "3 VP base. +1 VP per adjacent Friend.",
-  },
-};
-Object.freeze(PatronInfo);
-
-/**
- * Info for secondary traits — descriptions.
- * @type {Record<string, {description: string}>}
- */
-export const TraitInfo = {
-  [Trait.TALL]: {
-    description: "Patron behind gets −2 VP.",
-  },
-  [Trait.SHORT]: {
-    description: "+2 VP if no one in front. −3 VP if Tall is in front.",
-  },
-  [Trait.BESPECTACLED]: {
-    description: "+2 VP in front 3 rows (closer to stage).",
-  },
-  [Trait.NOISY]: {
-    description: "Each adjacent patron gets −1 VP.",
-  },
-};
-Object.freeze(TraitInfo);
-
-// ── Scoring Config ─────────────────────────────────────────────────
-
-/**
- * Scoring parameters for each primary patron type.
- * Keeps all tuning knobs in one place for easy playtesting adjustments.
- *
- * @typedef {Object} ScoringParams
- * @property {number} base - Base VP awarded for placing this patron
- * @property {number} [rowBonusValue] - Extra VP per qualifying row
- * @property {number[]} [rowBonusRows] - Row indices that grant the bonus (0 = front)
- * @property {number} [aisleBonus] - Extra VP if seated in an aisle seat (additive)
- * @property {number} [adjacencyPenaltyPer] - VP penalty per adjacent patron of a triggering type
- * @property {string[]} [adjacencyPenaltyTypes] - Patron types that trigger the adjacency penalty
- * @property {boolean} [adjacencyPenaltyNoisyTrait] - Also penalized by adjacent Noisy-trait patrons
- * @property {number} [cappedValue] - VP when this patron is "capped" (Kid-specific)
- * @property {number} [perCappedKidBonus] - VP bonus per adjacent capped Kid (Teacher-specific)
- * @property {number} [adjacentMatchBonus] - VP if orthogonally adjacent to same type (Lovebirds)
- * @property {number} [backRowBonus] - Extra VP if in the designated back row (additive)
- * @property {number[]} [backRows] - Row indices that count as "back" for multiplier
- * @property {number} [perNeighborMatchBonus] - VP bonus per orthogonally adjacent patron of the same type (Friends)
- */
-
-/**
- * Scoring configuration keyed by PatronType.
- * @type {Record<string, ScoringParams>}
- */
-export const PatronScoring = {
-  [PatronType.STANDARD]: {
-    base: 3,
-  },
-  [PatronType.VIP]: {
-    base: 3, // (was 5)
-    rowBonusValue: 3,
-    rowBonusRows: [0, 1], // front 2 rows
-    adjacencyPenaltyPer: -3,
-    adjacencyPenaltyTypes: [PatronType.KID],
-    adjacencyPenaltyNoisyTrait: true, // also penalized by Noisy-trait neighbors
-  },
-  [PatronType.LOVEBIRDS]: {
-    base: 1, // (was 0)
-    adjacentMatchBonus: 3, // VP if horizontally paired with another Lovebirds
-    backRowBonus: 2, // flat back-row bonus (was backRowMultiplier: 2)
-  },
-  [PatronType.KID]: {
-    base: 1, // uncapped (was 0)
-    cappedValue: 3, // when capped by Teachers (was 2)
-  },
-  [PatronType.TEACHER]: {
-    base: 3, // (was 1) — safe solo, rewarding in chains
-    perCappedKidBonus: 1,
-  },
-  [PatronType.CRITIC]: {
-    base: 3, // (was 2)
-    aisleBonus: 3, // additive bonus in aisle seat (was aisleMultiplier: 3)
-  },
-  [PatronType.FRIENDS]: {
-    base: 3,
-    perNeighborMatchBonus: 1, // +1 VP per orthogonally adjacent Friends
-  },
-};
-Object.freeze(PatronScoring);
-
-/**
- * Scoring parameters for secondary traits.
- *
- * @typedef {Object} TraitScoringParams
- * @property {number} [behindPenalty] - VP penalty applied to the patron directly behind
- * @property {number} [emptyFrontBonus] - VP bonus if no patron is directly in front
- * @property {number} [tallInFrontPenalty] - VP penalty if a Tall-trait patron is directly in front
- * @property {number} [rowBonusValue] - Extra VP per qualifying row
- * @property {number[]} [rowBonusRows] - Row indices that grant the bonus
- * @property {number} [adjacentPenalty] - VP penalty applied to each adjacent patron
- */
-
-/**
- * Scoring configuration keyed by Trait.
- * @type {Record<string, TraitScoringParams>}
- */
-export const TraitScoring = {
-  [Trait.TALL]: {
-    behindPenalty: -2, // applied to the patron directly behind this one
-  },
-  [Trait.SHORT]: {
-    emptyFrontBonus: 2,
-    tallInFrontPenalty: -3,
-  },
-  [Trait.BESPECTACLED]: {
-    rowBonusValue: 2,
-    rowBonusRows: [0, 1, 2], // front 3 rows
-  },
-  [Trait.NOISY]: {
-    adjacentPenalty: -1, // applied to EACH adjacent patron (any type)
-  },
-};
-Object.freeze(TraitScoring);
 
 // ── Layout ─────────────────────────────────────────────────────────
 
@@ -627,56 +776,10 @@ export const DefaultLayout = GrandEmpressLayout;
  * @returns {CardData[]}
  */
 export function createDeck() {
-  /**
-   * Deck spec: each entry is [type, trait (or null), count].
-   * @type {Array<[string, string | null, number]>}
-   */
-  const deckSpec = [
-    // Standard (13 total: 5 clean + 8 with traits)
-    [PatronType.STANDARD, null, 5],
-    [PatronType.STANDARD, Trait.TALL, 2],
-    [PatronType.STANDARD, Trait.SHORT, 2],
-    [PatronType.STANDARD, Trait.BESPECTACLED, 2],
-    [PatronType.STANDARD, Trait.NOISY, 2],
-
-    // VIP (4 total: 3 clean + 1 Bespectacled)
-    [PatronType.VIP, null, 3],
-    [PatronType.VIP, Trait.BESPECTACLED, 1],
-
-    // Lovebirds (10 total: 8 clean + 1 Tall + 1 Noisy)
-    [PatronType.LOVEBIRDS, null, 8],
-    [PatronType.LOVEBIRDS, Trait.TALL, 1],
-    [PatronType.LOVEBIRDS, Trait.NOISY, 1],
-
-    // Kid (8 total: 5 clean + 1 Tall + 1 Short + 1 Noisy)
-    [PatronType.KID, null, 5],
-    [PatronType.KID, Trait.TALL, 1],
-    [PatronType.KID, Trait.SHORT, 1],
-    [PatronType.KID, Trait.NOISY, 1],
-
-    // Teacher (6 total: 3 clean + 1 Tall + 1 Short + 1 Bespectacled)
-    [PatronType.TEACHER, null, 3],
-    [PatronType.TEACHER, Trait.TALL, 1],
-    [PatronType.TEACHER, Trait.SHORT, 1],
-    [PatronType.TEACHER, Trait.BESPECTACLED, 1],
-
-    // Critic (7 total: 3 clean + 1 Tall + 2 Short + 1 Bespectacled)
-    [PatronType.CRITIC, null, 3],
-    [PatronType.CRITIC, Trait.TALL, 1],
-    [PatronType.CRITIC, Trait.SHORT, 2],
-    [PatronType.CRITIC, Trait.BESPECTACLED, 1],
-
-    // Friends (8 total: 5 clean + 1 Tall + 1 Short + 1 Bespectacled)
-    [PatronType.FRIENDS, null, 5],
-    [PatronType.FRIENDS, Trait.TALL, 1],
-    [PatronType.FRIENDS, Trait.SHORT, 1],
-    [PatronType.FRIENDS, Trait.BESPECTACLED, 1],
-  ];
-
   /** @type {CardData[]} */
   const deck = [];
 
-  for (const [type, trait, count] of deckSpec) {
+  for (const [type, trait, count] of PatronDeckSpec) {
     const typeInfo = PatronInfo[type];
     const traitInfo = trait ? TraitInfo[trait] : null;
 

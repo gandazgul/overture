@@ -2,7 +2,7 @@
 import Phaser from "phaser";
 import { px, s } from "../config.js";
 import {
-  PatronType,
+  PatronTypeOrder,
   PlayerColors,
   PlayerColorsHex,
   PlayerNames,
@@ -14,15 +14,7 @@ import { createButton } from "../objects/Button.js";
 const USHER_KEYS = ["usher_blue", "usher_red", "usher_green", "usher_orange"];
 
 /** Patron types in display order for the scorecard rows. */
-const TYPE_ORDER = [
-  PatronType.STANDARD,
-  PatronType.VIP,
-  PatronType.LOVEBIRDS,
-  PatronType.KID,
-  PatronType.TEACHER,
-  PatronType.CRITIC,
-  PatronType.FRIENDS,
-];
+const TYPE_ORDER = PatronTypeOrder;
 
 /**
  * End-game scene — polished scorecard styled to match the title screen.
