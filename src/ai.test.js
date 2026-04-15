@@ -227,6 +227,50 @@ Deno.test("applyHeuristics — Noisy prefers fewer neighbors", () => {
     assert(cornerBonus >= centerBonus, "Noisy should prefer seats with fewer occupied neighbors");
 });
 
+Deno.test("applyHeuristics — Amphitheater Tall penalized by staggered-behind occupied seats", () => {
+    const grid = emptyGrid(AmphitheaterLayout);
+    grid[2][3] = card(PatronType.STANDARD); // one of the staggered-behind seats for (1,2)
+
+    const withBehind = applyHeuristics(
+        grid,
+        card(PatronType.STANDARD, Trait.TALL),
+        1,
+        2,
+        AmphitheaterLayout,
+    );
+    const noBehind = applyHeuristics(
+        grid,
+        card(PatronType.STANDARD, Trait.TALL),
+        0,
+        2,
+        AmphitheaterLayout,
+    );
+
+    assert(withBehind < noBehind, "Tall should prefer fewer occupied staggered-behind seats in Amphitheater");
+});
+
+Deno.test("applyHeuristics — Amphitheater Short penalized by staggered-front Tall", () => {
+    const grid = emptyGrid(AmphitheaterLayout);
+    grid[1][2] = card(PatronType.STANDARD, Trait.TALL); // staggered-front neighbor for (2,3)
+
+    const behindTall = applyHeuristics(
+        grid,
+        card(PatronType.STANDARD, Trait.SHORT),
+        2,
+        3,
+        AmphitheaterLayout,
+    );
+    const clearFront = applyHeuristics(
+        grid,
+        card(PatronType.STANDARD, Trait.SHORT),
+        2,
+        4,
+        AmphitheaterLayout,
+    );
+
+    assert(behindTall < clearFront, "Short should avoid staggered-front Tall neighbors in Amphitheater");
+});
+
 // ══════════════════════════════════════════════════════════════════════
 // pickCardAndSeat (2-player discard logic)
 // ══════════════════════════════════════════════════════════════════════

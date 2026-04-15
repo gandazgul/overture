@@ -66,42 +66,100 @@ function isAdjacencyBroken(rowA, rowB, layout) {
 }
 
 /**
- * Get orthogonal neighbors (up/down/left/right) for a given position.
- * Respects seatMask (skips non-existent seats) and adjacencyBreaks.
+ * Get adjacent neighbors for a given position.
+ *
+ * Base model is orthogonal (up/down/left/right). Layouts may opt in to
+ * `extendedAdjacency` to add extra one-row front/back links (used by
+ * Amphitheater staggered seating).
+ *
+ * Respects seatMask (skips non-existent seats), adjacencyBreaks, and
+ * Royal Box isolation.
  *
  * @param {number} row
  * @param {number} col
  * @param {number} rows
  * @param {number} cols
- * @param {LayoutMeta} [layout] - Optional layout for seatMask/adjacencyBreaks
+ * @param {LayoutMeta} [layout] - Optional layout for seat/adjacency constraints
  * @returns {{row: number, col: number}[]}
  */
 export function getOrthogonalNeighbors(row, col, rows, cols, layout) {
   /** @type {{row: number, col: number}[]} */
   const neighbors = [];
-  const candidates = [
-    { row: row - 1, col },
-    { row: row + 1, col },
-    { row, col: col - 1 },
-    { row, col: col + 1 },
-  ];
-  for (const c of candidates) {
-    if (c.row < 0 || c.row >= rows || c.col < 0 || c.col >= cols) continue;
-    // Check adjacency breaks between rows
-    if (layout && c.row !== row && isAdjacencyBroken(row, c.row, layout)) {
-      continue;
-    }
-    // Check seatMask
-    if (layout && layout.seatMask && !layout.seatMask[c.row][c.col]) continue;
-    // Royal Box isolation: box seats are not adjacent to non-box seats
+  const seen = new Set();
+
+  /**
+   * @param {number} r
+   * @param {number} c
+   */
+  const tryAdd = (r, c) => {
+    if (r < 0 || r >= rows || c < 0 || c >= cols) return;
+    if (layout && r !== row && isAdjacencyBroken(row, r, layout)) return;
+    if (layout && !seatExists(r, c, layout)) return;
     if (layout) {
       const srcIsBox = hasSeatLabel(row, col, "box", layout);
-      const dstIsBox = hasSeatLabel(c.row, c.col, "box", layout);
-      if (srcIsBox !== dstIsBox) continue;
+      const dstIsBox = hasSeatLabel(r, c, "box", layout);
+      if (srcIsBox !== dstIsBox) return;
     }
-    neighbors.push(c);
+    const key = `${r},${c}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    neighbors.push({ row: r, col: c });
+  };
+
+  // Base orthogonal adjacency
+  tryAdd(row - 1, col);
+  tryAdd(row + 1, col);
+  tryAdd(row, col - 1);
+  tryAdd(row, col + 1);
+
+  // Optional layout extension (e.g. Amphitheater staggered rows)
+  if (layout?.extendedAdjacency) {
+    const frontDeltas = layout.extendedAdjacency.frontColDeltas ?? [];
+    const backDeltas = layout.extendedAdjacency.backColDeltas ?? [];
+
+    for (const d of frontDeltas) {
+      tryAdd(row - 1, col + d);
+    }
+    for (const d of backDeltas) {
+      tryAdd(row + 1, col + d);
+    }
   }
+
   return neighbors;
+}
+
+/**
+ * Get adjacent neighbors in the row directly in front (row - 1),
+ * using the same adjacency model as getOrthogonalNeighbors().
+ *
+ * @param {number} row
+ * @param {number} col
+ * @param {number} rows
+ * @param {number} cols
+ * @param {LayoutMeta} [layout]
+ * @returns {{row: number, col: number}[]}
+ */
+export function getFrontRowNeighbors(row, col, rows, cols, layout) {
+  return getOrthogonalNeighbors(row, col, rows, cols, layout).filter(
+    (n) => n.row === row - 1,
+  );
+}
+
+/**
+ * Get adjacent neighbors in the row directly behind (row + 1),
+ * using the same adjacency model as getOrthogonalNeighbors().
+ *
+ * @param {number} row
+ * @param {number} col
+ * @param {number} rows
+ * @param {number} cols
+ * @param {LayoutMeta} [layout]
+ * @returns {{row: number, col: number}[]}
+ */
+export function getBackRowNeighbors(row, col, rows, cols, layout) {
+  return getOrthogonalNeighbors(row, col, rows, cols, layout).filter(
+    (n) => n.row === row + 1,
+  );
 }
 
 /**
@@ -415,22 +473,18 @@ export function scoreSeat(grid, row, col, layout, cappedKids, lovebirdsPairs) {
         vp += traitScoring.rowBonusValue;
       }
 
-      // Short trait: check the seat directly in front (row - 1, same col)
+      // Short trait: check adjacent seat(s) in front row via shared adjacency model.
       if (card.trait === Trait.SHORT) {
-        const frontRow = row - 1;
-        const frontBlocked = frontRow < 0 ||
-          (layout && isAdjacencyBroken(row, frontRow, layout)) ||
-          (layout?.seatMask && !layout.seatMask[frontRow]?.[col]);
-        // Royal Box isolation: box ↔ non-box are not adjacent
-        const boxBlocked = layout
-          ? hasSeatLabel(row, col, "box", layout) !==
-            hasSeatLabel(frontRow, col, "box", layout)
-          : false;
-        if (frontBlocked || boxBlocked || !grid[frontRow]?.[col]) {
-          // No one in front (or adjacency broken) — bonus
+        const frontNeighbors = getFrontRowNeighbors(row, col, rows, cols, layout);
+        const frontCards = frontNeighbors
+          .map((n) => grid[n.row]?.[n.col])
+          .filter((x) => !!x);
+
+        if (frontCards.length === 0) {
+          // No adjacent patron in front row — bonus
           vp += traitScoring.emptyFrontBonus ?? 0;
-        } else if (grid[frontRow][col]?.trait === Trait.TALL) {
-          // Tall-trait patron in front — penalty
+        } else if (frontCards.some((x) => x?.trait === Trait.TALL)) {
+          // Any Tall-trait patron in front row adjacency — penalty
           vp += traitScoring.tallInFrontPenalty ?? 0;
         }
       }
@@ -439,24 +493,15 @@ export function scoreSeat(grid, row, col, layout, cappedKids, lovebirdsPairs) {
 
   // ── Cross-type modifiers (applied to ANY patron) ────────────────
 
-  // Tall trait behind penalty: if the seat in front (row-1) has a Tall-trait
-  // patron, this patron gets the behindPenalty (unless this patron is Short,
+  // Tall trait behind penalty: for each adjacent Tall patron in front row,
+  // this patron gets the behind penalty (unless this patron is Short,
   // which has its own tallInFrontPenalty already handled above).
   if (card.trait !== Trait.SHORT) {
-    const frontRow = row - 1;
-    const frontAccessible = frontRow >= 0 &&
-      !(layout && isAdjacencyBroken(row, frontRow, layout)) &&
-      !(layout?.seatMask && !layout.seatMask[frontRow]?.[col]);
-    // Royal Box isolation: box ↔ non-box are not adjacent
-    const boxAccessible = !layout ||
-      hasSeatLabel(row, col, "box", layout) ===
-        hasSeatLabel(frontRow, col, "box", layout);
-    if (
-      frontAccessible && boxAccessible &&
-      grid[frontRow][col] &&
-      grid[frontRow][col]?.trait === Trait.TALL
-    ) {
-      vp += TraitScoring[Trait.TALL].behindPenalty ?? 0;
+    const frontNeighbors = getFrontRowNeighbors(row, col, rows, cols, layout);
+    for (const n of frontNeighbors) {
+      if (grid[n.row]?.[n.col]?.trait === Trait.TALL) {
+        vp += TraitScoring[Trait.TALL].behindPenalty ?? 0;
+      }
     }
   }
 

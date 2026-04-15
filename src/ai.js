@@ -12,7 +12,13 @@
  * ========================================================================
  */
 
-import { scorePlayer, seatExists, getOrthogonalNeighbors } from './scoring.js';
+import {
+    getBackRowNeighbors,
+    getFrontRowNeighbors,
+    getOrthogonalNeighbors,
+    scorePlayer,
+    seatExists,
+} from './scoring.js';
 import { hasSeatLabel, PatronType, Trait } from './types.js';
 import { random, randomInt } from './utils.js';
 
@@ -221,36 +227,30 @@ export function applyHeuristics(grid, card, row, col, layout) {
     if (card.trait) {
         switch (card.trait) {
             case Trait.TALL: {
-                // Prefer back row (no one behind to penalize)
+                // Prefer back row (fewer adjacent seats behind to penalize)
                 if (hasSeatLabel(row, col, 'back', layout)) {
                     bonus += 2;
                 }
-                // Penalty if someone is already behind
-                const behindRow = row + 1;
-                if (
-                    behindRow < rows &&
-                    seatExists(behindRow, col, layout) &&
-                    grid[behindRow]?.[col]
-                ) {
-                    bonus -= 2;
-                }
+                // Penalty if someone is already in adjacent behind seat(s)
+                const behindNeighbors = getBackRowNeighbors(row, col, rows, cols, layout);
+                const occupiedBehind = behindNeighbors.filter((n) => grid[n.row]?.[n.col]);
+                bonus -= occupiedBehind.length * 2;
                 break;
             }
 
             case Trait.SHORT: {
-                // Prefer row 0 or seats with empty/no seat in front
-                if (row === 0) {
-                    bonus += 1.5;
+                // Prefer seats with no adjacent patrons in front row
+                const frontNeighbors = getFrontRowNeighbors(row, col, rows, cols, layout);
+                const frontCards = frontNeighbors
+                    .map((n) => grid[n.row]?.[n.col])
+                    .filter((x) => !!x);
+
+                if (frontCards.length === 0) {
+                    bonus += row === 0 ? 1.5 : 1;
                 }
-                else {
-                    const frontRow = row - 1;
-                    if (!seatExists(frontRow, col, layout) || !grid[frontRow]?.[col]) {
-                        bonus += 1;
-                    }
-                    // Avoid placing behind a Tall patron
-                    if (grid[frontRow]?.[col]?.trait === Trait.TALL) {
-                        bonus -= 2;
-                    }
+                // Avoid placing behind Tall patron(s)
+                if (frontCards.some((x) => x?.trait === Trait.TALL)) {
+                    bonus -= 2;
                 }
                 break;
             }

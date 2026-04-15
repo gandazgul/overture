@@ -844,6 +844,55 @@ Deno.test("Amphitheater: neighbors respect seatMask", () => {
   assertEquals(hasGoodNeighbor, true);
 });
 
+Deno.test("Amphitheater: staggered adjacency includes both seats behind", () => {
+  const neighbors = getOrthogonalNeighbors(1, 2, 4, 6, AmphitheaterLayout);
+  const hasBackSameCol = neighbors.some((n) => n.row === 2 && n.col === 2);
+  const hasBackRightCol = neighbors.some((n) => n.row === 2 && n.col === 3);
+  assertEquals(hasBackSameCol, true);
+  assertEquals(hasBackRightCol, true);
+});
+
+Deno.test("Amphitheater: Friends count staggered behind seat as adjacent", () => {
+  const grid = emptyGrid(AmphitheaterLayout);
+  place(grid, 1, 2, PatronType.FRIENDS);
+  place(grid, 2, 3, PatronType.FRIENDS); // staggered behind-right adjacency
+  const result = scorePlayer(grid, AmphitheaterLayout);
+  assertEquals(result.perSeat[1][2], 4); // 3 base + 1 adjacent Friend
+  assertEquals(result.perSeat[2][3], 4); // symmetric adjacency
+});
+
+Deno.test("Amphitheater: Noisy affects staggered behind adjacent seat", () => {
+  const grid = emptyGrid(AmphitheaterLayout);
+  place(grid, 1, 2, PatronType.STANDARD, Trait.NOISY);
+  place(grid, 2, 3, PatronType.STANDARD); // staggered behind-right adjacency
+  const result = scorePlayer(grid, AmphitheaterLayout);
+  assertEquals(result.perSeat[2][3], 2); // 3 base - 1 noisy adjacency
+});
+
+Deno.test("Amphitheater: VIP adjacency penalty applies to staggered behind Kid", () => {
+  const grid = emptyGrid(AmphitheaterLayout);
+  place(grid, 1, 2, PatronType.VIP); // front row bonus applies on row 1
+  place(grid, 2, 3, PatronType.KID); // staggered behind-right adjacency
+  const result = scorePlayer(grid, AmphitheaterLayout);
+  assertEquals(result.perSeat[1][2], 3); // 3 base +3 front -3 adjacent Kid
+});
+
+Deno.test("Amphitheater: Short behind staggered-front Tall gets Tall-in-front penalty", () => {
+  const grid = emptyGrid(AmphitheaterLayout);
+  place(grid, 1, 2, PatronType.STANDARD, Trait.TALL);
+  place(grid, 2, 3, PatronType.STANDARD, Trait.SHORT); // sees (1,2) in front row adjacency
+  const result = scorePlayer(grid, AmphitheaterLayout);
+  assertEquals(result.perSeat[2][3], 0); // 3 base - 3 Tall-in-front
+});
+
+Deno.test("Amphitheater: non-Short behind staggered-front Tall gets behind penalty", () => {
+  const grid = emptyGrid(AmphitheaterLayout);
+  place(grid, 1, 2, PatronType.STANDARD, Trait.TALL);
+  place(grid, 2, 3, PatronType.STANDARD);
+  const result = scorePlayer(grid, AmphitheaterLayout);
+  assertEquals(result.perSeat[2][3], 1); // 3 base - 2 Tall behind penalty
+});
+
 Deno.test("Amphitheater: panorama — +2 VP for completely filled row", () => {
   const grid = emptyGrid(AmphitheaterLayout);
   // Fill row 0 completely (3 seats: cols 2,3,4 — narrow front)
