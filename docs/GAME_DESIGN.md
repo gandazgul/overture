@@ -141,15 +141,15 @@ optional trait adds a modifier on top.
 
 ### Primary Types (7)
 
-| Type          | Base VP | Core Mechanic                                                     |
-| ------------- | ------- | ----------------------------------------------------------------- |
-| **Patron**    | 3       | Reliable points anywhere. No special conditions.                  |
+| Type          | Base VP | Core Mechanic                                                   |
+| ------------- | ------- |-----------------------------------------------------------------|
+| **Patron**    | 3       | Reliable points anywhere. No special conditions.                |
 | **VIP**       | 3       | +3 VP in front 2 rows. −3 per adjacent Kid or Noisy-trait patron. |
-| **Lovebirds** | 1       | +3 VP if horizontally paired. +2 VP in back row. Pairs only.      |
-| **Kid**       | 1       | 1 VP uncapped; 3 VP when capped.                                  |
-| **Teacher**   | 3       | +1 VP per adjacent capped Kid.                                    |
-| **Critic**    | 3       | +3 VP in aisle seat. Noisy neighbors nullify the bonus.           |
-| **Friends**   | 3       | +1 VP per orthogonally adjacent Friend.                           |
+| **Lovebirds** | 1       | +3 VP if horizontally paired. +2 VP in back row. Pairs only.    |
+| **Kid**       | 1       | 1 VP uncapped; 3 VP when capped.                                |
+| **Teacher**   | 3       | +1 VP per capped Kid in their chain.                            |
+| **Critic**    | 3       | +3 VP in aisle seat. Noisy neighbors nullify the bonus.         |
+| **Friends**   | 3       | +1 VP per orthogonally adjacent Friend.                         |
 
 ### Secondary Traits (4)
 
@@ -242,7 +242,7 @@ Scoring is computed in two phases, then cross-type modifiers are applied.
 #### Teacher
 
 - **3 VP** base.
-- **+1 VP** per orthogonally adjacent **capped Kid**.
+- **+1 VP** per capped kid in their chain, other teachers dont get the bonus only the ones doing the job.
 
 #### Critic
 
@@ -745,7 +745,10 @@ referenced by specific Plays.
    - Phase 4: Theater house rule bonuses (if any).
    - Phase 5: Play card bonuses (Demand cards, Role card passives, etc.).
 3. The player with the **highest total VP** wins.
-4. **Tiebreaker:** ???
+4. **Tiebreaker:**
+   The Lead Usher: The player who successfully seated the most Noisy patrons in their theater.
+   The Ensemble: If still tied, the player with the most unique Primary Types (diversity of audience).
+   The Final Curtain: If still tied, players share the victory, celebrating a well-attended show.
 
 ---
 

@@ -452,12 +452,15 @@ Everything changes in the round. VIPs are strong everywhere (10 front-row seats!
 ## End of Game
 
 1. The game ends after **round 14** (all hands played, 56 cards dealt across all players).
-2. Each player's theater is scored automatically:
-   - **Phase 1:** Primary type scoring
-   - **Phase 2:** Trait bonuses/penalties
-   - **Phase 3:** Cross-type modifiers (Tall behind, Noisy adjacency)
-   - **Phase 4:** Theater house rule bonus
-3. The player with the **highest total VP** wins! 🎭
+2. Each player's theater is scored as follows:
+   - For each patron type calculate base VP and bonuses per seat.
+     - Apply trait bonuses and penalties when adding each seat.
+   -  Add the theater house rule bonus
+3. The player with the **highest total VP** wins!
+4. **Tiebreaker:**
+   - The Lead Usher: The player who successfully seated the most Noisy patrons in their theater.
+   - The Ensemble: If still tied, the player with the most unique Primary Types (diversity of audience).
+   - The Final Call: If still tied, players share the victory, celebrating a well-attended show.
 
 ---
 
