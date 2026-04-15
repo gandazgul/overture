@@ -36,8 +36,6 @@ import { AISLE_GAP, SEAT_GAP, SEAT_SIZE } from "../constants.js";
 
 /** @typedef {{
  *   stageX: number,
- *   floorTop: number,
- *   floorLeft: number,
  *   floorW: number,
  *   floorH: number,
  *   gridStartX: number,
@@ -75,9 +73,6 @@ export class TheaterGrid extends Phaser.GameObjects.Container {
     callbacks;
 
     /** @type {number} */
-    floorTop = 0;
-
-    /** @type {number} */
     gridStartY = 0;
 
     /** @type {number[]} */
@@ -111,7 +106,7 @@ export class TheaterGrid extends Phaser.GameObjects.Container {
      * This method is intentionally orchestration-only: it delegates geometry,
      * static scenery, and seat creation to focused helpers for readability.
      *
-     * @returns {{ floorTop: number }}
+     * @returns {{ gridStartY: number }}
      */
     build() {
         // Defensive reset so accidental rebuilds do not stack visuals.
@@ -157,9 +152,8 @@ export class TheaterGrid extends Phaser.GameObjects.Container {
         this.rowY = worldRowY;
         this.staggerRowOffsets = staggerRowOffsets;
         this.gridStartY = floorGeometry.gridStartY;
-        this.floorTop = floorGeometry.floorTop;
 
-        return { floorTop: floorGeometry.floorTop };
+        return { gridStartY: floorGeometry.gridStartY };
     }
 
     /**
@@ -281,17 +275,15 @@ export class TheaterGrid extends Phaser.GameObjects.Container {
      *
      * @param {number} totalGridW
      * @param {number} totalGridH
+     *
      * @returns {FloorGeometry}
      */
     addStageAndMaskedBackground(totalGridW, totalGridH) {
         const scene = this.scene;
         const { width } = scene.scale;
 
-        const bleedWidth = s(120);
-        const bleedHeight = s(30);
-        const floorW = totalGridW + bleedWidth * 2;
+        const bleedHeight = s(40);
         const floorH = totalGridH + bleedHeight * 2;
-
         const stageTop = s(10);
         const stageX = width / 2;
         const { stage, height: stageHeight } = createStage(scene, {
@@ -300,19 +292,16 @@ export class TheaterGrid extends Phaser.GameObjects.Container {
             top: stageTop,
         });
 
-        const floorTop = stageTop + stageHeight;
-        const floorLeft = (width - floorW) / 2;
-        const gridStartX = floorLeft + bleedWidth;
-        const gridStartY = floorTop + bleedHeight;
-        const floorCenterY = floorTop + floorH / 2;
+        const gridStartY = stageTop + stageHeight + bleedHeight / 2;
+        const gridStartX = (width - totalGridW) / 2;
+        const floorCenterY = gridStartY + totalGridH / 2;
 
-        const bgKey = `bg_${this.layout.id}`;
-        const bgImg = scene.add.image(stageX, floorCenterY, bgKey);
-        const coverScale = Math.max(floorW / bgImg.width, floorH / bgImg.height);
+        const bgImg = scene.add.image(stageX, floorCenterY, this.layout.bgKey);
+        const coverScale = Math.max(totalGridW / bgImg.width, floorH / bgImg.height);
         bgImg.setScale(coverScale);
 
         // const bgMaskGraphic = scene.make.graphics();
-        // bgMaskGraphic.fillRect(floorLeft, floorTop, floorW, floorH);
+        // bgMaskGraphic.fillRect(gridStartX, gridStartY, totalGridW, floorH);
         // bgImg.setMask(bgMaskGraphic.createGeometryMask());
 
         this.add(bgImg);
@@ -320,9 +309,9 @@ export class TheaterGrid extends Phaser.GameObjects.Container {
 
         return {
             stageX,
-            floorTop,
-            floorLeft,
-            floorW,
+            totalGridW,
+            totalGridH,
+            floorW: totalGridW,
             floorH,
             gridStartX,
             gridStartY,
@@ -417,7 +406,7 @@ export class TheaterGrid extends Phaser.GameObjects.Container {
         const drawAisleStrip = (centerX, aisleWidth) => {
             const borderInset = s(6);
             const stripW = Math.max(0, aisleWidth - borderInset);
-            const centerY = floorGeometry.floorTop + floorGeometry.floorH / 2;
+            const centerY = floorGeometry.gridStartY + totalGridH / 2;
 
             const strip = scene.add
                 .rectangle(
@@ -437,7 +426,7 @@ export class TheaterGrid extends Phaser.GameObjects.Container {
             ) {
                 const dash = scene.add.rectangle(
                     centerX,
-                    floorGeometry.floorTop + dy + s(2),
+                    floorGeometry.gridStartY + dy + s(2),
                     s(2),
                     s(7),
                     TheaterGrid.BLACKBOX_AISLE_DASH_COLOR,
@@ -449,6 +438,7 @@ export class TheaterGrid extends Phaser.GameObjects.Container {
         for (const gapAfterCol of centerAisleGaps) {
             const leftEdge = colX[gapAfterCol] + SEAT_SIZE / 2 + s(1);
             const rightEdge = colX[gapAfterCol + 1] - SEAT_SIZE / 2 - s(1);
+
             drawAisleStrip((leftEdge + rightEdge) / 2, rightEdge - leftEdge);
         }
     }

@@ -198,8 +198,7 @@ export class GameScene extends Phaser.Scene {
         loadIfMissing("tag_royal_box", "assets/tag_royal_box.png");
 
         // ── Only the selected theater background (JPEG) ─────────────────
-        const bgKey = `bg_${this.layout.id}`;
-        loadIfMissing(bgKey, `assets/${this.layout.bgKey}.jpg`);
+        loadIfMissing(this.layout.bgKey, `assets/${this.layout.bgKey}.jpg`);
 
         // ── Game UI assets ──────────────────────────────────────────────
         loadIfMissing("card_back", "assets/card_back.png");
@@ -357,7 +356,7 @@ export class GameScene extends Phaser.Scene {
             onSeatPointerDown: (row, col, seat) => this.handleSeatPointerDown(row, col, seat),
         });
 
-        const { floorTop } = this.theaterGrid.build();
+        const { gridStartY } = this.theaterGrid.build();
 
         // ── Full Background Fill ──────────────────────────────────────────────
         // Ensure we cover the TitleScene/other scenes since theater floor is masked
@@ -366,7 +365,7 @@ export class GameScene extends Phaser.Scene {
         // ── HUD Panel (Game Information) ────────────────────────────────
         const hudW = s(260);
         const hudX = width - hudW - s(20);
-        this.gameInfoPanel = new GameInfoPanel(this, hudX, floorTop, {
+        this.gameInfoPanel = new GameInfoPanel(this, hudX, gridStartY, {
             width: hudW,
             playerCount: this.playerCount,
             houseRuleDescription: this.layout.houseRuleDescription,
