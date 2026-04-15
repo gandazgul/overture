@@ -102,7 +102,7 @@ export class Card extends Phaser.GameObjects.Container {
         scene.add.existing(this);
     }
 
-    setStrokeColor(newStrokeColor) {
+    setStrokeColor(/** @type {number} */ newStrokeColor) {
         this.strokeColor = newStrokeColor;
         this.background.setStrokeStyle(s(2), this.strokeColor, 0.7);
     }

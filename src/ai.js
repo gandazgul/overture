@@ -18,6 +18,8 @@ import { hasSeatLabel, PatronType, Trait } from './types.js';
 /** @typedef {import('./types.js').CardData} CardData */
 /** @typedef {import('./types.js').LayoutMeta} LayoutMeta */
 
+const ENV = /** @type {{ VITE_DEBUG_AI?: string }} */ ((/** @type {any} */ (import.meta)).env ?? {});
+
 /**
  * AI difficulty levels.
  * @readonly
@@ -293,7 +295,7 @@ export function pickDrawAction(lobby, deckSize, difficulty, grid, layout) {
     const hasLobby = availableLobby.length > 0;
     const hasDeck = deckSize > 0;
 
-    if (import.meta.env.VITE_DEBUG_AI === 'true') {
+    if (ENV.VITE_DEBUG_AI === 'true') {
         console.log(`[AI DEBUG] Evaluating draw: LobbySize=${availableLobby.length}, DeckSize=${deckSize}, Difficulty=${difficulty}`);
     }
 
@@ -328,7 +330,7 @@ export function pickDrawAction(lobby, deckSize, difficulty, grid, layout) {
                     const card = availableLobby[i];
                     const seats = scoreAllSeats(grid, card, layout);
                     const score = seats.length > 0 ? seats[0].score : 0;
-                    if (import.meta.env.VITE_DEBUG_AI === 'true') {
+                    if (ENV.VITE_DEBUG_AI === 'true') {
                         console.log(`[AI DEBUG] Lobby Card ${i + 1} (${card.label || card.type}) potential: ${score} VP`);
                     }
                     if (score > bestScore) {
@@ -351,7 +353,7 @@ export function pickDrawAction(lobby, deckSize, difficulty, grid, layout) {
                     const seats = scoreAllSeats(grid, card, layout);
                     if (seats.length > 0) {
                         const score = seats[0].score + applyHeuristics(grid, card, seats[0].row, seats[0].col, layout);
-                        if (import.meta.env.VITE_DEBUG_AI === 'true') {
+                        if (ENV.VITE_DEBUG_AI === 'true') {
                             console.log(`[AI DEBUG] Lobby Card ${i + 1} (${card.label || card.type}) heuristic score: ${score} VP`);
                         }
                         if (score > bestScore) {

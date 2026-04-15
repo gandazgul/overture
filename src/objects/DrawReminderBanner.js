@@ -6,7 +6,7 @@ const DRAW_REMINDER_BANNER_DURATION = 1750;
 
 export class DrawReminderBanner extends Phaser.GameObjects.Container {
     /**
-     * @param {GameScene} scene
+     * @param {Phaser.Scene} scene
      * @param {number} x
      * @param {number} y
      * @param {string} msg

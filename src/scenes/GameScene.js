@@ -2,9 +2,11 @@
 import Phaser from 'phaser';
 import { pickCardAndSeat, pickDrawAction } from '../ai.js';
 import { px, s } from '../config.js';
-import { DrawReminderBanner } from '../objects/DrawReminderBanner.js';
+import { ActivePlayerAvatar } from '../objects/ActivePlayerAvatar.js';
 import { createButton } from '../objects/Button.js';
 import { Card } from '../objects/Card.js';
+import { DrawReminderBanner } from '../objects/DrawReminderBanner.js';
+import { GameInfoPanel } from '../objects/GameInfoPanel.js';
 import { SpeechBubble } from '../objects/SpeechBubble.js';
 import { scorePlayer, seatExists } from '../scoring.js';
 import {
@@ -26,6 +28,8 @@ import {
 const SEAT_SIZE = s(100);
 const SEAT_GAP = s(10);
 const AISLE_GAP = s(30); // wider gap for aisle walkways
+
+const ENV = /** @type {{ VITE_DEBUG_AI?: string }} */ ((/** @type {any} */ (import.meta)).env ?? {});
 
 /**
  * Concise scoring reminders shown when a card is selected.
@@ -105,19 +109,11 @@ export class GameScene extends Phaser.Scene {
         /** @type {Phaser.GameObjects.Container | null} */
         this.passOverlay = null;
 
-        /** @type {Phaser.GameObjects.Text | null} */
-        this.turnText = null;
+        /** @type {GameInfoPanel | null} */
+        this.gameInfoPanel = null;
 
-        /** @type {Phaser.GameObjects.Text | null} */
-        this.deckText = null;
-
-        /** @type {Phaser.GameObjects.Text | null} */
-
-        /** @type {Phaser.GameObjects.Container | null} */
-        this.uiContainer = null;
-
-        /** @type {Phaser.GameObjects.Container[]} */
-        this.scorePanels = [];
+        /** @type {ActivePlayerAvatar | null} */
+        this.activePlayerAvatar = null;
 
         /** @type {Phaser.GameObjects.Container | null} */
         this.deckPileImage = null;
@@ -137,8 +133,23 @@ export class GameScene extends Phaser.Scene {
         /** @type {number} top of the seat grid (set in create) */
         this.gridStartY = 0;
 
-        /** @type {SpeechBubble} */
+        /** @type {SpeechBubble | null} */
         this.scoringTooltip = null;
+
+        /** @type {DrawReminderBanner | null} */
+        this.drawReminderBanner = null;
+
+        /** @type {import('../types.js').CardData[]} */
+        this.lobbyCards = [];
+
+        /** @type {Card[]} */
+        this.lobbyCardVisuals = [];
+
+        /** @type {number} */
+        this.maxCardsInHand = 0;
+
+        /** @type {number[]} */
+        this.playerColorMap = [];
 
         /**
          * AI config per player slot: null = human, string = AI difficulty.
@@ -154,7 +165,7 @@ export class GameScene extends Phaser.Scene {
 
     /** Get the color index for a player slot. */
     colorOf(/** @type {number} */ p) {
-        return this.playerColorMap?.[p] ?? p;
+        return this.playerColorMap[p] ?? p;
     }
 
     /** Get the CSS color string for a player. */
@@ -291,7 +302,8 @@ export class GameScene extends Phaser.Scene {
         }
 
         this.seatGrid = [];
-        this.scorePanels = [];
+        this.gameInfoPanel = null;
+        this.activePlayerAvatar = null;
         this.deckPileImage = null;
     }
 
@@ -698,7 +710,7 @@ export class GameScene extends Phaser.Scene {
 
                 seat.on('pointerdown', () => {
                     if (this.turnPhase === 'play') {
-                        this.placeSeatCard(row, col, seat);
+                        this.placeSeatCard(row, col);
                     }
                 });
 
@@ -716,148 +728,31 @@ export class GameScene extends Phaser.Scene {
         // ── HUD Panel (Game Information) ────────────────────────────────
         const hudW = s(260);
         const hudX = width - hudW - s(20);
-        const hudY = floorTop;
-        this.uiContainer = this.add.container(hudX, hudY).setDepth(150);
-
-        // HUD Background
-        const houseRuleExtra = this.layout.houseRuleDescription ? s(60) : 0;
-        const hudBg = this.add.rectangle(
-            0,
-            0,
-            hudW,
-            s(260 + this.playerCount * 48) + houseRuleExtra,
-            0x0f0f1c,
-            0.95,
-        )
-            .setOrigin(0, 0)
-            .setStrokeStyle(s(3), 0xd4af37);
-        this.uiContainer.add(hudBg);
-
-        this.turnText = this.add
-            .text(hudW / 2, s(20), '', {
-                fontSize: px(20),
-                fontFamily: 'Georgia, serif',
-                color: '#d4af37',
-                fontStyle: 'bold',
-            })
-            .setOrigin(0.5, 0);
-        this.uiContainer.add(this.turnText);
-
-        this.deckText = this.add
-            .text(hudW / 2, s(50), '', {
-                fontSize: px(15),
-                fontFamily: 'Georgia, serif',
-                color: '#aaaacc',
-            })
-            .setOrigin(0.5, 0);
-        this.uiContainer.add(this.deckText);
+        this.gameInfoPanel = new GameInfoPanel(this, hudX, floorTop, {
+            width: hudW,
+            playerCount: this.playerCount,
+            houseRuleDescription: this.layout.houseRuleDescription,
+            playerColor: (p) => this.playerColor(p),
+            playerColorHex: (p) => this.playerColorHex(p),
+            usherKey: (p) => this.usherKey(p),
+        });
 
         // ── Lobby ─────────────────────────────────────────────────────
-        this.lobbyCards = []; // {@type {import('../types.js').CardData[]}}
-        this.lobbyCardVisuals = []; // {@type {Card[]}}
-
-        // ── VP Scoreboard w/ Avatars ──────────────────────────────────
-        const scoreStartY = s(220);
-        this.scorePanels = [];
-        for (let p = 0; p < this.playerCount; p++) {
-            const panel = this.add.container(s(15), scoreStartY + p * s(48));
-
-            const usherKey = this.usherKey(p);
-
-            if (this.textures.exists(usherKey)) {
-                const avatar = this.add.image(s(18), s(18), usherKey);
-                avatar.setDisplaySize(s(32), s(32));
-
-                const mask = this.make.graphics();
-                mask.fillStyle(0xffffff);
-                // Global position: hudX + panel.x + avatar.x, hudY + panel.y + avatar.y
-                mask.fillCircle(
-                    hudX + s(15) + s(18),
-                    hudY + scoreStartY + p * s(48) + s(18),
-                    s(16),
-                );
-                avatar.setMask(mask.createGeometryMask());
-
-                const ring = this.add.circle(s(18), s(18), s(16), 0x000000, 0)
-                    .setStrokeStyle(s(2), this.playerColorHex(p));
-                panel.add([avatar, ring]);
-            }
-
-            const text = this.add
-                .text(s(46), s(18), '', {
-                    fontSize: px(15),
-                    fontFamily: 'Georgia, serif',
-                    color: this.playerColor(p),
-                    fontStyle: 'bold',
-                })
-                .setOrigin(0, 0.5);
-
-            // Store the text object directly on the container object for easy access
-            panel.setData('text', text);
-            panel.add(text);
-            this.uiContainer.add(panel);
-            this.scorePanels.push(panel);
-        }
-
-        // ── House Rule Reminder ──────────────────────────────────────
-        if (this.layout.houseRuleDescription) {
-            const ruleY = scoreStartY + this.playerCount * s(48) + s(8);
-            // Thin gold divider
-            const divider = this.add.rectangle(
-                hudW / 2, ruleY, hudW - s(30), s(1), 0xd4af37, 0.4,
-            ).setOrigin(0.5, 0);
-            this.uiContainer.add(divider);
-
-            const ruleText = this.add.text(
-                hudW / 2,
-                ruleY + s(8),
-                this.layout.houseRuleDescription,
-                {
-                    fontSize: px(11),
-                    fontFamily: 'Georgia, serif',
-                    color: '#f5c518',
-                    fontStyle: 'italic',
-                    wordWrap: { width: hudW - s(24) },
-                    align: 'center',
-                },
-            ).setOrigin(0.5, 0);
-            this.uiContainer.add(ruleText);
-        }
+        this.lobbyCards = [];
+        this.lobbyCardVisuals = [];
 
         // ── Active Player Large Avatar ──────────────────────────────────
-        this.localPlayerContainer = this.add.container(width - s(90), height - s(90))
-            .setDepth(5);
-        this.localPlayerAvatar = this.add.image(0, 0, this.usherKey(0));
-        this.localPlayerAvatar.setDisplaySize(s(140), s(140));
-
-        this.localPlayerMask = this.make.graphics();
-        this.localPlayerMask.fillStyle(0xffffff);
-        this.localPlayerMask.fillCircle(width - s(90), height - s(90), s(70));
-        this.localPlayerAvatar.setMask(this.localPlayerMask.createGeometryMask());
-
-        this.localPlayerRing = this.add.circle(0, 0, s(70), 0x000000, 0)
-            .setStrokeStyle(s(6), this.playerColorHex(0));
-
-        this.localPlayerNumberBg = this.add.circle(
-            -s(50),
-            -s(50),
-            s(22),
-            0x0a0a1a,
-            1,
-        ).setStrokeStyle(s(3), this.playerColorHex(0));
-        this.localPlayerNumberText = this.add.text(-s(50), -s(50), '1', {
-            fontSize: px(24),
-            fontFamily: 'Georgia, serif',
-            color: '#ffffff',
-            fontStyle: 'bold',
-        }).setOrigin(0.5);
-
-        this.localPlayerContainer.add([
-            this.localPlayerAvatar,
-            this.localPlayerRing,
-            this.localPlayerNumberBg,
-            this.localPlayerNumberText,
-        ]);
+        this.activePlayerAvatar = new ActivePlayerAvatar(
+            this,
+            width - s(90),
+            height - s(90),
+            {
+                usherKey: this.usherKey(0),
+                colorHex: this.playerColorHex(0),
+                color: '#ffffff',
+                playerNumber: 1,
+            },
+        );
 
         // Global deselect background click
         this.input.on(
@@ -1050,12 +945,17 @@ export class GameScene extends Phaser.Scene {
         const grid = this.placedPatrons[this.currentPlayer];
 
         // Create a sequence of AI actions to avoid instant jumps
-        /** @type {{type: string, decision: Object}} */
+        /**
+         * @typedef {{ type: 'draw', decision: { source: 'lobby' | 'deck', index?: number, cardData: import('../types.js').CardData } }
+         *   | { type: 'select' | 'place', decision: { cardData: import('../types.js').CardData, row: number, col: number } }
+         *   | { type: 'discard', decision: { cardData: import('../types.js').CardData } }} AIAction
+         */
+        /** @type {AIAction[]} */
         const actions = [];
 
         // ── Drawing Phase ────────────────────────────────────────────
         // Determine all needed draws first
-        let tempHand = [...hand];
+        const tempHand = [...hand];
         while (tempHand.length < this.maxCardsInHand) {
             const action = pickDrawAction(
                 this.lobbyCards,
@@ -1065,36 +965,46 @@ export class GameScene extends Phaser.Scene {
                 this.layout,
             );
 
-            if (!action) { break;}
+            if (!action) {
+                break;
+            }
 
             // draw the card into tempHand
             const { source, index: lobbyIdx } = action;
-            if (import.meta.env.VITE_DEBUG_AI === 'true') {
-                console.log(`[AI DEBUG] Action ${actions.length + 1}: Draw from ${source}${source === 'lobby' ? ' index ' + lobbyIdx : ''}`);
+            if (ENV.VITE_DEBUG_AI === 'true') {
+                console.log(`[AI DEBUG] Action ${actions.length + 1}: Draw from ${source}${source === 'lobby' ? ` index ${lobbyIdx}` : ''}`);
             }
+
+            /** @type {import('../types.js').CardData | null} */
             let cardData = null;
-            if (source === 'lobby') {
-                cardData = this.lobbyCards[lobbyIdx];
-                if (cardData) {
-                    if (import.meta.env.VITE_DEBUG_AI === 'true') {
+            if (source === 'lobby' && lobbyIdx !== undefined) {
+                const lobbyCard = this.lobbyCards[lobbyIdx];
+                if (lobbyCard) {
+                    cardData = lobbyCard;
+                    if (ENV.VITE_DEBUG_AI === 'true') {
                         console.log(`[AI DEBUG] Drew from Lobby: ${cardData.label || cardData.type}`);
                     }
                     tempHand.push(cardData);
                     this.lobbyCards.splice(lobbyIdx, 1);
 
                     if (this.deck.length > 0) {
-                        this.lobbyCards.unshift(this.deck.pop());
+                        const refill = this.deck.pop();
+                        if (refill) {
+                            this.lobbyCards.unshift(refill);
+                        }
                     }
                 }
             }
-            else if (this.deck.length > 0) {
-                cardData = this.deck.pop();
-
-                tempHand.push(cardData);
+            else if (source === 'deck' && this.deck.length > 0) {
+                const drawn = this.deck.pop();
+                if (drawn) {
+                    cardData = drawn;
+                    tempHand.push(cardData);
+                }
             }
 
             if (cardData) {
-                if (import.meta.env.VITE_DEBUG_AI === 'true') {
+                if (ENV.VITE_DEBUG_AI === 'true') {
                     console.log(`[AI DEBUG] Drew from ${source}: ${cardData.label || cardData.type}`);
                 }
 
@@ -1123,8 +1033,11 @@ export class GameScene extends Phaser.Scene {
         }
 
         // Execute actions sequentially with delays
-        const executeNextAction = (index) => {
+        const executeNextAction = (/** @type {number} */ index) => {
             const action = actions[index];
+            if (!action) {
+                return;
+            }
             const { cardData } = action.decision;
 
             switch (action.type) {
@@ -1150,7 +1063,7 @@ export class GameScene extends Phaser.Scene {
                 case 'place': {
                     const { row, col } = action.decision;
 
-                    if (import.meta.env.VITE_DEBUG_AI === 'true') {
+                    if (ENV.VITE_DEBUG_AI === 'true') {
                         console.log(`[AI DEBUG] Action ${index}: Place ${cardData.label || cardData.type} at (${row}, ${col})`);
                     }
 
@@ -1158,7 +1071,7 @@ export class GameScene extends Phaser.Scene {
                     break;
                 }
                 case 'discard':
-                    if (import.meta.env.VITE_DEBUG_AI === 'true') {
+                    if (ENV.VITE_DEBUG_AI === 'true') {
                         console.log(`[AI DEBUG] Discarding: ${cardData.label || cardData.type}`);
                     }
 
@@ -1173,7 +1086,7 @@ export class GameScene extends Phaser.Scene {
             if (index < actions.length - 1) {
                 this.time.delayedCall(600, () => executeNextAction(index + 1));
             }
-            else if (import.meta.env.VITE_DEBUG_AI === 'true') {
+            else if (ENV.VITE_DEBUG_AI === 'true') {
                 console.log(`[AI DEBUG] Turn complete for player ${this.currentPlayer}. Advancing...`);
             }
         };
@@ -1439,7 +1352,8 @@ export class GameScene extends Phaser.Scene {
         const { width, height } = this.scale;
         let msg;
         if (this.playerCount === 2) {
-            const needed = this.maxCardsInHand - this.playerHands[this.currentPlayer].length;
+            const currentHand = this.playerHands[this.currentPlayer] || [];
+            const needed = this.maxCardsInHand - currentHand.length;
             msg = needed === 2 ? 'You must draw two cards first' : 'You must draw a card first';
         }
         else {
@@ -1472,10 +1386,15 @@ export class GameScene extends Phaser.Scene {
             return;
         }
 
+        const seat = this.seatGrid[row][col];
+        if (!seat) {
+            return;
+        }
+
         const cardData = this.selectedCard.cardData;
         // Update logical state
         this.placedPatrons[this.currentPlayer][row][col] = cardData;
-        this.renderPlacedCardOnSeat(this.seatGrid[row][col], cardData, { animate: true });
+        this.renderPlacedCardOnSeat(seat, cardData, { animate: true });
         // Recalculate scores after placement
         this.updateScoreboard();
 
@@ -1553,7 +1472,10 @@ export class GameScene extends Phaser.Scene {
      */
     fillLobby() {
         while (this.lobbyCards.length < 3 && this.deck.length > 0) {
-            this.lobbyCards.push(this.deck.pop());
+            const drawn = this.deck.pop();
+            if (drawn) {
+                this.lobbyCards.push(drawn);
+            }
         }
 
         this.renderLobby();
@@ -1576,7 +1498,6 @@ export class GameScene extends Phaser.Scene {
         const PILE_LAYERS = 10;
         const pileOffset = s(-1);
 
-        /** @type {Phaser.Objects.Container} */
         this.deckPileImage = this.add.container(deckX, deckY);
         for (let i = 0; i < PILE_LAYERS; i++) {
             const ox = i * pileOffset;
@@ -1608,6 +1529,9 @@ export class GameScene extends Phaser.Scene {
         // Draw lobby cards
         for (let i = 0; i < this.lobbyCards.length; i++) {
             const data = this.lobbyCards[i];
+            if (!data) {
+                continue;
+            }
             // Start lobby cards to the right of the deck pile
             const cardY = deckY + (i + 1) * (Card.HEIGHT + gap);
 
@@ -1662,6 +1586,9 @@ export class GameScene extends Phaser.Scene {
 
         // TODO animate drawing the card
         const cardData = this.lobbyCards[index];
+        if (!cardData) {
+            return;
+        }
         // Add to player hand
         hand.push(cardData);
 
@@ -1671,7 +1598,10 @@ export class GameScene extends Phaser.Scene {
         // Refill from deck
         // TODO animate this
         if (this.deck.length > 0) {
-            this.lobbyCards.unshift(this.deck.pop());
+            const refill = this.deck.pop();
+            if (refill) {
+                this.lobbyCards.unshift(refill);
+            }
         }
 
         this.renderHand();
@@ -1697,6 +1627,9 @@ export class GameScene extends Phaser.Scene {
         }
 
         const cardData = this.deck.pop();
+        if (!cardData) {
+            return;
+        }
         hand.push(cardData);
 
         this.renderHand();
@@ -1743,27 +1676,17 @@ export class GameScene extends Phaser.Scene {
     updateScoreboard() {
         const showAll = this.registry.get('showAllScores') ?? true;
 
+        /** @type {{ total: number, label: string }[]} */
+        const rows = [];
+
         for (let p = 0; p < this.playerCount; p++) {
-            const panel = this.scorePanels[p];
-            if (!panel) {
-                continue;
-            }
-
-            const text = panel.getData('text');
-
             const { total } = scorePlayer(this.placedPatrons[p], this.layout);
             const isAI = !!this.aiConfig[p];
             const name = isAI ? `${PlayerNames[p]} \uD83E\uDD16` : PlayerNames[p];
-
-            if (showAll || p === this.currentPlayer) {
-                text.setText(`${name}: ${total} VP`);
-                panel.setAlpha(p === this.currentPlayer ? 1 : 0.6);
-                panel.setVisible(true);
-            }
-            else {
-                panel.setVisible(false);
-            }
+            rows.push({ total, label: name });
         }
+
+        this.gameInfoPanel?.setScores(rows, showAll, this.currentPlayer);
     }
 
     /**
@@ -1781,13 +1704,7 @@ export class GameScene extends Phaser.Scene {
         const color = this.playerColor(this.currentPlayer);
         const colorHex = this.playerColorHex(this.currentPlayer);
 
-        if (this.turnText) {
-            this.turnText.setText(`Round ${this.round} / ${this.totalRounds}`);
-        }
-
-        if (this.deckText) {
-            this.deckText.setText(`Deck: ${this.deck.length}`);
-        }
+        this.gameInfoPanel?.setRoundDeck(this.round, this.totalRounds, this.deck.length);
 
         // Update deck pile visualization (scale down as deck empties)
         if (this.deckPileImage) {
@@ -1798,24 +1715,12 @@ export class GameScene extends Phaser.Scene {
 
         this.updateLobby();
 
-        // Update local player avatar
-        if (this.localPlayerAvatar && this.localPlayerRing) {
-            const usherKey = this.usherKey(this.currentPlayer);
-            if (this.textures.exists(usherKey)) {
-                this.localPlayerAvatar.setTexture(usherKey);
-                this.localPlayerRing.setStrokeStyle(s(6), colorHex);
-
-                if (this.localPlayerNumberBg) {
-                    this.localPlayerNumberBg.setStrokeStyle(s(3), colorHex);
-                }
-                if (this.localPlayerNumberText) {
-                    this.localPlayerNumberText.setText(
-                        (this.currentPlayer + 1).toString(),
-                    );
-                    this.localPlayerNumberText.setColor(color);
-                }
-            }
-        }
+        this.activePlayerAvatar?.setPlayer({
+            usherKey: this.usherKey(this.currentPlayer),
+            colorHex,
+            color,
+            playerNumber: this.currentPlayer + 1,
+        });
     }
 
     // ══════════════════════════════════════════════════════════════════

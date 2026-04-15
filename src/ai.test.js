@@ -235,15 +235,15 @@ Deno.test("pickCardAndSeat — picks better card to play", () => {
     const grid = emptyGrid(GrandEmpressLayout);
     const vip = card(PatronType.VIP);
     const kid = card(PatronType.KID);
-    const result = pickCardAndSeat(grid, [vip, kid], GrandEmpressLayout, AIDifficulty.MEDIUM);
+    const result = pickCardAndSeat(grid, [vip, kid], 2, GrandEmpressLayout, AIDifficulty.MEDIUM);
     assert(result !== null);
-    assertEquals(result.play.card, vip, "Should play VIP over Kid");
-    assertEquals(result.discard, kid, "Should discard Kid");
+    assertEquals(result.play.cardData, vip, "Should play VIP over Kid");
+    assertEquals(result.discard?.cardData, kid, "Should discard Kid");
 });
 
 Deno.test("pickCardAndSeat — returns null on empty hand", () => {
     const grid = emptyGrid(GrandEmpressLayout);
-    const result = pickCardAndSeat(grid, [], GrandEmpressLayout, AIDifficulty.MEDIUM);
+    const result = pickCardAndSeat(grid, [], 2, GrandEmpressLayout, AIDifficulty.MEDIUM);
     assertEquals(result, null);
 });
 
@@ -254,14 +254,14 @@ Deno.test("pickCardAndSeat — returns null on full grid", () => {
             grid[r][c] = card(PatronType.STANDARD);
         }
     }
-    const result = pickCardAndSeat(grid, [card(PatronType.VIP)], GrandEmpressLayout, AIDifficulty.MEDIUM);
+    const result = pickCardAndSeat(grid, [card(PatronType.VIP)], 2, GrandEmpressLayout, AIDifficulty.MEDIUM);
     assertEquals(result, null);
 });
 
 Deno.test("pickCardAndSeat — works with single card in hand", () => {
     const grid = emptyGrid(GrandEmpressLayout);
     const vip = card(PatronType.VIP);
-    const result = pickCardAndSeat(grid, [vip], GrandEmpressLayout, AIDifficulty.MEDIUM);
+    const result = pickCardAndSeat(grid, [vip], 2, GrandEmpressLayout, AIDifficulty.MEDIUM);
     assert(result !== null);
-    assertEquals(result.play.card, vip);
+    assertEquals(result.play.cardData, vip);
 });
