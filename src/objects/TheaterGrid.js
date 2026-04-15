@@ -40,7 +40,8 @@ import { AISLE_GAP, SEAT_GAP, SEAT_SIZE } from "../constants.js";
  *   floorH: number,
  *   gridStartX: number,
  *   gridStartY: number,
- *   bleedHeight: number,
+ *   gridMarginTop: number,
+ *   gridMarginBottom: number,
  * }} FloorGeometry */
 
 /**
@@ -282,8 +283,9 @@ export class TheaterGrid extends Phaser.GameObjects.Container {
         const scene = this.scene;
         const { width } = scene.scale;
 
-        const bleedHeight = s(40);
-        const floorH = totalGridH + bleedHeight * 2;
+        const gridMarginTop = s(this.layout.gridMarginTop ?? 40);
+        const gridMarginBottom = s(this.layout.gridMarginBottom ?? 40);
+        const floorH = totalGridH + gridMarginTop + gridMarginBottom;
         const stageTop = s(10);
         const stageX = width / 2;
         const { stage, height: stageHeight } = createStage(scene, {
@@ -292,13 +294,15 @@ export class TheaterGrid extends Phaser.GameObjects.Container {
             top: stageTop,
         });
 
-        const gridStartY = stageTop + stageHeight + bleedHeight / 2;
+        // Keep current visual spacing behavior: with equal margins this matches
+        // prior `bleedHeight` placement while allowing independent top/bottom tuning.
+        const gridStartY = stageTop + stageHeight + gridMarginTop / 2;
         const gridStartX = (width - totalGridW) / 2;
-        const floorCenterY = gridStartY + totalGridH / 2;
+        const floorCenterY = gridStartY + totalGridH / 2 + gridMarginBottom / 2 - gridMarginTop / 2;
 
         const bgImg = scene.add.image(stageX, floorCenterY, this.layout.bgKey);
-        const coverScale = Math.max(totalGridW / bgImg.width, floorH / bgImg.height);
-        bgImg.setScale(coverScale);
+        const bgImgRatio = bgImg.width / bgImg.height;
+        bgImg.setDisplaySize(floorH * bgImgRatio, floorH);
 
         // const bgMaskGraphic = scene.make.graphics();
         // bgMaskGraphic.fillRect(gridStartX, gridStartY, totalGridW, floorH);
@@ -315,7 +319,8 @@ export class TheaterGrid extends Phaser.GameObjects.Container {
             floorH,
             gridStartX,
             gridStartY,
-            bleedHeight,
+            gridMarginTop,
+            gridMarginBottom,
         };
     }
 
@@ -420,8 +425,8 @@ export class TheaterGrid extends Phaser.GameObjects.Container {
             this.add(strip);
 
             for (
-                let dy = floorGeometry.bleedHeight + s(2);
-                dy < floorGeometry.floorH - floorGeometry.bleedHeight;
+                let dy = floorGeometry.gridMarginTop + s(2);
+                dy < floorGeometry.floorH - floorGeometry.gridMarginBottom;
                 dy += s(14)
             ) {
                 const dash = scene.add.rectangle(

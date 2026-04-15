@@ -67,11 +67,11 @@ export function createStage(scene, options) {
 
     const stageLabel = scene.add
         .text(0, 0, label, {
-            fontSize: px(36),
+            fontSize: px(30),
             color: "#ffd700",
             fontFamily: "Georgia, serif",
             fontStyle: "italic",
-            shadow: { blur: 8, color: "#000000", fill: true },
+            shadow: { blur: 6, color: "#000000", fill: true, stroke: true, offsetX: 2, offsetY: 2 },
         })
         .setOrigin(0.5)
         .setDepth(3);

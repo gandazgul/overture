@@ -414,6 +414,8 @@ Object.freeze(PlayerNames);
  * @property {string} description - Short description for selection screen
  * @property {number} rows - Number of rows
  * @property {number} cols - Number of columns (max width)
+ * @property {number} [gridMarginTop] - Extra top margin above the playable grid (layout-level render tuning; default: 40)
+ * @property {number} [gridMarginBottom] - Extra bottom margin below the playable grid (layout-level render tuning; default: 40)
  * @property {number[]} aisleCols - Default aisle columns (used when aisleColsByRow is not set)
  * @property {number[][]} [aisleColsByRow] - Per-row aisle columns (e.g. Promenade)
  * @property {number[]} backRows - Row indices that count as "back" of theater
@@ -510,6 +512,8 @@ export const GrandEmpressLayout = {
     description: "Classic wide theater. Plentiful aisle seats. No house rule.",
     rows: 4,
     cols: 5,
+    gridMarginTop: 30,
+    gridMarginBottom: 80,
     aisleCols: [0, 4],
     backRows: [3],
     houseRule: null,
@@ -527,6 +531,8 @@ export const BlackboxLayout = {
     description: "Deep & narrow. Center aisles only. Dense packing rewarded.",
     rows: 5,
     cols: 4,
+    gridMarginTop: 20,
+    gridMarginBottom: 55,
     aisleCols: [1, 2],
     backRows: [4],
     houseRule: "intimate-venue",
@@ -544,6 +550,8 @@ export const OperaHouseLayout = {
     description: "Royal Boxes in the front corners. Best patron gets +3 VP.",
     rows: 4,
     cols: 5,
+    gridMarginTop: 30,
+    gridMarginBottom: 80,
     aisleCols: [0, 4],
     backRows: [3],
     // Front box row is visually/adjacency-separated from main house rows.
@@ -567,6 +575,8 @@ export const PromenadeLayout = {
     description: "Staggered aisles every row. Critics spread out.",
     rows: 4,
     cols: 5,
+    gridMarginTop: 30,
+    gridMarginBottom: 80,
     aisleCols: [], // not used — aisleColsByRow takes precedence
     aisleColsByRow: [
         [0, 4], // Row 0
@@ -592,6 +602,8 @@ export const AmphitheaterLayout = {
     description: "Tiered rows widen toward the back. No aisles. Fill rows for bonus VP.",
     rows: 4,
     cols: 6,
+    gridMarginTop: 30,
+    gridMarginBottom: 80,
     aisleCols: [],
     backRows: [3],
     seatMask: [
@@ -640,6 +652,8 @@ export const DinnerPlayhouseLayout = {
     description: "Intimate tables of 4. Fill a table for +3 VP.",
     rows: 4,
     cols: 8,
+    gridMarginTop: 30,
+    gridMarginBottom: 80,
     aisleCols: [],
     backRows: [3],
     adjacencyBreaks: [[1, 2]], // Horizontal gap between row-pairs (top 3 tables / bottom 3 tables)
@@ -690,6 +704,8 @@ export const ZiegfeldRunwayLayout = {
     description: "T-shaped runway splits the house. Tight space, high-value front seats.",
     rows: 4,
     cols: 5,
+    gridMarginTop: 40,
+    gridMarginBottom: 80,
     aisleCols: [],
     backRows: [3],
     seatMask: [
@@ -720,6 +736,8 @@ export const RotundaLayout = {
     description: "Theater in the round. No back row. Stage-side seats are front row.",
     rows: 5,
     cols: 5,
+    gridMarginTop: 40,
+    gridMarginBottom: 40,
     aisleCols: [],
     backRows: [],
     seatMask: [
