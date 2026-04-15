@@ -1574,7 +1574,7 @@ export class GameScene extends Phaser.Scene {
         const gap = s(20);
         // Stack regular Image objects to form a card pile.
         const PILE_LAYERS = 10;
-        const pileOffset = s(-2);
+        const pileOffset = s(-1);
 
         /** @type {Phaser.Objects.Container} */
         this.deckPileImage = this.add.container(deckX, deckY);
@@ -1593,15 +1593,16 @@ export class GameScene extends Phaser.Scene {
 
             this.deckPileImage.add(children);
         }
-        this.deckPileImage.setInteractive(
-            new Phaser.Geom.Rectangle(
-                0,
-                0,
-                Card.WIDTH,
-                Card.HEIGHT,
+        this.deckPileImage.setInteractive({
+            hitArea: new Phaser.Geom.Rectangle(
+                -Card.WIDTH / 2 - s(PILE_LAYERS),
+                -Card.HEIGHT / 2 - s(PILE_LAYERS),
+                Card.WIDTH + s(PILE_LAYERS),
+                Card.HEIGHT + s(PILE_LAYERS)
             ),
-            Phaser.Geom.Rectangle.Contains,
-        );
+            hitAreaCallback: Phaser.Geom.Rectangle.Contains,
+            useHandCursor: true,
+        });
         this.deckPileImage.on('pointerdown', () => this.drawFromDeck());
 
         // Draw lobby cards

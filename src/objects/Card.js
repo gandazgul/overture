@@ -63,15 +63,16 @@ export class Card extends Phaser.GameObjects.Container {
         this.add(children);
 
         this.setSize(Card.WIDTH, Card.HEIGHT);
-        this.setInteractive(
-            new Phaser.Geom.Rectangle(
+        this.setInteractive({
+            hitArea: new Phaser.Geom.Rectangle(
                 0,
                 0,
                 Card.WIDTH,
                 Card.HEIGHT,
             ),
-            Phaser.Geom.Rectangle.Contains,
-        );
+            hitAreaCallback: Phaser.Geom.Rectangle.Contains,
+            useHandCursor: true,
+        });
 
         this.on('pointerover', () => {
             if (!this.isSelected) {
