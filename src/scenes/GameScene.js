@@ -7,6 +7,7 @@ import { createButton } from "../objects/Button.js";
 import { Card } from "../objects/Card.js";
 import { DrawReminderBanner } from "../objects/DrawReminderBanner.js";
 import { GameInfoPanel } from "../objects/GameInfoPanel.js";
+import { createLogo } from "../objects/Logo.js";
 import { SpeechBubble } from "../objects/SpeechBubble.js";
 import { scorePlayer, seatExists } from "../scoring.js";
 import {
@@ -742,14 +743,8 @@ export class GameScene extends Phaser.Scene {
         );
 
         // ── Logo ────────────────────────────────────────────────────────
-        if (this.textures.exists("ui_logo")) {
-            // Centered at s(80) to perfectly align vertically with the player avatar
-            const logo = this.add.image(s(120), s(60), "ui_logo");
-            const logoRatio = 0.3643695015;
-            const logoWidth = 220;
-            logo.setDisplaySize(s(logoWidth), s(logoWidth * logoRatio)); // Kept proportional to avoid clipping
-            logo.setDepth(150);
-        }
+        // Centered at s(80) to perfectly align vertically with the player avatar
+        createLogo(this, s(120), s(60), { width: 220, depth: 150 });
 
         // ── Start with pass screen for player 1 ─────────────────────────
         this.showPassScreen();
@@ -1252,12 +1247,32 @@ export class GameScene extends Phaser.Scene {
     // ══════════════════════════════════════════════════════════════════
 
     /**
+     * Returns whether this player can still draw at least one legal card this turn.
+     */
+    canStillDrawThisTurn() {
+        const hand = this.playerHands[this.currentPlayer] ?? [];
+        if (hand.length >= this.maxCardsInHand) {
+            return false;
+        }
+
+        if (this.deck.length > 0) {
+            if (this.lobbyCards.length > 1) {
+                return true;
+            }
+            return true; // can always draw from deck while it has cards
+        }
+
+        // Deck empty: frozen slot unlocks, so any remaining lobby card is drawable.
+        return this.lobbyCards.length > 0;
+    }
+
+    /**
      * @param {Card} card
      */
     selectCard(card) {
         const hand = this.playerHands[this.currentPlayer];
         const handIsFull = hand.length === this.maxCardsInHand;
-        if (this.turnPhase === "play" && !handIsFull) {
+        if (this.turnPhase === "play" && !handIsFull && this.canStillDrawThisTurn()) {
             this.showDrawReminderBanner();
             return;
         }
@@ -1311,6 +1326,11 @@ export class GameScene extends Phaser.Scene {
             this.drawReminderBanner.destroy();
             this.drawReminderBanner = null;
         }
+
+        if (!this.canStillDrawThisTurn()) {
+            return;
+        }
+
         const { width, height } = this.scale;
         let msg;
         if (this.playerCount === 2) {
@@ -1736,17 +1756,15 @@ export class GameScene extends Phaser.Scene {
                 }
             });
 
-            // Slot 0 is unavailable
-            if (i === 0) {
+            const slotZeroLocked = i === 0 && this.deck.length > 0;
+            if (slotZeroLocked) {
                 card.setInteractive(false);
                 // TODO: how to make the card look unavailable
                 card.setStrokeColor(0xf44336);
-            } else {
-                if (!isAI) {
-                    card.on("pointerdown", () => {
-                        void this.drawFromLobby(i);
-                    });
-                }
+            } else if (!isAI) {
+                card.on("pointerdown", () => {
+                    void this.drawFromLobby(i);
+                });
             }
 
             this.lobbyCardVisuals.push(card);
@@ -1765,6 +1783,10 @@ export class GameScene extends Phaser.Scene {
         const hand = this.playerHands[this.currentPlayer];
         // hand is full
         if (hand.length === this.maxCardsInHand) {
+            return false;
+        }
+
+        if (index === 0 && this.deck.length > 0) {
             return false;
         }
 

@@ -3,6 +3,7 @@ import Phaser from "phaser";
 import { px, s } from "../config.js";
 import { LayoutOrder, Layouts } from "../types.js";
 import { createButton } from "../objects/Button.js";
+import { createLogo } from "../objects/Logo.js";
 
 /**
  * Scene for selecting a theater layout before starting the game.
@@ -88,10 +89,7 @@ export class TheaterSelectionScene extends Phaser.Scene {
 
         // ── Logo  ────────────────────────
         const logoY = s(90);
-        const logo = this.add.image(width / 2, logoY, "ui_logo");
-        const logoRatio = logo.height / logo.width;
-        const logoWidth = 320;
-        logo.setDisplaySize(s(logoWidth), s(logoWidth * logoRatio));
+        createLogo(this, width / 2, logoY, { width: 320 });
 
         // Subtitle
         this.add
@@ -249,8 +247,7 @@ export class TheaterSelectionScene extends Phaser.Scene {
         backBtn.on("pointerover", () => backBtn.setStyle({ color: "#f5c518" }));
         backBtn.on("pointerout", () => backBtn.setStyle({ color: "#888899" }));
         backBtn.on("pointerdown", () =>
-            this.scene.start("TitleScene", {
-                returnToSetup: true,
+            this.scene.start("PlayerSetupScene", {
                 playerCount: this.selectedPlayerCount,
                 aiConfig: this.aiConfig,
                 playerColorMap: this.playerColorMap,

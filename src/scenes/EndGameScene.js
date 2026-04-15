@@ -4,6 +4,7 @@ import { px, s } from "../config.js";
 import { PatronTypeOrder, PlayerColors, PlayerColorsHex, PlayerNames } from "../types.js";
 import { scorePlayer } from "../scoring.js";
 import { createButton } from "../objects/Button.js";
+import { createLogo } from "../objects/Logo.js";
 
 /** Usher avatar texture keys, indexed by player index. */
 const USHER_KEYS = ["usher_blue", "usher_red", "usher_green", "usher_orange"];
@@ -57,24 +58,10 @@ export class EndGameScene extends Phaser.Scene {
         this.cameras.main.setBackgroundColor(0x0a0a1a);
 
         // ── Logo (same position as TitleScene) ──────────────────────────
-        if (this.textures.exists("ui_logo")) {
-            const titleLogo = this.add.image(
-                width / 2,
-                height / 5 - s(30),
-                "ui_logo",
-            );
-            const logoRatio = 0.3643695015;
-            const logoWidth = 480;
-            titleLogo.setDisplaySize(s(logoWidth), s(logoWidth * logoRatio));
-        } else {
-            this.add
-                .text(width / 2, height / 4 - s(30), "Overture", {
-                    fontSize: px(52),
-                    fontFamily: "Georgia, serif",
-                    color: "#f5c518",
-                })
-                .setOrigin(0.5);
-        }
+        createLogo(this, width / 2, height / 5 - s(30), {
+            width: 480,
+            fallbackFontSize: 52,
+        });
 
         // ── Compute scores ──────────────────────────────────────────────
         /** @type {import('../scoring.js').PlayerScore[]} */

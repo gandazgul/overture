@@ -2,6 +2,7 @@
 import Phaser from "phaser";
 import { BootScene } from "./scenes/BootScene.js";
 import { TitleScene } from "./scenes/TitleScene.js";
+import { PlayerSetupScene } from "./scenes/PlayerSetupScene.js";
 import { TheaterSelectionScene } from "./scenes/TheaterSelectionScene.js";
 import { GameScene } from "./scenes/GameScene.js";
 import { EndGameScene } from "./scenes/EndGameScene.js";
@@ -16,6 +17,7 @@ const config = {
     scene: [
         BootScene,
         TitleScene,
+        PlayerSetupScene,
         TheaterSelectionScene,
         GameScene,
         EndGameScene,

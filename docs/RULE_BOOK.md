@@ -54,18 +54,20 @@ The player with the **highest total VP** when the deck runs out wins.
 Each player starts the game with **1 card** in hand. On your turn:
 
 1. **Draw** — You may either:
-   - Pick one of the two available cards from the **Lobby** (the shared market).
+   - Pick one of the available cards from the **Lobby** (the shared market).
    - Click the **Deck** to draw a card blindly.
+   - If neither the Deck nor Lobby has drawable cards left, skip drawing.
 2. **Place** — select a card from your hand and click any empty seat in your theater to place it.
 
-You always end your turn holding **1 card**, ready for the next round.
+You usually end your turn holding **1 card**, ready for the next round.
 
 ### The Lobby System
 
 The Lobby is a shared market of 3 face-up cards.
 
-- **The Frozen Slot**: The first card in the lobby is always unavailable to be picked.
-- **The Market**: The second and third cards can be picked by any player on their turn.
+- **The Frozen Slot**: While the Deck still has cards, the first lobby card (slot 0) is unavailable.
+- **Deck-Empty Unlock**: Once the Deck is empty, the frozen slot unlocks and any remaining Lobby card can be picked.
+- **The Market**: Normally, the second and third cards can be picked by any player on their turn.
 - **Refilling**: When a card is taken from the lobby, a new card is drawn from the deck and placed into the **frozen slot**, shifting the remaining cards to the right.
 - **Information**: You can hover over any lobby card to see its scoring hints, even if it is frozen.
 
@@ -73,11 +75,11 @@ The Lobby is a shared market of 3 face-up cards.
 
 In a 2-player game the draw-and-discard rhythm changes:
 
-1. **Draw 2** cards (via the Lobby or Deck) instead of 1.
+1. **Draw 2** cards (via the Lobby or Deck) instead of 1, when possible.
 2. **Place** one card into your theater.
-3. **Discard** one of the remaining cards (it's removed from the game).
+3. **Discard** one of the remaining cards (it's removed from the game), if you still have extra cards.
 
-You still end your turn with 1 card in hand.
+You still normally end your turn with 1 card in hand.
 
 ### Hotseat Play
 

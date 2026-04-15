@@ -2,7 +2,7 @@
 
 /**
  * ========================================================================
- * AI PLAYER — Pure decision logic, no Phaser dependency
+ * AI PLAYER - Pure decision logic, no Phaser dependency
  * ========================================================================
  * Provides seat-selection strategies for AI-controlled players.
  * Three difficulty levels:
@@ -60,7 +60,7 @@ export function getEmptySeats(grid, layout) {
 }
 
 /**
- * Deep-clone a grid (shallow-copy each cell reference — CardData is immutable).
+ * Deep-clone a grid (shallow-copy each cell reference - CardData is immutable).
  *
  * @param {(CardData | null)[][]} grid
  * @returns {(CardData | null)[][]}
@@ -80,7 +80,7 @@ function cloneGrid(grid) {
  * @param {number} row
  * @param {number} col
  * @param {LayoutMeta} layout
- * @returns {number} VP delta (new total − current total)
+ * @returns {number} VP delta (new total - current total)
  */
 export function evaluateSeat(grid, card, row, col, layout) {
     const currentScore = scorePlayer(grid, layout).total;
@@ -203,7 +203,7 @@ export function applyHeuristics(grid, card, row, col, layout) {
         }
 
         case PatronType.STANDARD: {
-            // No special heuristic — Standards are flexible
+            // No special heuristic - Standards are flexible
             break;
         }
 
@@ -282,7 +282,7 @@ export function applyHeuristics(grid, card, row, col, layout) {
 /**
  * Decide whether to draw from the lobby or the deck.
  *
- * @param {CardData[]} lobby - The lobby cards (index 0 is unavailable)
+ * @param {CardData[]} lobby - The lobby cards (index 0 is frozen while deck has cards)
  * @param {number} deckSize - Current size of the deck
  * @param {string} difficulty - AI difficulty
  * @param {(CardData | null)[][]} grid - Current grid to evaluate lobby cards
@@ -290,11 +290,13 @@ export function applyHeuristics(grid, card, row, col, layout) {
  * @returns {{source: 'lobby' | 'deck', index?: number} | null} Action to take
  */
 export function pickDrawAction(lobby, deckSize, difficulty, grid, layout) {
-    const availableLobby = lobby.slice(1); // Index 0 is unavailable
+    const lobbyStartIndex = deckSize > 0 ? 1 : 0;
+    const availableLobby = lobby.slice(lobbyStartIndex);
     const hasLobby = availableLobby.length > 0;
     const hasDeck = deckSize > 0;
 
-    if (import.meta.env.VITE_DEBUG_AI === "true") {
+    const debugAI = import.meta.env?.VITE_DEBUG_AI === "true";
+    if (debugAI) {
         console.log(
             `[AI DEBUG] Evaluating draw: LobbySize=${availableLobby.length}, DeckSize=${deckSize}, Difficulty=${difficulty}`,
         );
@@ -315,7 +317,10 @@ export function pickDrawAction(lobby, deckSize, difficulty, grid, layout) {
             }
             const choice = sources[randomInt(sources.length - 1)];
             if (choice === "lobby") {
-                return { source: "lobby", index: 1 + randomInt(availableLobby.length - 1) };
+                return {
+                    source: "lobby",
+                    index: lobbyStartIndex + randomInt(availableLobby.length - 1),
+                };
             }
 
             return { source: "deck" };
@@ -330,14 +335,14 @@ export function pickDrawAction(lobby, deckSize, difficulty, grid, layout) {
                     const card = availableLobby[i];
                     const seats = scoreAllSeats(grid, card, layout);
                     const score = seats.length > 0 ? seats[0].score : 0;
-                    if (import.meta.env.VITE_DEBUG_AI === "true") {
+                    if (debugAI) {
                         console.log(
-                            `[AI DEBUG] Lobby Card ${i + 1} (${card.label || card.type}) potential: ${score} VP`,
+                            `[AI DEBUG] Lobby Card ${i + lobbyStartIndex} (${card.label || card.type}) potential: ${score} VP`,
                         );
                     }
                     if (score > bestScore) {
                         bestScore = score;
-                        bestIdx = i + 1;
+                        bestIdx = lobbyStartIndex + i;
                     }
                 }
                 return { source: "lobby", index: bestIdx };
@@ -355,16 +360,14 @@ export function pickDrawAction(lobby, deckSize, difficulty, grid, layout) {
                     const seats = scoreAllSeats(grid, card, layout);
                     if (seats.length > 0) {
                         const score = seats[0].score + applyHeuristics(grid, card, seats[0].row, seats[0].col, layout);
-                        if (import.meta.env.VITE_DEBUG_AI === "true") {
+                        if (debugAI) {
                             console.log(
-                                `[AI DEBUG] Lobby Card ${i + 1} (${
-                                    card.label || card.type
-                                }) heuristic score: ${score} VP`,
+                                `[AI DEBUG] Lobby Card ${i + lobbyStartIndex} (${card.label || card.type}) heuristic score: ${score} VP`,
                             );
                         }
                         if (score > bestScore) {
                             bestScore = score;
-                            bestIdx = i + 1;
+                            bestIdx = lobbyStartIndex + i;
                         }
                     }
                 }
@@ -373,11 +376,15 @@ export function pickDrawAction(lobby, deckSize, difficulty, grid, layout) {
                     return { source: "lobby", index: bestIdx };
                 }
             }
-            return hasDeck ? { source: "deck" } : (hasLobby ? { source: "lobby", index: 1 } : null);
+            return hasDeck
+                ? { source: "deck" }
+                : (hasLobby ? { source: "lobby", index: lobbyStartIndex } : null);
         }
 
         default:
-            return hasDeck ? { source: "deck" } : (hasLobby ? { source: "lobby", index: 1 } : null);
+            return hasDeck
+                ? { source: "deck" }
+                : (hasLobby ? { source: "lobby", index: lobbyStartIndex } : null);
     }
 }
 
@@ -478,7 +485,7 @@ export function pickCardAndSeat(grid, hand, payerCount, layout, difficulty) {
 
     if (candidates.length === 0) return null;
 
-    // Sort by score descending — play the best, discard the worst
+    // Sort by score descending - play the best, discard the worst
     candidates.sort((a, b) => b.score - a.score);
     const best = candidates[0];
     const worst = candidates.at(-1);

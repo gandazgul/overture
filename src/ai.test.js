@@ -13,6 +13,7 @@ import {
     evaluateSeat,
     getEmptySeats,
     pickCardAndSeat,
+    pickDrawAction,
     pickSeat,
     scoreAllSeats,
 } from "./ai.js";
@@ -303,4 +304,33 @@ Deno.test("pickCardAndSeat — works with single card in hand", () => {
     const result = pickCardAndSeat(grid, [vip], 2, GrandEmpressLayout, AIDifficulty.MEDIUM);
     assert(result !== null);
     assertEquals(result.play.cardData, vip);
+});
+
+// ══════════════════════════════════════════════════════════════════════
+// pickDrawAction (lobby frozen-slot edge cases)
+// ══════════════════════════════════════════════════════════════════════
+
+Deno.test("pickDrawAction — deck empty allows drawing former frozen slot 0", () => {
+    const grid = emptyGrid(GrandEmpressLayout);
+    const lobby = [card(PatronType.VIP)];
+
+    const medium = pickDrawAction(lobby, 0, AIDifficulty.MEDIUM, grid, GrandEmpressLayout);
+    const hard = pickDrawAction(lobby, 0, AIDifficulty.HARD, grid, GrandEmpressLayout);
+    const easy = pickDrawAction(lobby, 0, AIDifficulty.EASY, grid, GrandEmpressLayout);
+
+    assertEquals(medium, { source: "lobby", index: 0 });
+    assertEquals(hard, { source: "lobby", index: 0 });
+    assertEquals(easy, { source: "lobby", index: 0 });
+});
+
+Deno.test("pickDrawAction — slot 0 stays unavailable while deck has cards", () => {
+    const grid = emptyGrid(GrandEmpressLayout);
+    const lobby = [card(PatronType.VIP), card(PatronType.STANDARD)];
+
+    const medium = pickDrawAction(lobby, 1, AIDifficulty.MEDIUM, grid, GrandEmpressLayout);
+    const hard = pickDrawAction(lobby, 1, AIDifficulty.HARD, grid, GrandEmpressLayout);
+
+    assertEquals(medium?.source, "lobby");
+    assertEquals(medium?.index, 1);
+    assertEquals(hard?.index === 0, false);
 });
