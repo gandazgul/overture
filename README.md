@@ -24,8 +24,8 @@ deno task dev
 1. **Start** — Click the number of players on the title screen
 1. **Player Setup** — Choose human or AI for each slot, pick AI difficulty, and select player colors
 1. **Select a Theater** — Click a theater board to select it, or hit Random Theater
-1. On your turn: 
-   1. **Draw** a new card from the lobby (known) or deck (blind). 
+1. On your turn:
+   1. **Draw** a new card from the lobby (known) or deck (blind).
    1. **Select** — Click a card from your hand (bottom of screen)
    1. **Place** — Click an empty seat in the theater grid to place that patron
 1. **Score** — The game ends when the deck runs out (56 cards, 14 turns)
@@ -33,12 +33,12 @@ deno task dev
 ### Primary Patrons
 
 | Type          | Strategy                                                                       |
-|---------------|--------------------------------------------------------------------------------|
+| ------------- | ------------------------------------------------------------------------------ |
 | **Patron**    | Worth 3 VP anywhere.                                                           |
 | **VIP**       | 3 VP base; +3 VP in front rows. Adjacent Kids or Noisy nullify the bonus.      |
 | **Lovebirds** | 1 VP alone; +3 if horizontally paired. +2 VP in back row.                      |
 | **Kid**       | 1 VP uncapped; 3 VP when capped by Teachers, on both sides of a row or column! |
-| **Teacher**   | 3 VP base; +1 VP per capped Kid this Teacher caps.                              |
+| **Teacher**   | 3 VP base; +1 VP per capped Kid this Teacher caps.                             |
 | **Critic**    | 3 VP base; +3 VP in an aisle seat. Noisy neighbors nullify the bonus.          |
 | **Friend**    | 3 VP base; +1 VP per adjacent Friend.                                          |
 
@@ -46,12 +46,12 @@ deno task dev
 
 Traits can be applied to any patron type, adding unique bonuses or penalties.
 
-| Trait            | Effect                                                               |
-| ---------------- | -------------------------------------------------------------------- |
-| **Bespectacled** | +2 VP unless seated on the back row.                                 |
-| **Tall**         | Patron directly behind this seat gets −2 VP.                         |
-| **Short**        | +2 VP if no one in front; −3 VP if a **Tall** patron is in front.    |
-| **Noisy**        | Each adjacent patron (any type) gets −1 VP.                          |
+| Trait            | Effect                                                            |
+| ---------------- | ----------------------------------------------------------------- |
+| **Bespectacled** | +2 VP unless seated on the back row.                              |
+| **Tall**         | Patron directly behind this seat gets −2 VP.                      |
+| **Short**        | +2 VP if no one in front; −3 VP if a **Tall** patron is in front. |
+| **Noisy**        | Each adjacent patron (any type) gets −1 VP.                       |
 
 ## 🎮 Features
 
@@ -74,14 +74,14 @@ Traits can be applied to any patron type, adding unique bonuses or penalties.
 ### Theaters
 
 - **8 Unique Theaters** — Each with its own layout, background art, and house rule:
-    - **The Grand Empress** — Classic 5×6 grid
-    - **The Blackbox** — Compact 4×4 intimate space
-    - **The Opera House** — Features isolated Royal Box seats with crown tags
-    - **The Promenade** — Wide 7×4 layout with center aisle
-    - **The Amphitheater** — Expanding rows (3→4→5→6), narrow front to wide back
-    - **The Dinner Playhouse** — Table-style seating with gaps between groups
-    - **The Ziegfeld Runway** — T-shaped stage extension splits the theater into left/right houses
-    - **The Rotunda** — 5×5 hollow ring, theater-in-the-round (16 seats, no back row)
+  - **The Grand Empress** — Classic 5×6 grid
+  - **The Blackbox** — Compact 4×4 intimate space
+  - **The Opera House** — Features isolated Royal Box seats with crown tags
+  - **The Promenade** — Wide 7×4 layout with center aisle
+  - **The Amphitheater** — Expanding rows (3→4→5→6), narrow front to wide back
+  - **The Dinner Playhouse** — Table-style seating with gaps between groups
+  - **The Ziegfeld Runway** — T-shaped stage extension splits the theater into left/right houses
+  - **The Rotunda** — 5×5 hollow ring, theater-in-the-round (16 seats, no back row)
 - **Theater Selection Screen** — Preview thumbnails with zoom animation and random theater option
 - **Seat Label System** — Front row, back row, aisle, and Royal Box seats are tagged and scored automatically per layout
 
@@ -120,15 +120,16 @@ Traits can be applied to any patron type, adding unique bonuses or penalties.
 
 All tasks are defined in `deno.json` and run via `deno task <name>`:
 
-| Task      | Command                          | Description                                           |
-| --------- | -------------------------------- | ----------------------------------------------------- |
-| `dev`     | `deno run -A npm:vite@5`         | Start the Vite dev server with HMR                    |
-| `build`   | `deno run -A npm:vite@5 build`   | Production build to `dist/`                           |
-| `preview` | `deno run -A npm:vite@5 preview` | Preview the production build locally                  |
-| `check`   | `deno check --doc src/**/*.js`   | Type-check JS files (validates JSDoc code blocks too) |
-| `lint`    | `deno lint src/`                 | Lint source files with Deno's built-in linter         |
-| `test`    | `deno test src/`                 | Run all unit tests                                    |
-| `ci`      | `check → lint → test`            | Run the full CI pipeline sequentially                 |
+| Task               | Command                                   | Description                                           |
+| ------------------ | ----------------------------------------- | ----------------------------------------------------- |
+| `dev`              | `deno run -A npm:vite@5`                  | Start the Vite dev server with HMR                    |
+| `build`            | `deno run -A npm:vite@5 build`            | Production build to `dist/`                           |
+| `preview`          | `deno run -A npm:vite@5 preview`          | Preview the production build locally                  |
+| `check`            | `deno check --doc src/**/*.js`            | Type-check JS files (validates JSDoc code blocks too) |
+| `lint`             | `deno lint src/`                          | Lint source files with Deno's built-in linter         |
+| `test`             | `deno test src/`                          | Run all unit tests                                    |
+| `ci`               | `check → lint → test`                     | Run the full CI pipeline sequentially                 |
+| `analytics:crunch` | `deno run -A scripts/analytics-crunch.js` | Crunch JSONL beacons into SQLite aggregates           |
 
 ### Running CI Locally
 
@@ -207,6 +208,33 @@ straightforward to test in isolation.
 - **JSDoc types** — All type annotations via JSDoc; `deno task check` validates
   them including code blocks in doc comments
 
+## 📈 Analytics (Self-hosted)
+
+Container runtime now includes analytics ingestion + report endpoints:
+
+- `POST /api/analytics/beacon` — accepts `game_start` / `game_end` beacon payloads
+- `GET /api/analytics/report` — basic-auth protected HTML report
+
+Default storage paths:
+
+- Raw beacon log: `/app/data/analytics.jsonl`
+- Aggregates DB: `/app/data/analytics.sqlite`
+
+Environment variables:
+
+- `ANALYTICS_BASIC_AUTH_USER` (required for report endpoint)
+- `ANALYTICS_BASIC_AUTH_PASS` (required for report endpoint)
+- `ANALYTICS_RATE_LIMIT_PER_MINUTE` (default: `30`)
+- `ANALYTICS_MAX_BEACON_BYTES` (default: `65536`)
+- `ANALYTICS_JSONL_PATH` (default: `/app/data/analytics.jsonl`)
+- `ANALYTICS_DB_PATH` (default: `/app/data/analytics.sqlite`)
+
+Manual crunch command:
+
+```bash
+deno task analytics:crunch
+```
+
 ## 📚 Documentation
 
 - **[Game Design Document](./docs/GAME_DESIGN.md)** — Full design spec including planned features and ideas (lobby, play cards, season deck).
@@ -215,13 +243,13 @@ straightforward to test in isolation.
 
 - [ ] **Online Multiplayer** — Play with friends remotely
 - [ ] **Play Variants** — Different "plays" with special rules
-- [ ] **Analytics** — Track player stats, win rates, scores, and card usage
+- [x] **Analytics** — Self-hosted beacon ingestion + aggregated report endpoint
 - [ ] **Audio** — Ambient theater sounds and placement effects
 
 ## Acknowledgements
 
-Made with [Pi coding agent](https://shittycodingagent.ai/) with the help of many different LLMs. Gemini was my main brainstorming partner for game design, theaters and plays and refinement in general. 
+Made with [Pi coding agent](https://shittycodingagent.ai/) with the help of many different LLMs. Gemini was my main brainstorming partner for game design, theaters and plays and refinement in general.
 This is not AI Slop™ I have worked very hard for many months to refine the design, test it on spreadsheets and finally I decided I could take on the huge task of making a game.
-It would not be possible without the help of the LLMs, but I want to be clear that this is a labor of love and I am proud of it. 
+It would not be possible without the help of the LLMs, but I want to be clear that this is a labor of love and I am proud of it.
 
 I hope you enjoy playing it as much as I enjoyed making it!

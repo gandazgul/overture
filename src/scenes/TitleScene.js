@@ -29,6 +29,7 @@ export class TitleScene extends Phaser.Scene {
                     (_, i) => i === 0 ? null : AIDifficulty.MEDIUM,
                 ),
                 playerColorMap: [0, 1, 2, 3],
+                debugAnalytics: true,
             });
         });
 
@@ -46,6 +47,7 @@ export class TitleScene extends Phaser.Scene {
                     (_, i) => i === 0 ? null : AIDifficulty.MEDIUM,
                 ),
                 playerColorMap: [0, 1, 2, 3],
+                debugAnalytics: true,
             });
         });
     }
@@ -118,6 +120,7 @@ export class TitleScene extends Phaser.Scene {
                         (_, p) => p === 0 ? null : (p < count ? AIDifficulty.MEDIUM : null),
                     ),
                     playerColorMap: [0, 1, 2, 3],
+                    debugAnalytics: false,
                 });
             });
         }

@@ -12,6 +12,7 @@ import { SpeechBubble } from "../objects/SpeechBubble.js";
 import { TheaterGrid } from "../objects/TheaterGrid.js";
 import { ProgressBar } from "../objects/ProgressBar.js";
 import { scorePlayer, scoreSeatBreakdown } from "../scoring.js";
+import { makeAnalyticsCardKey, sendAnalyticsBeacon } from "../analytics.js";
 import {
     createDeck,
     GrandEmpressLayout,
@@ -127,6 +128,28 @@ export class GameScene extends Phaser.Scene {
 
         /** @type {boolean} */
         this.isDrawAnimating = false;
+
+        /**
+         * Runtime analytics state for the current game.
+         * @type {{
+         *   gameId: string,
+         *   startTsMs: number,
+         *   debugUsed: boolean,
+         *   startSent: boolean,
+         *   startingCards: ((import('../types.js').CardData | null)[]),
+         *   drawsBySource: ({ lobby: number, deck: number }[]),
+         *   pickedByCard: (Record<string, number>[]),
+         * }}
+         */
+        this.analytics = {
+            gameId: "",
+            startTsMs: 0,
+            debugUsed: false,
+            startSent: false,
+            startingCards: [],
+            drawsBySource: [],
+            pickedByCard: [],
+        };
     }
 
     // ── Color mapping helpers ──────────────────────────────────────────
@@ -198,7 +221,9 @@ export class GameScene extends Phaser.Scene {
         loadIfMissing("tag_royal_box", "assets/tag_royal_box.png");
 
         // ── Only the selected theater background (JPEG) ─────────────────
-        loadIfMissing(this.layout.bgKey, `assets/${this.layout.bgKey}.jpg`);
+        if (this.layout.bgKey) {
+            loadIfMissing(this.layout.bgKey, `assets/${this.layout.bgKey}.jpg`);
+        }
 
         // ── Game UI assets ──────────────────────────────────────────────
         loadIfMissing("card_back", "assets/card_back.png");
@@ -213,7 +238,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     /**
-     * @param {{ playerCount?: number, layoutId?: string, aiConfig?: (string | null)[], playerColorMap?: number[] }} data
+     * @param {{ playerCount?: number, layoutId?: string, aiConfig?: (string | null)[], playerColorMap?: number[], debugAnalytics?: boolean }} data
      */
     init(data) {
         const requestedLayoutId = data?.layoutId ?? "";
@@ -231,6 +256,16 @@ export class GameScene extends Phaser.Scene {
         /** @type {number[]} */
         this.playerColorMap = data.playerColorMap || Array.from({ length: this.playerCount }, (_, i) => i);
 
+        this.analytics = {
+            gameId: crypto.randomUUID(),
+            startTsMs: Date.now(),
+            debugUsed: !!data?.debugAnalytics,
+            startSent: false,
+            startingCards: Array.from({ length: this.playerCount }, () => null),
+            drawsBySource: Array.from({ length: this.playerCount }, () => ({ lobby: 0, deck: 0 })),
+            pickedByCard: Array.from({ length: this.playerCount }, () => ({})),
+        };
+
         const { rows, cols } = this.layout;
 
         // Initialize per-player state
@@ -244,6 +279,7 @@ export class GameScene extends Phaser.Scene {
             // Deal starting hand: 1 card per player
             const startCard = this.deck.pop();
             this.playerHands[p] = startCard ? [startCard] : [];
+            this.analytics.startingCards[p] = startCard ?? null;
         }
 
         // For 3 players, ghost "4th player" was also dealt and discards
@@ -272,6 +308,7 @@ export class GameScene extends Phaser.Scene {
                 return;
             }
             console.log("DEBUG: Skipping to end screen");
+            this.analytics.debugUsed = true;
             this.turnPhase = "game-over";
             this.endGame();
         });
@@ -282,6 +319,7 @@ export class GameScene extends Phaser.Scene {
                 return;
             }
             console.log("DEBUG: Cycle skip to EndGameScene");
+            this.analytics.debugUsed = true;
             this.turnPhase = "game-over";
             this.endGame();
         });
@@ -292,6 +330,7 @@ export class GameScene extends Phaser.Scene {
                 return;
             }
             console.log("DEBUG: Dealing debug hand (all types + all traits)");
+            this.analytics.debugUsed = true;
             const hand = this.playerHands[this.currentPlayer];
             hand.length = 0;
 
@@ -331,6 +370,7 @@ export class GameScene extends Phaser.Scene {
             if (!e.shiftKey) {
                 return;
             }
+            this.analytics.debugUsed = true;
             const curIdx = LayoutOrder.indexOf(this.layout.id);
             const nextIdx = (curIdx + 1) % LayoutOrder.length;
             const nextId = LayoutOrder[nextIdx];
@@ -340,6 +380,7 @@ export class GameScene extends Phaser.Scene {
                 playerCount: this.playerCount,
                 aiConfig: this.aiConfig,
                 playerColorMap: this.playerColorMap,
+                debugAnalytics: true,
             });
         });
     }
@@ -412,8 +453,154 @@ export class GameScene extends Phaser.Scene {
         // Centered at s(80) to perfectly align vertically with the player avatar
         createLogo(this, s(120), s(60), { width: 220, depth: 150 });
 
+        this.sendGameStartAnalytics();
+
         // ── Start with pass screen for player 1 ─────────────────────────
         this.showPassScreen();
+    }
+
+    /**
+     * @param {import('../types.js').CardData | null | undefined} card
+     */
+    serializeCard(card) {
+        if (!card) {
+            return null;
+        }
+        return {
+            type: card.type,
+            trait: card.trait ?? null,
+            label: card.label,
+        };
+    }
+
+    sendGameStartAnalytics() {
+        if (this.analytics.startSent) {
+            return;
+        }
+        this.analytics.startSent = true;
+
+        const players = Array.from({ length: this.playerCount }, (_, idx) => ({
+            index: idx,
+            isAI: !!this.aiConfig[idx],
+            aiDifficulty: this.aiConfig[idx],
+            startingCard: this.serializeCard(this.analytics.startingCards[idx]),
+        }));
+
+        sendAnalyticsBeacon("/api/analytics/beacon", {
+            eventType: "game_start",
+            eventId: crypto.randomUUID(),
+            gameId: this.analytics.gameId,
+            ts: new Date().toISOString(),
+            debug: this.analytics.debugUsed,
+            playerCount: this.playerCount,
+            theater: {
+                id: this.layout.id,
+                name: this.layout.name,
+            },
+            players,
+        });
+    }
+
+    /**
+     * @param {number} playerIndex
+     * @param {'lobby' | 'deck'} source
+     * @param {import('../types.js').CardData | null | undefined} cardData
+     */
+    recordAnalyticsDraw(playerIndex, source, cardData) {
+        const sourceCounters = this.analytics.drawsBySource[playerIndex];
+        if (sourceCounters) {
+            if (source === "lobby") {
+                sourceCounters.lobby++;
+            } else {
+                sourceCounters.deck++;
+            }
+        }
+
+        const key = makeAnalyticsCardKey(cardData);
+        if (!key) {
+            return;
+        }
+        const picked = this.analytics.pickedByCard[playerIndex];
+        if (!picked) {
+            return;
+        }
+        picked[key] = (picked[key] ?? 0) + 1;
+    }
+
+    /**
+     * @param {import('../scoring.js').PlayerScore} score
+     * @param {(import('../types.js').CardData | null)[][]} grid
+     */
+    buildTypeBreakdown(score, grid) {
+        /** @type {Record<string, number>} */
+        const breakdown = {};
+        for (const type of PatronTypeOrder) {
+            breakdown[type] = 0;
+        }
+
+        for (let r = 0; r < this.layout.rows; r++) {
+            for (let c = 0; c < this.layout.cols; c++) {
+                const card = grid[r][c];
+                if (!card) {
+                    continue;
+                }
+                breakdown[card.type] = (breakdown[card.type] || 0) + (score.perSeat[r]?.[c] ?? 0);
+            }
+        }
+
+        return breakdown;
+    }
+
+    buildGameEndPayload() {
+        /** @type {import('../scoring.js').PlayerScore[]} */
+        const scores = [];
+        /** @type {number[]} */
+        const totals = [];
+
+        for (let p = 0; p < this.playerCount; p++) {
+            const score = scorePlayer(this.placedPatrons[p], this.layout);
+            scores.push(score);
+            totals.push(score.total);
+        }
+
+        const max = Math.max(...totals);
+        const winnerIndexes = totals.map((s, i) => (s === max ? i : -1)).filter((idx) => idx >= 0);
+        const isTie = winnerIndexes.length > 1;
+        const sorted = [...totals].sort((a, b) => b - a);
+        const margin = isTie ? 0 : (sorted[0] - (sorted[1] ?? 0));
+
+        const players = Array.from({ length: this.playerCount }, (_, idx) => ({
+            index: idx,
+            isAI: !!this.aiConfig[idx],
+            aiDifficulty: this.aiConfig[idx],
+            totalScore: scores[idx].total,
+            houseBonus: scores[idx].houseBonus,
+            typeBreakdown: this.buildTypeBreakdown(scores[idx], this.placedPatrons[idx]),
+            drawsFromLobby: this.analytics.drawsBySource[idx]?.lobby ?? 0,
+            drawsFromDeck: this.analytics.drawsBySource[idx]?.deck ?? 0,
+            pickedByCard: this.analytics.pickedByCard[idx] ?? {},
+            startedCard: this.serializeCard(this.analytics.startingCards[idx]),
+        }));
+
+        return {
+            eventType: "game_end",
+            eventId: crypto.randomUUID(),
+            gameId: this.analytics.gameId,
+            ts: new Date().toISOString(),
+            debug: this.analytics.debugUsed,
+            durationMs: Math.max(0, Date.now() - this.analytics.startTsMs),
+            playerCount: this.playerCount,
+            theater: {
+                id: this.layout.id,
+                name: this.layout.name,
+            },
+            outcome: {
+                winnerIndexes,
+                isTie,
+                margin,
+            },
+            players,
+        };
     }
 
     // ══════════════════════════════════════════════════════════════════
@@ -993,13 +1180,11 @@ export class GameScene extends Phaser.Scene {
             return;
         }
 
-        const frontActive =
-            this.turnPhase === "play" &&
+        const frontActive = this.turnPhase === "play" &&
             !!this.selectedCard &&
             this.cardCaresAboutFrontSeats(this.selectedCard.cardData);
 
-        const aisleActive =
-            this.turnPhase === "play" &&
+        const aisleActive = this.turnPhase === "play" &&
             !!this.selectedCard &&
             this.cardCaresAboutAisleSeats(this.selectedCard.cardData);
 
@@ -1642,6 +1827,7 @@ export class GameScene extends Phaser.Scene {
 
             // Add to player hand
             hand.push(cardData);
+            this.recordAnalyticsDraw(this.currentPlayer, "lobby", cardData);
 
             // Remove from lobby
             this.lobbyCards.splice(index, 1);
@@ -1695,6 +1881,7 @@ export class GameScene extends Phaser.Scene {
                 return false;
             }
             hand.push(drawn);
+            this.recordAnalyticsDraw(this.currentPlayer, "deck", drawn);
 
             this.renderHand();
             this.updateUI();
@@ -1795,6 +1982,8 @@ export class GameScene extends Phaser.Scene {
     // ══════════════════════════════════════════════════════════════════
 
     endGame() {
+        sendAnalyticsBeacon("/api/analytics/beacon", this.buildGameEndPayload());
+
         this.scene.start("EndGameScene", {
             playerCount: this.playerCount,
             layout: this.layout,

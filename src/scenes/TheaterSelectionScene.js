@@ -11,10 +11,13 @@ import { createLogo } from "../factories/Logo.js";
 export class TheaterSelectionScene extends Phaser.Scene {
     constructor() {
         super("TheaterSelectionScene");
+
+        /** @type {boolean} */
+        this.debugAnalytics = false;
     }
 
     /**
-     * @param {{ playerCount: number, aiConfig?: (string | null)[], playerColorMap?: number[] }} data
+     * @param {{ playerCount: number, aiConfig?: (string | null)[], playerColorMap?: number[], debugAnalytics?: boolean }} data
      */
     init(data) {
         this.selectedPlayerCount = data.playerCount || 2;
@@ -22,6 +25,7 @@ export class TheaterSelectionScene extends Phaser.Scene {
         this.aiConfig = data.aiConfig || Array.from({ length: this.selectedPlayerCount }, () => null);
         /** @type {number[]} */
         this.playerColorMap = data.playerColorMap || Array.from({ length: this.selectedPlayerCount }, (_, i) => i);
+        this.debugAnalytics = !!data?.debugAnalytics;
     }
 
     preload() {
@@ -71,6 +75,7 @@ export class TheaterSelectionScene extends Phaser.Scene {
                 layoutId: LayoutOrder[0],
                 aiConfig: this.aiConfig,
                 playerColorMap: this.playerColorMap,
+                debugAnalytics: true,
             });
         });
 
@@ -276,6 +281,7 @@ export class TheaterSelectionScene extends Phaser.Scene {
                 playerCount: this.selectedPlayerCount,
                 aiConfig: this.aiConfig,
                 playerColorMap: this.playerColorMap,
+                debugAnalytics: this.debugAnalytics,
             }));
     }
 
@@ -536,6 +542,7 @@ export class TheaterSelectionScene extends Phaser.Scene {
                 layoutId: layout.id,
                 aiConfig: this.aiConfig,
                 playerColorMap: this.playerColorMap,
+                debugAnalytics: this.debugAnalytics,
             });
         });
 

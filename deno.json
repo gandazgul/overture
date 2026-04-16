@@ -9,7 +9,7 @@
         "dev": "deno run -A npm:vite@5",
         "build": "deno run -A scripts/generate-rules-page.js && deno run -A npm:vite@5 build",
         "preview": "deno run -A npm:vite@5 preview",
-        "serve": "deno run -A server.js",
+        "serve": "deno run -A --env-file server.js",
         "check": "deno check --doc **/*.js",
         "lint": "deno lint src/",
         "test": "deno test src/",
@@ -18,7 +18,8 @@
         "generate": "deno run -A scripts/generate-assets.js",
         "optimize": "deno run -A scripts/optimize-assets.js",
         "screenshots": "deno run -A scripts/capture-missing-theater-screenshots.js",
-        "rules": "deno run -A scripts/generate-rules-page.js"
+        "rules": "deno run -A scripts/generate-rules-page.js",
+        "analytics:crunch": "deno run --env-file -A scripts/analytics-crunch.js"
     },
     "imports": {
         "phaser": "npm:phaser@^3.86.0",

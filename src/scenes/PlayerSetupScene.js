@@ -32,10 +32,13 @@ export class PlayerSetupScene extends Phaser.Scene {
          * @type {number[]}
          */
         this.playerColorMap = [0, 1, 2, 3];
+
+        /** @type {boolean} */
+        this.debugAnalytics = false;
     }
 
     /**
-     * @param {{ playerCount?: number, aiConfig?: (string | null)[], playerColorMap?: number[] }} [data]
+     * @param {{ playerCount?: number, aiConfig?: (string | null)[], playerColorMap?: number[], debugAnalytics?: boolean }} [data]
      */
     init(data) {
         const count = data?.playerCount ?? 2;
@@ -43,6 +46,7 @@ export class PlayerSetupScene extends Phaser.Scene {
         this.aiConfig = data?.aiConfig ||
             Array.from({ length: 4 }, (_, i) => i === 0 ? null : (i < count ? AIDifficulty.MEDIUM : null));
         this.playerColorMap = data?.playerColorMap || [0, 1, 2, 3];
+        this.debugAnalytics = !!data?.debugAnalytics;
     }
 
     setupDebug() {
@@ -57,6 +61,7 @@ export class PlayerSetupScene extends Phaser.Scene {
                 playerCount: count,
                 aiConfig: this.aiConfig.slice(0, count),
                 playerColorMap: this.playerColorMap.slice(0, count),
+                debugAnalytics: true,
             });
         });
 
@@ -71,6 +76,7 @@ export class PlayerSetupScene extends Phaser.Scene {
                 playerCount: count,
                 aiConfig: this.aiConfig.slice(0, count),
                 playerColorMap: this.playerColorMap.slice(0, count),
+                debugAnalytics: true,
             });
         });
     }
@@ -332,6 +338,7 @@ export class PlayerSetupScene extends Phaser.Scene {
                 playerCount: count,
                 aiConfig: this.aiConfig.slice(0, count),
                 playerColorMap: this.playerColorMap.slice(0, count),
+                debugAnalytics: this.debugAnalytics,
             });
         });
 
