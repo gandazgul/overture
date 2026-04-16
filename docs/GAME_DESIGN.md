@@ -40,31 +40,26 @@ from the **Lobby** (a shared face-up market), then place it in your theater.
 The game ends when the 56-card patron deck is exhausted. Each player then
 tallies victory points (VP) based on how well their patrons are seated.
 
-By default, Overture is a **constructive** game (no gifting). If you want direct
+By default, Overture is a **constructive** game with no negative player interactions. If you want direct
 player disruption, enable it with specific Play cards (see
 [Play Cards](#play-cards)).
 
 **Player count:** 2-4 players
-With 2 okayers, during setup players get 2 cards, on their turn they play a card then discard a card.
+With 2 players, during setup players get 2 cards, on their turn they play a card then discard a card.
 
-With 3 players after each round discard a 4th card to simulate a 4th player. Or remove ramdomly 14 cards from the deck.
-
-**Game setup:** Draw 1 Theater card + 1 Play card
-from the Season Deck. The Theater defines your grid layout and house rule; the
-Play defines the session's scoring twist and any extra cards shuffled into the
-patron deck.
+With 3 players after each round discard a 4th card to simulate a 4th player (or just remove 14 cards at random from the deck).
 
 ---
 
 ## Components
 
-| Component                | Quantity | Description                                                                       |
-| ------------------------ | -------- | --------------------------------------------------------------------------------- |
-| Theater boards           | 4        | Individual grids (layout defined by Theater card)                                 |
-| Patron deck              | 56 cards | 6 primary types, 4 secondary traits                                               |
-| Season deck              | varies   | Theater cards, Play cards, Role cards, Demand cards, Understudy and Rivalry cards |
-| Player markers           | 4 sets   | Colored tokens to identify each player's board                                    |
-| Manager's Attention card | 1        | Tracking card used only when a Play enables gifting (e.g., The Rivalry)           |
+| Component      | Quantity         | Description                                                                       |
+|----------------|------------------|-----------------------------------------------------------------------------------|
+| Theater boards | 4                | Individual grids (layout defined by Theater card)                                 |
+| Patron deck    | 56 cards         | 6 primary types, 4 secondary traits                                               |
+| Season deck    | varies           | Theater cards, Play cards, Role cards, Demand cards, Understudy and Rivalry cards |
+| Player markers | 4 sets           | Colored tokens to identify each player's board                                    |
+| Central board  | 1 shared theater | Maybe as a future follow up game                                                  |
 
 ---
 
@@ -81,9 +76,8 @@ patron deck.
    place it face-down in the center.
 5. **Set up the Lobby:** Draw 3 cards from the patron deck and place them
    face-up in a row beside the deck.
-6. Place the **Manager's Attention card** to one side; use it only if the
-   selected Play card enables gifting (e.g., The Rivalry).
-7. The first player is whoever went to the theater last. They take their turn and play proceeds clockwise until the Patrons run out.
+6. The first player is whoever went to the theater last. They take their turn and play proceeds 
+   clockwise until the Patrons run out.
 
 ---
 
@@ -95,8 +89,8 @@ patron deck.
 2. **Place** - Place the card into any empty seat in _your_ theater.
    - If the active Play card enables gifting (e.g., The Rivalry), you may
      choose to gift instead by following that Play's rules.
-3. **Refill the Lobby** - If you took from the Lobby, refill it to 3 cards from
-   the top of the patron deck. _(If the deck is empty, the Lobby simply
+3. **Refill the Lobby** - If you took from the Lobby, first move the card closest to the deck out and refill it to 3 cards from
+   the top of the patron deck. The last card drawn stays next to the deck and is unavailable. _(If the deck is empty, the Lobby simply
    shrinks.)_
 4. Play passes clockwise.
 

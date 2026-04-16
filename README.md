@@ -32,25 +32,81 @@ deno task dev
 
 ### Primary Patrons
 
-| Type          | Strategy                                                                  |
-| ------------- | ------------------------------------------------------------------------- |
-| **Patron**    | Worth 3 VP anywhere.                                                      |
-| **VIP**       | 5 VP base; +3 VP in front rows. Penalty near Kids and Noisy patrons.      |
-| **Lovebirds** | 0 VP base; +3 VP if adjacent to another Lovebird. **×2 VP** in back rows. |
-| **Kid**       | 0 VP base; 2 VP only if capped by Teachers on both ends of a group.       |
-| **Teacher**   | 1 VP base; +1 VP for each adjacent capped Kid.                            |
-| **Critic**    | 2 VP base; **×3 VP** if seated in an aisle seat.                          |
+| Type          | Strategy                                                                       |
+|---------------|--------------------------------------------------------------------------------|
+| **Patron**    | Worth 3 VP anywhere.                                                           |
+| **VIP**       | 3 VP base; +3 VP in front rows. Adjacent Kids or Noisy nullify the bonus.      |
+| **Lovebirds** | 1 VP alone; +3 if horizontally paired. +2 VP in back row.                      |
+| **Kid**       | 1 VP uncapped; 3 VP when capped by Teachers, on both sides of a row or column! |
+| **Teacher**   | 3 VP base; +1 VP per capped Kid in its group.                                  |
+| **Critic**    | 3 VP base; +3 VP in an aisle seat. Noisy neighbors nullify the bonus.          |
+| **Friend**    | 3 VP base; +1 VP per adjacent Friend.                                          |
 
-### Secondary Traits
+### Traits
 
 Traits can be applied to any patron type, adding unique bonuses or penalties.
 
 | Trait            | Effect                                                               |
 | ---------------- | -------------------------------------------------------------------- |
-| **Bespectacled** | +2 VP unless seated in the back row.                                 |
+| **Bespectacled** | +2 VP unless seated on the back row.                                 |
 | **Tall**         | Patron directly behind this seat gets −2 VP.                         |
-| **Short**        | +2 VP if no one is in front; −3 VP if a **Tall** patron is in front. |
+| **Short**        | +2 VP if no one in front; −3 VP if a **Tall** patron is in front.    |
 | **Noisy**        | Each adjacent patron (any type) gets −1 VP.                          |
+
+## 🎮 Features
+
+### Core Gameplay
+
+- **Full Deck** — 56 cards with 7 patron types and 4 secondary traits
+- **Lobby System** — Draw from a public pool of known patrons or the blind deck
+- **Card Hand** — Draw 3 cards per turn with visual selection and speech-bubble tooltips
+- **Turn System** — 2-player pass-and-play with hand passing screen
+- **Card Placement** — Click a seat to place the selected patron with animated feedback
+- **Scoring Engine** — VIP front-row bonuses, Teacher/Kid capping, Lovebird pairing, Critic aisle multipliers, adjacency debuffs, and all trait interactions
+- **Victory Points Display** — Running score during gameplay, toggleable in settings
+
+### AI Opponents
+
+- **3 Difficulty Levels** — Easy (random), Medium (greedy best-score), Hard (greedy + positional heuristics with jitter)
+- **Player Setup Screen** — Choose human or AI per slot, pick difficulty, and swap player colors with a color picker
+- **Seamless Integration** — AI turns auto-play with pacing delays; robot emoji marks AI players on the scoreboard
+
+### Theaters
+
+- **8 Unique Theaters** — Each with its own layout, background art, and house rule:
+    - **The Grand Empress** — Classic 5×6 grid
+    - **The Blackbox** — Compact 4×4 intimate space
+    - **The Opera House** — Features isolated Royal Box seats with crown tags
+    - **The Promenade** — Wide 7×4 layout with center aisle
+    - **The Amphitheater** — Expanding rows (3→4→5→6), narrow front to wide back
+    - **The Dinner Playhouse** — Table-style seating with gaps between groups
+    - **The Ziegfeld Runway** — T-shaped stage extension splits the theater into left/right houses
+    - **The Rotunda** — 5×5 hollow ring, theater-in-the-round (16 seats, no back row)
+- **Theater Selection Screen** — Preview thumbnails with zoom animation and random theater option
+- **Seat Label System** — Front row, back row, aisle, and Royal Box seats are tagged and scored automatically per layout
+
+### Visual Design
+
+- **1920s Art Deco Aesthetic** — Gold and deep purple palette throughout
+- **Custom Patron Art** — Unique card art for all patron types and traits
+- **Theater Backgrounds** — Hand-crafted AI-generated art for each venue
+- **Art Deco Seat Tags** — Crown tags for Royal Boxes, gold borders for aisle seats, visible walkway strips between sections
+- **House Rule Reminder** — Active house rule stays visible in the HUD all game
+
+### Scenes & UI
+
+- **Title Screen** — Animated logo with fullscreen toggle
+- **Boot Screen** — Asset preloader with progress bar
+- **End Game Screen** — Winner announcement, per-type scoring breakdown, and play-again option
+- **Responsive Scaling** — DPR-aware, adapts to viewport aspect ratio, works on mobile
+
+### Technical
+
+- **Pure Scoring Engine** — No Phaser dependency, fully unit-tested (158 tests)
+- **Pure AI Engine** — No Phaser dependency, fully unit-tested
+- **Modular Scenes** — Boot → Title → Theater Selection → Game → End Game
+- **Reusable Components** — Shared Button, Card, and SpeechBubble objects
+- **CI Pipeline** — Type-check, lint, and test in one command
 
 ## 🛠️ Tech Stack
 
@@ -119,60 +175,6 @@ overture/
 └── README.md              # This file
 ```
 
-## 🎮 Features
-
-### Core Gameplay
-
-- **Full Deck** — 56 cards with 6 patron types and 4 secondary traits
-- **Card Hand** — Draw 3 cards per turn with visual selection and speech-bubble tooltips
-- **Turn System** — 2-player pass-and-play with hand passing screen
-- **Card Placement** — Click a seat to place the selected patron with animated feedback
-- **Scoring Engine** — VIP front-row bonuses, Teacher/Kid capping, Lovebird pairing, Critic aisle multipliers, adjacency debuffs, and all trait interactions
-- **Victory Points Display** — Running score during gameplay, toggleable in settings
-
-### AI Opponents
-
-- **3 Difficulty Levels** — Easy (random), Medium (greedy best-score), Hard (greedy + positional heuristics with jitter)
-- **Player Setup Screen** — Choose human or AI per slot, pick difficulty, and swap player colors with a color picker
-- **Seamless Integration** — AI turns auto-play with pacing delays; robot emoji marks AI players on the scoreboard
-
-### Theaters
-
-- **8 Unique Theaters** — Each with its own layout, background art, and house rule:
-  - **The Grand Empress** — Classic 5×6 grid
-  - **The Blackbox** — Compact 4×4 intimate space
-  - **The Opera House** — Features isolated Royal Box seats with crown tags
-  - **The Promenade** — Wide 7×4 layout with center aisle
-  - **The Amphitheater** — Expanding rows (3→4→5→6), narrow front to wide back
-  - **The Dinner Playhouse** — Table-style seating with gaps between groups
-  - **The Ziegfeld Runway** — T-shaped stage extension splits the theater into left/right houses
-  - **The Rotunda** — 5×5 hollow ring, theater-in-the-round (16 seats, no back row)
-- **Theater Selection Screen** — Preview thumbnails with zoom animation and random theater option
-- **Seat Label System** — Front row, back row, aisle, and Royal Box seats are tagged and scored automatically per layout
-
-### Visual Design
-
-- **1920s Art Deco Aesthetic** — Gold and deep purple palette throughout
-- **Custom Patron Art** — Unique card art for all patron types and traits
-- **Theater Backgrounds** — Hand-crafted AI-generated art for each venue
-- **Art Deco Seat Tags** — Crown tags for Royal Boxes, gold borders for aisle seats, visible walkway strips between sections
-- **House Rule Reminder** — Active house rule stays visible in the HUD all game
-
-### Scenes & UI
-
-- **Title Screen** — Animated logo with fullscreen toggle
-- **Boot Screen** — Asset preloader with progress bar
-- **End Game Screen** — Winner announcement, per-type scoring breakdown, and play-again option
-- **Responsive Scaling** — DPR-aware, adapts to viewport aspect ratio, works on mobile
-
-### Technical
-
-- **Pure Scoring Engine** — No Phaser dependency, fully unit-tested (144 tests)
-- **Pure AI Engine** — No Phaser dependency, fully unit-tested
-- **Modular Scenes** — Boot → Title → Theater Selection → Game → End Game
-- **Reusable Components** — Shared Button, Card, and SpeechBubble objects
-- **CI Pipeline** — Type-check, lint, and test in one command
-
 ## 🧪 Testing
 
 The project uses **Deno's built-in test runner** — no extra test framework
@@ -182,12 +184,12 @@ needed.
 deno task test
 ```
 
-**144 tests passing** across `scoring.test.js` (122 tests) and `ai.test.js` (22
+**158 tests passing** across `scoring.test.js` (131 tests) and `ai.test.js` (27
 tests).
 
 Tests live alongside source files and cover:
 
-- All 6 patron types and 4 traits scoring rules across all 8 theater layouts
+- All 7 patron types and 4 traits scoring rules across all 8 theater layouts
 - Theater-specific mechanics: Royal Box isolation, seat labels, house rules
 - Edge cases: empty grids, unknown types, overlapping debuffs, back-row
   multipliers
@@ -208,11 +210,18 @@ straightforward to test in isolation.
 ## 📚 Documentation
 
 - **[Rule Book](./docs/RULE_BOOK.md)** — Learn how to play: all patron types, traits, scoring rules, and 8 theaters explained with screenshots.
-- **[Game Design Document](./docs/GAME_DESIGN.md)** — Full design spec including planned features (lobby, gifting, play cards, season deck).
+- **[Game Design Document](./docs/GAME_DESIGN.md)** — Full design spec including planned features and ideas (lobby, play cards, season deck).
 
 ## 🚧 Roadmap
 
-- [ ] **Lobby** - Implement the lobby feature where players can draw from a market of available patrons instead of a random hand
 - [ ] **Online Multiplayer** — Play with friends remotely
 - [ ] **Play Variants** — Different "plays" with special rules
 - [ ] **Audio** — Ambient theater sounds and placement effects
+
+## Acknowledgements
+
+Made with [Pi coding agent](https://shittycodingagent.ai/) with the help of many different LLMs. Gemini was my main brainstorming partner for game design, theaters and plays and refinement in general. 
+This is not AI Slop™ I have worked very hard for many months to refine the design, test it on spreadsheets and finally I decided I could take on the huge task of making a game.
+It would not be possible without the help of the LLMs, but I want to be clear that this is a labor of love and I am proud of it. 
+
+I hope you enjoy playing it as much as I enjoyed making it!
