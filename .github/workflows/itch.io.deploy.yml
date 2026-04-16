@@ -27,11 +27,12 @@ jobs:
         run: |
           echo "version=${GITHUB_REF/refs\/tags\/v/}" >> $GITHUB_ENV
 
-      - name: Upload web to itch.io project
-        uses: robpc/itchio-upload-action@v1
+      - uses: Ayowel/butler-to-itch@v1
         with:
-          path: dist/
-          project: gandazgul/overture
-          channel: web
+          butler_key: ${{ secrets.ITCHIO_API_KEY }}
+          itch_user: gandazgul
+          itch_game: overture
           version: ${{ env.version }}
-          api-key: ${{ secrets.ITCHIO_API_KEY }}
+          files: |
+            dist/
+            web dist/
