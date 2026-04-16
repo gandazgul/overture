@@ -276,47 +276,138 @@ function buildLovebirdsPairMap(grid, rows, cols, layout) {
 }
 
 /**
+ * @typedef {Object} KidCappingData
+ * @property {Set<number>[]} cappedKids - Capped Kid lookup by row/col
+ * @property {Map<string, Set<string>>} teacherToCappedKids - Teacher seat key -> set of capped Kid seat keys
+ */
+
+/**
+ * @param {Map<string, Set<string>>} teacherToCappedKids
+ * @param {number} teacherRow
+ * @param {number} teacherCol
+ * @param {number} kidRow
+ * @param {number} kidCol
+ */
+function linkTeacherToKid(teacherToCappedKids, teacherRow, teacherCol, kidRow, kidCol) {
+    const teacherSeat = `${teacherRow},${teacherCol}`;
+    const kidSeat = `${kidRow},${kidCol}`;
+    const linkedKids = teacherToCappedKids.get(teacherSeat) ?? new Set();
+    linkedKids.add(kidSeat);
+    teacherToCappedKids.set(teacherSeat, linkedKids);
+}
+
+/**
+ * Build Kid capping lookup + Teacher capper attribution.
+ *
+ * Non-table layouts:
+ * - Kids are capped by Teacher endpoints on either side of a horizontal chain (T-K...K-T)
+ * - Kids are also capped by Teacher endpoints above/below a vertical chain
+ *
+ * Dinner Playhouse layout:
+ * - Any Teacher at a 2×2 table caps all Kids at that table
+ *
  * @param {(CardData | null)[][]} grid
  * @param {number} rows
  * @param {number} cols
  * @param {LayoutMeta} [layout]
+ * @returns {KidCappingData}
  */
-function buildCappedKidMap(grid, rows, cols, layout) {
+function buildKidCappingData(grid, rows, cols, layout) {
     /** @type {Set<number>[]} */
     const cappedKids = [];
     for (let r = 0; r < rows; r++) {
         cappedKids[r] = new Set();
     }
 
-    // Dinner Playhouse table-based capping: a Kid is capped if any Teacher sits at the same table
-    if (layout && layout.tableGroups) {
+    /** @type {Map<string, Set<string>>} */
+    const teacherToCappedKids = new Map();
+
+    // Dinner Playhouse table-based capping: any Teacher at a table caps all Kids at that table.
+    if (layout?.tableGroups) {
         for (const table of layout.tableGroups) {
-            const hasTeacher = table.some(
-                (pos) => grid[pos.row]?.[pos.col]?.type === PatronType.TEACHER,
-            );
-            if (hasTeacher) {
-                for (const pos of table) {
-                    if (grid[pos.row]?.[pos.col]?.type === PatronType.KID) {
-                        cappedKids[pos.row].add(pos.col);
-                    }
+            const teachers = table.filter((pos) => grid[pos.row]?.[pos.col]?.type === PatronType.TEACHER);
+            const kids = table.filter((pos) => grid[pos.row]?.[pos.col]?.type === PatronType.KID);
+
+            if (teachers.length === 0) continue;
+
+            for (const kid of kids) {
+                cappedKids[kid.row].add(kid.col);
+            }
+
+            for (const teacher of teachers) {
+                for (const kid of kids) {
+                    linkTeacherToKid(teacherToCappedKids, teacher.row, teacher.col, kid.row, kid.col);
                 }
             }
         }
-        return cappedKids;
+
+        return { cappedKids, teacherToCappedKids };
     }
 
-    // Default: horizontal chain capping (Teacher at both ends)
+    // Horizontal chain capping (Teacher at both row ends)
     for (let r = 0; r < rows; r++) {
         const groups = findHorizontalKidGroups(grid[r], cols);
         for (const group of groups) {
-            if (group.capped) {
-                for (const c of group.cols) {
-                    cappedKids[r].add(c);
-                }
+            if (!group.capped) continue;
+
+            const leftTeacherCol = group.cols[0] - 1;
+            const rightTeacherCol = group.cols[group.cols.length - 1] + 1;
+
+            for (const c of group.cols) {
+                cappedKids[r].add(c);
+                linkTeacherToKid(teacherToCappedKids, r, leftTeacherCol, r, c);
+                linkTeacherToKid(teacherToCappedKids, r, rightTeacherCol, r, c);
             }
         }
     }
-    return cappedKids;
+
+    // Vertical chain capping (Teacher above and below contiguous Kid column groups)
+    for (let c = 0; c < cols; c++) {
+        let start = 0;
+
+        while (start < rows) {
+            const startIsKid = grid[start]?.[c]?.type === PatronType.KID && (!layout || seatExists(start, c, layout));
+            if (!startIsKid) {
+                start++;
+                continue;
+            }
+
+            let end = start;
+            while (end + 1 < rows) {
+                const nextRow = end + 1;
+                const nextIsKid = grid[nextRow]?.[c]?.type === PatronType.KID &&
+                    (!layout || seatExists(nextRow, c, layout));
+                if (!nextIsKid) break;
+                if (layout && isAdjacencyBroken(end, nextRow, layout)) break;
+                end = nextRow;
+            }
+
+            const topTeacherRow = start - 1;
+            const bottomTeacherRow = end + 1;
+
+            const cappedTop = topTeacherRow >= 0 &&
+                (!layout || seatExists(topTeacherRow, c, layout)) &&
+                !(layout && isAdjacencyBroken(topTeacherRow, start, layout)) &&
+                grid[topTeacherRow]?.[c]?.type === PatronType.TEACHER;
+
+            const cappedBottom = bottomTeacherRow < rows &&
+                (!layout || seatExists(bottomTeacherRow, c, layout)) &&
+                !(layout && isAdjacencyBroken(end, bottomTeacherRow, layout)) &&
+                grid[bottomTeacherRow]?.[c]?.type === PatronType.TEACHER;
+
+            if (cappedTop && cappedBottom) {
+                for (let r = start; r <= end; r++) {
+                    cappedKids[r].add(c);
+                    linkTeacherToKid(teacherToCappedKids, topTeacherRow, c, r, c);
+                    linkTeacherToKid(teacherToCappedKids, bottomTeacherRow, c, r, c);
+                }
+            }
+
+            start = end + 1;
+        }
+    }
+
+    return { cappedKids, teacherToCappedKids };
 }
 
 /**
@@ -341,11 +432,11 @@ function buildCappedKidMap(grid, rows, cols, layout) {
  * @param {number} row
  * @param {number} col
  * @param {LayoutMeta} layout
- * @param {Set<number>[]} cappedKids
+ * @param {KidCappingData} cappingData
  * @param {Set<string>} lovebirdsPairs
  * @returns {SeatScoreBreakdown}
  */
-function buildSeatScoreBreakdown(grid, row, col, layout, cappedKids, lovebirdsPairs) {
+function buildSeatScoreBreakdown(grid, row, col, layout, cappingData, lovebirdsPairs) {
     const card = grid[row][col];
     const scoring = card ? PatronScoring[card.type] : null;
     if (!card || !scoring) {
@@ -353,6 +444,7 @@ function buildSeatScoreBreakdown(grid, row, col, layout, cappedKids, lovebirdsPa
     }
 
     const { rows, cols } = layout;
+    const { cappedKids, teacherToCappedKids } = cappingData;
     let vp = scoring.base;
     /** @type {ScoreModifier[]} */
     const modifiers = [];
@@ -425,38 +517,10 @@ function buildSeatScoreBreakdown(grid, row, col, layout, cappedKids, lovebirdsPa
 
         case PatronType.TEACHER: {
             if (scoring.perCappedKidBonus) {
-                // Dinner Playhouse/table layouts: Teacher scores from capped Kids at the same table
-                if (layout.tableGroups) {
-                    const table = layout.tableGroups.find((group) =>
-                        group.some((pos) => pos.row === row && pos.col === col)
-                    );
-
-                    if (table) {
-                        let cappedKidCount = 0;
-                        for (const pos of table) {
-                            const neighbor = grid[pos.row]?.[pos.col];
-                            if (neighbor && neighbor.type === PatronType.KID && cappedKids[pos.row].has(pos.col)) {
-                                cappedKidCount += 1;
-                            }
-                        }
-
-                        if (cappedKidCount > 0) {
-                            pushModifier(
-                                "Capped Kid table bonus",
-                                scoring.perCappedKidBonus * cappedKidCount,
-                            );
-                        }
-                        break;
-                    }
-                }
-
-                // Default layouts: Teacher scores from orthogonally adjacent capped Kids
-                const neighbors = getOrthogonalNeighbors(row, col, rows, cols, layout);
-                for (const n of neighbors) {
-                    const neighbor = grid[n.row][n.col];
-                    if (neighbor && neighbor.type === PatronType.KID && cappedKids[n.row].has(n.col)) {
-                        pushModifier("Adjacent capped Kid bonus", scoring.perCappedKidBonus);
-                    }
+                const teacherSeat = `${row},${col}`;
+                const cappedKidCount = teacherToCappedKids.get(teacherSeat)?.size ?? 0;
+                if (cappedKidCount > 0) {
+                    pushModifier("Capped Kid bonus", scoring.perCappedKidBonus * cappedKidCount);
                 }
             }
             break;
@@ -554,12 +618,12 @@ function buildSeatScoreBreakdown(grid, row, col, layout, cappedKids, lovebirdsPa
  * @param {number} row
  * @param {number} col
  * @param {LayoutMeta} layout
- * @param {Set<number>[]} cappedKids - precomputed capped Kid positions
+ * @param {KidCappingData} cappingData - precomputed Kid capping + Teacher capper attribution
  * @param {Set<string>} lovebirdsPairs - precomputed paired Lovebirds positions
  * @returns {number} VP for this seat
  */
-export function scoreSeat(grid, row, col, layout, cappedKids, lovebirdsPairs) {
-    return buildSeatScoreBreakdown(grid, row, col, layout, cappedKids, lovebirdsPairs).total;
+export function scoreSeat(grid, row, col, layout, cappingData, lovebirdsPairs) {
+    return buildSeatScoreBreakdown(grid, row, col, layout, cappingData, lovebirdsPairs).total;
 }
 
 /**
@@ -573,9 +637,9 @@ export function scoreSeat(grid, row, col, layout, cappedKids, lovebirdsPairs) {
  */
 export function scoreSeatBreakdown(grid, row, col, layout = DefaultLayout) {
     const { rows, cols } = layout;
-    const cappedKids = buildCappedKidMap(grid, rows, cols, layout);
+    const cappingData = buildKidCappingData(grid, rows, cols, layout);
     const lovebirdsPairs = buildLovebirdsPairMap(grid, rows, cols, layout);
-    return buildSeatScoreBreakdown(grid, row, col, layout, cappedKids, lovebirdsPairs);
+    return buildSeatScoreBreakdown(grid, row, col, layout, cappingData, lovebirdsPairs);
 }
 
 /**
@@ -717,8 +781,8 @@ function scoreHouseRule(grid, layout, perSeat) {
 export function scorePlayer(grid, layout = DefaultLayout) {
     const { rows, cols } = layout;
 
-    // Precompute capped Kids for all rows
-    const cappedKids = buildCappedKidMap(grid, rows, cols, layout);
+    // Precompute Kid capping + Teacher capper attribution
+    const cappingData = buildKidCappingData(grid, rows, cols, layout);
 
     // Precompute Lovebirds horizontal pairs
     const lovebirdsPairs = buildLovebirdsPairMap(grid, rows, cols, layout);
@@ -730,7 +794,7 @@ export function scorePlayer(grid, layout = DefaultLayout) {
     for (let r = 0; r < rows; r++) {
         perSeat[r] = [];
         for (let c = 0; c < cols; c++) {
-            const vp = scoreSeat(grid, r, c, layout, cappedKids, lovebirdsPairs);
+            const vp = scoreSeat(grid, r, c, layout, cappingData, lovebirdsPairs);
             perSeat[r][c] = vp;
             total += vp;
         }

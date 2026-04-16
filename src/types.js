@@ -55,7 +55,7 @@ Object.freeze(Trait);
  * @property {string[]} [adjacencyPenaltyTypes] - Patron types that trigger the adjacency penalty
  * @property {boolean} [adjacencyPenaltyNoisyTrait] - Also penalized by adjacent Noisy-trait patrons
  * @property {number} [cappedValue] - VP when this patron is "capped" (Kid-specific)
- * @property {number} [perCappedKidBonus] - VP bonus per adjacent capped Kid (Teacher-specific)
+ * @property {number} [perCappedKidBonus] - VP bonus per capped Kid this Teacher directly caps (Teacher-specific)
  * @property {number} [adjacentMatchBonus] - VP if orthogonally adjacent to same type (Lovebirds)
  * @property {number} [backRowBonus] - Extra VP if in the designated back row (additive)
  * @property {number[]} [backRows] - Row indices that count as "back" for multiplier
@@ -153,8 +153,8 @@ export const PatronInfo = {
     },
     [PatronType.KID]: {
         color: 0x4caf50,
-        description: "1 VP uncapped. 3 VP when capped by Teachers!",
-        scoringHint: "Base 1VP\n+2VP when capped e.g. T-K-T",
+        description: "1 VP uncapped. 3 VP when capped by Teachers in a row/column chain.",
+        scoringHint: "Base 1VP\n+2VP when capped (row/column) e.g. T-K-T",
         scoring: {
             base: 1,
             cappedValue: 3,
@@ -172,8 +172,8 @@ export const PatronInfo = {
     },
     [PatronType.TEACHER]: {
         color: 0x8bc34a,
-        description: "3 VP base. +1 VP per adjacent capped Kid.",
-        scoringHint: "Base 3VP\n+1VP per capped Kid in its chain",
+        description: "3 VP base. +1 VP per capped Kid this Teacher caps.",
+        scoringHint: "Base 3VP\n+1VP per Kid this Teacher caps",
         scoring: {
             base: 3,
             perCappedKidBonus: 1,

@@ -231,13 +231,13 @@ Scoring is computed in two phases, then cross-type modifiers are applied.
 #### Kid
 
 - **1 VP** if uncapped.
-- **3 VP** if **capped** — the Kid belongs to a contiguous horizontal group of
-  Kids that has a **Teacher** at both the left and right ends.
+- **3 VP** if **capped** — the Kid belongs to a contiguous row-or-column group of
+  Kids that has a **Teacher** at both ends of that line.
 
 #### Teacher
 
 - **3 VP** base.
-- **+1 VP** per capped kid in their chain, other teachers dont get the bonus only the ones doing the job.
+- **+1 VP** per capped Kid this Teacher directly caps (Teachers merely adjacent to a capped Kid do not get this bonus).
 
 #### Critic
 
@@ -417,7 +417,7 @@ Row 3: [ ][ ]   [ ][ ]   [ ][ ]    Kids and Teachers want to cluster at tables; 
 **House Rule: "Full Tables"** - +3 VP for each 2×2 table where all 4 seats are
 occupied.
 
-**Dinner Playhouse Capping Rule:** Kids cannot be capped by the normal horizontal chain
+**Dinner Playhouse Capping Rule:** Kids cannot be capped by the normal row/column chain
 rule (tables are only 2 seats wide). Instead, a Kid is **capped if any Teacher
 is seated at the same 2×2 table**. One Teacher can cap up to 3 Kids at their
 table.

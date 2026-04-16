@@ -285,7 +285,7 @@ Deno.test("Uncapped Kid scores 1 VP", () => {
     assertEquals(result.perSeat[1][2], 1);
 });
 
-Deno.test("Capped Kids score 3 VP each, Teachers get per-kid bonus", () => {
+Deno.test("Capped Kids score 3 VP each, Teachers get +1 per Kid they cap", () => {
     const grid = emptyGrid();
     place(grid, 1, 0, PatronType.TEACHER);
     place(grid, 1, 1, PatronType.KID);
@@ -294,8 +294,74 @@ Deno.test("Capped Kids score 3 VP each, Teachers get per-kid bonus", () => {
     const result = scorePlayer(grid, DefaultLayout);
     assertEquals(result.perSeat[1][1], 3); // capped Kid
     assertEquals(result.perSeat[1][2], 3); // capped Kid
-    assertEquals(result.perSeat[1][0], 4); // Teacher: 3 base + 1 per capped Kid
-    assertEquals(result.perSeat[1][3], 4); // Teacher: 3 base + 1 per capped Kid
+    assertEquals(result.perSeat[1][0], 5); // Teacher: 3 base + 2 capped Kids
+    assertEquals(result.perSeat[1][3], 5); // Teacher: 3 base + 2 capped Kids
+});
+
+Deno.test("Vertical Teacher-Kid chain caps Kids and scores endpoint Teachers", () => {
+    const grid = emptyGrid();
+    place(grid, 0, 2, PatronType.TEACHER);
+    place(grid, 1, 2, PatronType.KID);
+    place(grid, 2, 2, PatronType.KID);
+    place(grid, 3, 2, PatronType.TEACHER);
+
+    const result = scorePlayer(grid, DefaultLayout);
+    assertEquals(result.perSeat[1][2], 3);
+    assertEquals(result.perSeat[2][2], 3);
+    assertEquals(result.perSeat[0][2], 5); // caps two Kids vertically
+    assertEquals(result.perSeat[3][2], 5); // caps two Kids vertically
+});
+
+Deno.test("Teacher adjacent to capped Kid but not capping gets no bonus", () => {
+    const grid = emptyGrid();
+    place(grid, 1, 0, PatronType.TEACHER);
+    place(grid, 1, 1, PatronType.KID);
+    place(grid, 1, 2, PatronType.KID);
+    place(grid, 1, 3, PatronType.TEACHER);
+    place(grid, 0, 1, PatronType.TEACHER); // adjacent to capped Kid, but not an endpoint capper
+
+    const result = scorePlayer(grid, DefaultLayout);
+    assertEquals(result.perSeat[0][1], 3); // no capper bonus
+    assertEquals(result.perSeat[1][0], 5);
+    assertEquals(result.perSeat[1][3], 5);
+});
+
+Deno.test("Cross capping: all endpoint Teachers get their own capper bonus", () => {
+    const grid = emptyGrid();
+    // Horizontal chain: T K K T
+    place(grid, 1, 0, PatronType.TEACHER);
+    place(grid, 1, 1, PatronType.KID);
+    place(grid, 1, 2, PatronType.KID);
+    place(grid, 1, 3, PatronType.TEACHER);
+    // Vertical chain through the left Kid
+    place(grid, 0, 1, PatronType.TEACHER);
+    place(grid, 2, 1, PatronType.TEACHER);
+
+    const result = scorePlayer(grid, DefaultLayout);
+
+    // Both kids are capped and score 3
+    assertEquals(result.perSeat[1][1], 3);
+    assertEquals(result.perSeat[1][2], 3);
+
+    // Horizontal endpoint teachers cap both kids => +2
+    assertEquals(result.perSeat[1][0], 5);
+    assertEquals(result.perSeat[1][3], 5);
+
+    // Vertical endpoint teachers cap only the shared kid => +1
+    assertEquals(result.perSeat[0][1], 4);
+    assertEquals(result.perSeat[2][1], 4);
+});
+
+Deno.test("Diagonal Teachers do not cap a Kid", () => {
+    const grid = emptyGrid();
+    place(grid, 0, 1, PatronType.TEACHER);
+    place(grid, 1, 2, PatronType.KID);
+    place(grid, 2, 3, PatronType.TEACHER);
+
+    const result = scorePlayer(grid, DefaultLayout);
+    assertEquals(result.perSeat[1][2], 1); // uncapped
+    assertEquals(result.perSeat[0][1], 3);
+    assertEquals(result.perSeat[2][3], 3);
 });
 
 // ── Primary Type: Lovebirds ─────────────────────────────────────────
@@ -895,6 +961,18 @@ Deno.test("Amphitheater: Noisy affects staggered behind adjacent seat", () => {
     place(grid, 2, 3, PatronType.STANDARD); // staggered behind-right adjacency
     const result = scorePlayer(grid, AmphitheaterLayout);
     assertEquals(result.perSeat[2][3], 2); // 3 base - 1 noisy adjacency
+});
+
+Deno.test("Amphitheater: diagonal-like stagger adjacency does NOT count for Teacher/Kid capping", () => {
+    const grid = emptyGrid(AmphitheaterLayout);
+    place(grid, 1, 2, PatronType.TEACHER);
+    place(grid, 2, 3, PatronType.KID); // adjacent via stagger rule, but not same row/column chain
+    place(grid, 3, 3, PatronType.TEACHER);
+
+    const result = scorePlayer(grid, AmphitheaterLayout);
+    assertEquals(result.perSeat[2][3], 1); // uncapped Kid
+    assertEquals(result.perSeat[1][2], 3); // no Teacher cap bonus
+    assertEquals(result.perSeat[3][3], 3); // no Teacher cap bonus
 });
 
 Deno.test("Amphitheater: VIP adjacency penalty applies to staggered behind Kid", () => {

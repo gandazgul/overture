@@ -38,7 +38,7 @@ deno task dev
 | **VIP**       | 3 VP base; +3 VP in front rows. Adjacent Kids or Noisy nullify the bonus.      |
 | **Lovebirds** | 1 VP alone; +3 if horizontally paired. +2 VP in back row.                      |
 | **Kid**       | 1 VP uncapped; 3 VP when capped by Teachers, on both sides of a row or column! |
-| **Teacher**   | 3 VP base; +1 VP per capped Kid in its group.                                  |
+| **Teacher**   | 3 VP base; +1 VP per capped Kid this Teacher caps.                              |
 | **Critic**    | 3 VP base; +3 VP in an aisle seat. Noisy neighbors nullify the bonus.          |
 | **Friend**    | 3 VP base; +1 VP per adjacent Friend.                                          |
 
