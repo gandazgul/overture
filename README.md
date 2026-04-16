@@ -10,11 +10,11 @@ maximize victory points and manage theater chaos.
 Seat patrons strategically to earn victory points. Different patron types have
 special placement rules and synergies!
 
-📖 **[Read the full Rule Book](public/RULE_BOOK.md)** — covers all patrons, traits, theaters, and scoring in detail.
-
 ## 🚀 Play the Game
 
-[Play on Itch.io ►](https://gandazgul.itch.io/overture)
+▶️ [Play on Itch.io](https://gandazgul.itch.io/overture)
+
+📖 [Read the full Rule Book](https://gandazgul.github.io/overture/rules.html) — covers all patrons, traits, theaters, and scoring in detail.
 
 ```bash
 # Run the development server
@@ -211,13 +211,13 @@ straightforward to test in isolation.
 
 ## 📚 Documentation
 
-- **[Rule Book](public/RULE_BOOK.md)** — Learn how to play: all patron types, traits, scoring rules, and 8 theaters explained with screenshots.
 - **[Game Design Document](./docs/GAME_DESIGN.md)** — Full design spec including planned features and ideas (lobby, play cards, season deck).
 
 ## 🚧 Roadmap
 
 - [ ] **Online Multiplayer** — Play with friends remotely
 - [ ] **Play Variants** — Different "plays" with special rules
+- [ ] **Analytics** — Track player stats, win rates, scores, and card usage
 - [ ] **Audio** — Ambient theater sounds and placement effects
 
 ## Acknowledgements
