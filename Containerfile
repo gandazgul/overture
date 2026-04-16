@@ -45,7 +45,7 @@ COPY --from=builder --chown=nonroot:nonroot /deno-cache /deno-cache
 
 # Copy the built output
 COPY --from=builder --chown=nonroot:nonroot /app/dist ./dist
-COPY --from=builder --chown=nonroot:nonroot /app/scripts/analytics-crunch.js ./scripts
+COPY --from=builder --chown=nonroot:nonroot /app/scripts/analytics-crunch.js ./scripts/analytics-crunch.js
 
 # Copy Deno configuration for runtime import mappings
 COPY --from=builder --chown=nonroot:nonroot /app/deno.json /app/deno.lock ./
