@@ -29,7 +29,8 @@ RUN deno task build
 RUN deno cache server.js
 
 # Stage 2: Production runtime using distroless
-FROM gcr.io/distroless/cc-debian12
+# Debian 13 provides newer glibc (>= 2.38), required by @db/sqlite native library
+FROM gcr.io/distroless/cc-debian13
 
 # Copy the Deno binary
 COPY --from=denoland/deno:bin --chown=nonroot:nonroot /deno /bin/deno
