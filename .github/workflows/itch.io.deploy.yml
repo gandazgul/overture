@@ -34,5 +34,5 @@ jobs:
           itch_game: overture
           version: ${{ env.version }}
           files: |
-            dist/
+             dist/
             web dist/
