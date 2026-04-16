@@ -2,13 +2,11 @@
   <img src="./public/assets/ui_logo.png" alt="Overture" width="400" />
 </p>
 
-A digital card game where players act as theater ushers, seating patrons to
-maximize victory points and manage theater chaos.
+A theater card game about sitting patrons in the correct spots. Are you the best usher that can make the play a success or will the noisy kids ruin it for everyone?
 
 ## The Goal
 
-Seat patrons strategically to earn victory points. Different patron types have
-special placement rules and synergies!
+Seat patrons strategically to earn victory points. Different patron types have special placement rules and synergies!
 
 ## 🚀 Play the Game
 
