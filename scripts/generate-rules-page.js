@@ -48,7 +48,6 @@ async function copyDirRecursive(fromDir, toDir) {
 }
 
 const markdown = await Deno.readTextFile(SOURCE_MD);
-const fixedAssetsMarkdown = markdown.replaceAll('./assets/', '/assets/')
 
 marked.setOptions({
     gfm: true,
@@ -57,7 +56,7 @@ marked.setOptions({
     headerIds: true,
 });
 
-const articleHtml = await marked.parse(fixedAssetsMarkdown);
+const articleHtml = await marked.parse(markdown);
 
 const html = `<!doctype html>
 <html lang="en">
