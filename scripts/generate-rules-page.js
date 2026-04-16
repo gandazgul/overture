@@ -3,7 +3,7 @@
 import { marked } from 'npm:marked@13';
 
 const SOURCE_MD = "public/RULE_BOOK.md";
-const OUTPUT_RULES_HTML = `public/rules/index.html`;
+const OUTPUT_RULES_HTML = `public/rules.html`;
 
 /**
  * @param {string} path
@@ -180,8 +180,6 @@ ${articleHtml}
 </html>
 `;
 
-await removeIfExists("public/rules");
-await ensureDir("public/rules");
 await Deno.writeTextFile(OUTPUT_RULES_HTML, html);
 
 console.log(`Generated ${OUTPUT_RULES_HTML}`);

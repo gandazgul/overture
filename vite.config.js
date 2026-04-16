@@ -12,8 +12,7 @@ function rulesRoutePlugin() {
         const [pathname] = req.url.split("?");
 
         if (pathname === "/rules" || pathname === "/rules/") {
-            const rulesDir = join(Deno.cwd(), "public", "rules");
-            const rulesFile = join(rulesDir, "index.html");
+            const rulesFile = join(Deno.cwd(), "public", "rules.html");
 
             // 1. Generate the file if it's missing
             if (!existsSync(rulesFile)) {
@@ -34,7 +33,6 @@ function rulesRoutePlugin() {
             }
 
             // 2. Serve the file MANUALLY
-            // This prevents Vite from falling back to the root index.html
             try {
                 const content = await Deno.readFile(rulesFile);
                 res.setHeader("Content-Type", "text/html");

@@ -2,7 +2,7 @@ node_modules/
 dist/
 .vite/
 .vera/
-public/rules/
+public/rules.html
 
 .coverage/
 .playwright-cli/
