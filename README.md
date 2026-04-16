@@ -21,12 +21,14 @@ deno task dev
 # Open http://localhost:8080 in your browser
 ```
 
-1. **Start** — Click "Start Game" on the title screen
-2. **Select a Theater** — Click a theater board to select it, or hit Random
-   Theater
-3. **Select** — Click a card from your hand (bottom of screen)
-4. **Place** — Click an empty seat in the theater grid to place that patron
-5. **Score** — The game ends when the deck runs out (56 cards, 14 turns)
+1. **Start** — Click the number of players on the title screen
+1. **Player Setup** — Choose human or AI for each slot, pick AI difficulty, and select player colors
+1. **Select a Theater** — Click a theater board to select it, or hit Random Theater
+1. On your turn: 
+   1. **Draw** a new card from the lobby (known) or deck (blind). 
+   1. **Select** — Click a card from your hand (bottom of screen)
+   1. **Place** — Click an empty seat in the theater grid to place that patron
+1. **Score** — The game ends when the deck runs out (56 cards, 14 turns)
 
 ### Primary Patrons
 
