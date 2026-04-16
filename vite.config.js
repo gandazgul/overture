@@ -1,6 +1,7 @@
 /** @type {import('npm:vite').UserConfig} */
 export default {
     root: ".",
+    base: './', // This forces Vite to use relative paths for all assets
     publicDir: "public",
     server: {
         port: 8080,

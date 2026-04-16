@@ -402,6 +402,7 @@ export class GameScene extends Phaser.Scene {
                     this.selectedCard.setSelected(false);
                     this.selectedCard = null;
                     this.hideScoringTooltip();
+                    this.updateFrontSeatGuidance();
                 }
                 this.hideSeatScoreTooltip();
             },
@@ -741,6 +742,7 @@ export class GameScene extends Phaser.Scene {
         const grid = this.placedPatrons[this.currentPlayer];
         this.hideSeatScoreTooltip();
         this.theaterGrid?.renderTheater(grid);
+        this.updateFrontSeatGuidance();
     }
 
     /**
@@ -887,6 +889,7 @@ export class GameScene extends Phaser.Scene {
         }
         this.handCards = [];
         this.selectedCard = null;
+        this.updateFrontSeatGuidance();
     }
 
     renderHand() {
@@ -962,6 +965,56 @@ export class GameScene extends Phaser.Scene {
     }
 
     /**
+     * @param {import('../types.js').CardData | null | undefined} cardData
+     */
+    cardCaresAboutFrontSeats(cardData) {
+        if (!cardData) {
+            return false;
+        }
+
+        // Front-seat bonus currently exists on VIP primary scoring.
+        return cardData.type === PatronType.VIP;
+    }
+
+    /**
+     * @param {import('../types.js').CardData | null | undefined} cardData
+     */
+    cardCaresAboutAisleSeats(cardData) {
+        if (!cardData) {
+            return false;
+        }
+
+        // Critic values aisle seats.
+        return cardData.type === PatronType.CRITIC;
+    }
+
+    updateFrontSeatGuidance() {
+        if (!this.theaterGrid) {
+            return;
+        }
+
+        const frontActive =
+            this.turnPhase === "play" &&
+            !!this.selectedCard &&
+            this.cardCaresAboutFrontSeats(this.selectedCard.cardData);
+
+        const aisleActive =
+            this.turnPhase === "play" &&
+            !!this.selectedCard &&
+            this.cardCaresAboutAisleSeats(this.selectedCard.cardData);
+
+        this.theaterGrid.setFrontSeatGuidance(frontActive, {
+            // Keep the map clean: only show explicit front badges while guidance is active.
+            showBadges: frontActive,
+        });
+
+        this.theaterGrid.setAisleSeatGuidance(aisleActive, {
+            // Same cleanliness rule for aisle hints.
+            showBadges: aisleActive,
+        });
+    }
+
+    /**
      * @param {Card} card
      */
     selectCard(card) {
@@ -978,6 +1031,7 @@ export class GameScene extends Phaser.Scene {
         card.setSelected(true);
         this.selectedCard = card;
 
+        this.updateFrontSeatGuidance();
         this.showScoringTooltip(card);
     }
 
@@ -1091,6 +1145,7 @@ export class GameScene extends Phaser.Scene {
         }
         this.selectedCard = null;
         this.hideScoringTooltip();
+        this.updateFrontSeatGuidance();
 
         // Check if 2-player discard is needed
         if (

@@ -53,6 +53,10 @@ export class TheaterGrid extends Phaser.GameObjects.Container {
     static BLACKBOX_AISLE_BORDER_COLOR = 0x493D18;
     static BLACKBOX_AISLE_DASH_COLOR = 0x493D18;
     static BREAK_LINE_COLOR = 0x555577;
+    static FRONT_STRIP_COLOR = 0x8b1a2b; // crimson velvet accent
+    static FRONT_STRIP_GLOW_COLOR = 0xd46a7a;
+    static AISLE_GUIDE_COLOR = 0xd4af37;
+    static AISLE_GUIDE_GLOW_COLOR = 0xf5de8a;
     static ROYAL_BOX_TAG_KEY = "tag_royal_box";
     static ROYAL_BOX_TAG_SIZE = s(64);
 
@@ -72,6 +76,36 @@ export class TheaterGrid extends Phaser.GameObjects.Container {
 
     /** @type {SeatCallbacks} */
     callbacks;
+
+    /** @type {Map<string, Phaser.GameObjects.Rectangle>} */
+    frontSeatStrips = new Map();
+
+    /** @type {Map<string, Phaser.GameObjects.Container>} */
+    frontSeatBadges = new Map();
+
+    /** @type {Map<string, Phaser.Tweens.Tween>} */
+    frontSeatPulseTweens = new Map();
+
+    /** @type {boolean} */
+    frontSeatGuidanceActive = false;
+
+    /** @type {boolean} */
+    frontSeatGuidanceShowBadges = false;
+
+    /** @type {Map<string, Phaser.GameObjects.Rectangle>} */
+    aisleSeatGuides = new Map();
+
+    /** @type {Map<string, Phaser.GameObjects.Container>} */
+    aisleSeatBadges = new Map();
+
+    /** @type {Map<string, Phaser.Tweens.Tween>} */
+    aisleSeatPulseTweens = new Map();
+
+    /** @type {boolean} */
+    aisleSeatGuidanceActive = false;
+
+    /** @type {boolean} */
+    aisleSeatGuidanceShowBadges = false;
 
     /** @type {number} */
     gridStartY = 0;
@@ -114,6 +148,22 @@ export class TheaterGrid extends Phaser.GameObjects.Container {
         this.removeAll(true);
         this.seatGrid = [];
         this.seatLabels = [];
+        for (const tween of this.frontSeatPulseTweens.values()) {
+            tween.stop();
+        }
+        for (const tween of this.aisleSeatPulseTweens.values()) {
+            tween.stop();
+        }
+        this.frontSeatStrips.clear();
+        this.frontSeatBadges.clear();
+        this.frontSeatPulseTweens.clear();
+        this.frontSeatGuidanceActive = false;
+        this.frontSeatGuidanceShowBadges = false;
+        this.aisleSeatGuides.clear();
+        this.aisleSeatBadges.clear();
+        this.aisleSeatPulseTweens.clear();
+        this.aisleSeatGuidanceActive = false;
+        this.aisleSeatGuidanceShowBadges = false;
 
         const breakMetadata = this.deriveLayoutBreakMetadata();
         const geometry = this.computeGridGeometry(breakMetadata);
@@ -481,6 +531,7 @@ export class TheaterGrid extends Phaser.GameObjects.Container {
 
                 seat.setData("row", row);
                 seat.setData("col", col);
+                seat.setData("occupied", false);
                 seat.setData("emptyFill", seatStyle.emptyFill);
                 seat.setData("emptyStroke", seatStyle.emptyStroke);
                 seat.setData("strokeWidth", seatStyle.strokeWidth);
@@ -489,12 +540,20 @@ export class TheaterGrid extends Phaser.GameObjects.Container {
                 seat.on("pointerout", () => this.callbacks.onSeatPointerOut?.(row, col, seat));
                 seat.on("pointerdown", () => this.callbacks.onSeatPointerDown?.(row, col, seat));
 
+                this.seatGrid[row][col] = seat;
+                this.add(seat);
+
+                if (hasSeatLabel(row, col, "front", this.layout)) {
+                    this.addFrontSeatMarker(row, col, seat);
+                }
+
+                if (hasSeatLabel(row, col, "aisle", this.layout)) {
+                    this.addAisleSeatGuide(row, col, seat);
+                }
+
                 if (hasSeatLabel(row, col, "box", this.layout)) {
                     this.addRoyalBoxTag(x, y);
                 }
-
-                this.seatGrid[row][col] = seat;
-                this.add(seat);
             }
         }
     }
@@ -531,6 +590,197 @@ export class TheaterGrid extends Phaser.GameObjects.Container {
             emptyStroke: 0x3a3a5e,
             strokeWidth: s(2),
         };
+    }
+
+    /**
+     * Add a subtle crimson velvet strip on the stage-facing edge of front seats.
+     * Also prepares a centered "F" badge (hidden by default) for guided highlighting.
+     *
+     * @param {number} row
+     * @param {number} col
+     * @param {Phaser.GameObjects.Rectangle} seat
+     */
+    addFrontSeatMarker(row, col, seat) {
+        const scene = this.scene;
+        const seatBounds = this.getSeatBounds(seat);
+        const key = `${row},${col}`;
+
+        const strip = scene.add
+            .rectangle(
+                seat.x,
+                seatBounds.top + s(3),
+                seatBounds.width - s(6),
+                s(5),
+                TheaterGrid.FRONT_STRIP_COLOR,
+                0.95,
+            )
+            .setStrokeStyle(s(1), TheaterGrid.FRONT_STRIP_GLOW_COLOR, 0.7);
+
+        const badgeBg = scene.add
+            .circle(0, 0, s(12), TheaterGrid.FRONT_STRIP_COLOR, 0.96)
+            .setStrokeStyle(s(2), TheaterGrid.FRONT_STRIP_GLOW_COLOR, 0.9);
+        const badgeText = scene.add
+            .text(0, 0, "F", {
+                fontFamily: "Arial",
+                fontStyle: "bold",
+                fontSize: `${Math.max(12, Math.round(s(14)))}px`,
+                color: "#ffe7eb",
+            })
+            .setOrigin(0.5);
+
+        const badge = scene.add.container(seat.x, seat.y, [badgeBg, badgeText]);
+        badge.setVisible(false);
+
+        this.frontSeatStrips.set(key, strip);
+        this.frontSeatBadges.set(key, badge);
+
+        this.add(strip);
+        this.add(badge);
+    }
+
+    /**
+     * Toggle front-seat guidance mode.
+     *
+     * - Velvet strip remains as static affordance when seat is empty.
+     * - Optional pulse and "F" badges are only shown while guidance is active.
+     *
+     * @param {boolean} active
+     * @param {{ showBadges?: boolean }} [options]
+     */
+    setFrontSeatGuidance(active, options = {}) {
+        const { showBadges = false } = options;
+        this.frontSeatGuidanceActive = active;
+        this.frontSeatGuidanceShowBadges = showBadges;
+
+        for (const [key, strip] of this.frontSeatStrips.entries()) {
+            const [rowStr, colStr] = key.split(",");
+            const row = Number(rowStr);
+            const col = Number(colStr);
+            const seat = this.getSeat(row, col);
+            const isOccupied = !!seat?.getData("occupied");
+            const badge = this.frontSeatBadges.get(key);
+
+            strip.setVisible(!isOccupied);
+            if (badge) {
+                badge.setVisible(!isOccupied && active && showBadges);
+            }
+
+            if (!isOccupied && active) {
+                if (!this.frontSeatPulseTweens.has(key)) {
+                    const tween = this.scene.tweens.add({
+                        targets: strip,
+                        alpha: { from: 1, to: 0.45 },
+                        duration: 1100,
+                        yoyo: true,
+                        repeat: -1,
+                        ease: "Sine.easeInOut",
+                    });
+                    this.frontSeatPulseTweens.set(key, tween);
+                }
+            } else {
+                const tween = this.frontSeatPulseTweens.get(key);
+                if (tween) {
+                    tween.stop();
+                    this.frontSeatPulseTweens.delete(key);
+                }
+                strip.setAlpha(1);
+            }
+        }
+    }
+
+    /**
+     * Add a guidance overlay + centered badge for aisle seats.
+     * The overlay stays hidden unless aisle guidance is active.
+     *
+     * @param {number} row
+     * @param {number} col
+     * @param {Phaser.GameObjects.Rectangle} seat
+     */
+    addAisleSeatGuide(row, col, seat) {
+        const scene = this.scene;
+        const seatBounds = this.getSeatBounds(seat);
+        const key = `${row},${col}`;
+
+        const overlay = scene.add
+            .rectangle(
+                seat.x,
+                seat.y,
+                seatBounds.width - s(6),
+                seatBounds.height - s(6),
+                TheaterGrid.AISLE_GUIDE_COLOR,
+                0.2,
+            )
+            .setStrokeStyle(s(1), TheaterGrid.AISLE_GUIDE_GLOW_COLOR, 0.85)
+            .setVisible(false)
+            .setAlpha(0.2);
+
+        const badgeBg = scene.add
+            .circle(0, 0, s(12), TheaterGrid.AISLE_GUIDE_COLOR, 0.96)
+            .setStrokeStyle(s(2), TheaterGrid.AISLE_GUIDE_GLOW_COLOR, 0.9);
+        const badgeText = scene.add
+            .text(0, 0, "A", {
+                fontFamily: "Arial",
+                fontStyle: "bold",
+                fontSize: `${Math.max(12, Math.round(s(14)))}px`,
+                color: "#2d2204",
+            })
+            .setOrigin(0.5);
+
+        const badge = scene.add.container(seat.x, seat.y, [badgeBg, badgeText]);
+        badge.setVisible(false);
+
+        this.aisleSeatGuides.set(key, overlay);
+        this.aisleSeatBadges.set(key, badge);
+
+        this.add(overlay);
+        this.add(badge);
+    }
+
+    /**
+     * Toggle aisle-seat guidance mode (used when Critic is selected).
+     *
+     * @param {boolean} active
+     * @param {{ showBadges?: boolean }} [options]
+     */
+    setAisleSeatGuidance(active, options = {}) {
+        const { showBadges = false } = options;
+        this.aisleSeatGuidanceActive = active;
+        this.aisleSeatGuidanceShowBadges = showBadges;
+
+        for (const [key, overlay] of this.aisleSeatGuides.entries()) {
+            const [rowStr, colStr] = key.split(",");
+            const row = Number(rowStr);
+            const col = Number(colStr);
+            const seat = this.getSeat(row, col);
+            const isOccupied = !!seat?.getData("occupied");
+            const badge = this.aisleSeatBadges.get(key);
+
+            overlay.setVisible(!isOccupied && active);
+            if (badge) {
+                badge.setVisible(!isOccupied && active && showBadges);
+            }
+
+            if (!isOccupied && active) {
+                if (!this.aisleSeatPulseTweens.has(key)) {
+                    const tween = this.scene.tweens.add({
+                        targets: overlay,
+                        alpha: { from: 0.2, to: 0.58 },
+                        duration: 1100,
+                        yoyo: true,
+                        repeat: -1,
+                        ease: "Sine.easeInOut",
+                    });
+                    this.aisleSeatPulseTweens.set(key, tween);
+                }
+            } else {
+                const tween = this.aisleSeatPulseTweens.get(key);
+                if (tween) {
+                    tween.stop();
+                    this.aisleSeatPulseTweens.delete(key);
+                }
+                overlay.setAlpha(0.2);
+            }
+        }
     }
 
     /**
@@ -685,6 +935,41 @@ export class TheaterGrid extends Phaser.GameObjects.Container {
         const scene = this.scene;
         const seatBounds = this.getSeatBounds(seat);
 
+        seat.setData("occupied", true);
+
+        const row = Number(seat.getData("row"));
+        const col = Number(seat.getData("col"));
+        const frontKey = `${row},${col}`;
+        const frontStrip = this.frontSeatStrips.get(frontKey);
+        const frontBadge = this.frontSeatBadges.get(frontKey);
+        if (frontStrip) {
+            const pulse = this.frontSeatPulseTweens.get(frontKey);
+            if (pulse) {
+                pulse.stop();
+                this.frontSeatPulseTweens.delete(frontKey);
+            }
+            frontStrip.setVisible(false);
+            frontStrip.setAlpha(1);
+        }
+        if (frontBadge) {
+            frontBadge.setVisible(false);
+        }
+
+        const aisleGuide = this.aisleSeatGuides.get(frontKey);
+        const aisleBadge = this.aisleSeatBadges.get(frontKey);
+        if (aisleGuide) {
+            const pulse = this.aisleSeatPulseTweens.get(frontKey);
+            if (pulse) {
+                pulse.stop();
+                this.aisleSeatPulseTweens.delete(frontKey);
+            }
+            aisleGuide.setVisible(false);
+            aisleGuide.setAlpha(0.2);
+        }
+        if (aisleBadge) {
+            aisleBadge.setVisible(false);
+        }
+
         seat.setFillStyle(0x000000, 0);
         seat.setStrokeStyle(
             s(2),
@@ -763,6 +1048,8 @@ export class TheaterGrid extends Phaser.GameObjects.Container {
                     continue;
                 }
 
+                seat.setData("occupied", false);
+
                 const emptyFill = seat.getData("emptyFill") ?? 0x1a1a3e;
                 const emptyStroke = seat.getData("emptyStroke") ?? 0x3a3a5e;
                 const strokeWidth = seat.getData("strokeWidth") ?? s(2);
@@ -774,5 +1061,13 @@ export class TheaterGrid extends Phaser.GameObjects.Container {
                 }
             }
         }
+
+        // Re-apply seat guidance state after occupancy has been refreshed.
+        this.setFrontSeatGuidance(this.frontSeatGuidanceActive, {
+            showBadges: this.frontSeatGuidanceShowBadges,
+        });
+        this.setAisleSeatGuidance(this.aisleSeatGuidanceActive, {
+            showBadges: this.aisleSeatGuidanceShowBadges,
+        });
     }
 }

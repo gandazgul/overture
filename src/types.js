@@ -515,6 +515,7 @@ export const GrandEmpressLayout = {
     gridMarginTop: 30,
     gridMarginBottom: 80,
     aisleCols: [0, 4],
+    frontRows: [0],
     backRows: [3],
     houseRule: null,
     houseRuleDescription: "The Classics — No special demand. Vanilla scoring.",
@@ -534,6 +535,7 @@ export const BlackboxLayout = {
     gridMarginTop: 20,
     gridMarginBottom: 55,
     aisleCols: [1, 2],
+    frontRows: [0],
     backRows: [4],
     houseRule: "intimate-venue",
     houseRuleDescription: "Intimate Venue — Each patron adjacent to 3+ others gets +1 VP.",
@@ -553,6 +555,7 @@ export const OperaHouseLayout = {
     gridMarginTop: 30,
     gridMarginBottom: 80,
     aisleCols: [0, 4],
+    frontRows: [0, 1],
     backRows: [3],
     // Front box row is visually/adjacency-separated from main house rows.
     adjacencyBreaks: [[0, 1]],
@@ -578,6 +581,7 @@ export const PromenadeLayout = {
     gridMarginTop: 30,
     gridMarginBottom: 80,
     aisleCols: [], // not used — aisleColsByRow takes precedence
+    frontRows: [0],
     aisleColsByRow: [
         [0, 4], // Row 0
         [2], // Row 1
@@ -605,6 +609,7 @@ export const AmphitheaterLayout = {
     gridMarginTop: 30,
     gridMarginBottom: 80,
     aisleCols: [],
+    frontRows: [0],
     backRows: [3],
     seatMask: [
         //       col: 0     1     2     3     4     5
@@ -655,6 +660,7 @@ export const DinnerPlayhouseLayout = {
     gridMarginTop: 30,
     gridMarginBottom: 80,
     aisleCols: [],
+    frontRows: [0],
     backRows: [3],
     adjacencyBreaks: [[1, 2]], // Horizontal gap between row-pairs (top 3 tables / bottom 3 tables)
     seatMask: buildGappedMask(4, 8, [2, 5]),

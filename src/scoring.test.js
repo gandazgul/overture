@@ -977,10 +977,10 @@ Deno.test("Amphitheater: diagonal-like stagger adjacency does NOT count for Teac
 
 Deno.test("Amphitheater: VIP adjacency penalty applies to staggered behind Kid", () => {
     const grid = emptyGrid(AmphitheaterLayout);
-    place(grid, 1, 2, PatronType.VIP); // front row bonus applies on row 1
+    place(grid, 1, 2, PatronType.VIP); // row 1 is not front in Amphitheater
     place(grid, 2, 3, PatronType.KID); // staggered behind-right adjacency
     const result = scorePlayer(grid, AmphitheaterLayout);
-    assertEquals(result.perSeat[1][2], 3); // 3 base +3 front -3 adjacent Kid
+    assertEquals(result.perSeat[1][2], 0); // 3 base -3 adjacent Kid
 });
 
 Deno.test("Amphitheater: Short behind staggered-front Tall gets Tall-in-front penalty", () => {
