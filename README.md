@@ -14,7 +14,7 @@ special placement rules and synergies!
 
 ## 🚀 Play the Game
 
-<iframe frameborder="0" src="https://itch.io/embed/4481146?linkback=true&amp;bg_color=1A1A2E&amp;fg_color=E0E0E0&amp;link_color=D4AF37&amp;border_color=3e3e4b" width="552" height="167"><a href="https://gandazgul.itch.io/overture">Overture by gandazgul</a></iframe>
+[Play on Itch.io ►](https://gandazgul.itch.io/overture)
 
 ```bash
 # Run the development server
