@@ -7,7 +7,7 @@
     },
     "tasks": {
         "dev": "deno run -A npm:vite@5",
-        "build": "deno run -A npm:vite@5 build",
+        "build": "deno run -A scripts/generate-rules-page.js && deno run -A npm:vite@5 build",
         "preview": "deno run -A npm:vite@5 preview",
         "serve": "deno run -A server.js",
         "check": "deno check --doc **/*.js",
@@ -16,7 +16,9 @@
         "format": "deno fmt",
         "ci": "deno task check && deno fmt --check && deno task lint && deno task test",
         "generate": "deno run -A scripts/generate-assets.js",
-        "optimize": "deno run -A scripts/optimize-assets.js"
+        "optimize": "deno run -A scripts/optimize-assets.js",
+        "screenshots": "deno run -A scripts/capture-missing-theater-screenshots.js",
+        "rules": "deno run -A scripts/generate-rules-page.js"
     },
     "imports": {
         "phaser": "npm:phaser@^3.86.0",

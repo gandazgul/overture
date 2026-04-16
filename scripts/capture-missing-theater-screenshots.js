@@ -7,7 +7,7 @@ import { join } from "node:path";
 import { LayoutOrder } from "../src/types.js";
 
 const VIEWPORT = { width: 1280, height: 720 };
-const OUTPUT_DIR = join("docs", "images");
+const OUTPUT_DIR = join("public", "assets", "rules");
 const PORT_START = 8080;
 const PORT_END = 8090;
 

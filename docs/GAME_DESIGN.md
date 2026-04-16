@@ -435,7 +435,7 @@ higher-scoring patrons. Critics score only 3 VP base (no aisle seats exist).
 ### The Ziegfeld Runway
 
 <p align="center">
-  <img src="images/theater-ziegfeld-runway.png" alt="The Ziegfeld Runway" width="600" />
+  <img src="../public/assets/rules/theater-ziegfeld-runway.png" alt="The Ziegfeld Runway" width="600" />
 </p>
 
 ```

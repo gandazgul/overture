@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="images/logo.png" alt="Overture" width="500" />
+  <img src="./assets/ui_logo.png" alt="Overture" width="500" />
 </p>
 
 <h2 align="center">Rule Book</h2>
@@ -43,7 +43,7 @@ The player with the **highest total VP** when the deck runs out wins.
 5. **Score** — After round 14, tally VP for every patron in your theater. Highest score wins!
 
 <p align="center">
-  <img src="images/theater-grand-empress.png" alt="The Grand Empress — game in progress" width="700" />
+  <img src="./assets/rules/theater-grand-empress.png" alt="The Grand Empress — game in progress" width="700" />
   <br><em>The game board: theater grid (center), your hand (bottom), round tracker & scores (right).</em>
 </p>
 
@@ -108,7 +108,7 @@ The deck contains **7 primary patron types**. Each card is one type, defining ho
 
 ### Patron — The Reliable Regular
 
-<img src="images/patron-patron.png" alt="Patron" width="80" align="left" style="margin-right:16px" />
+<img src="./assets/patron_patron.png" alt="Patron" width="80" align="left" style="margin-right:16px" />
 
 **3 VP** anywhere, no conditions.
 
@@ -120,7 +120,7 @@ The backbone of your theater. Drop them wherever you have a hole. They won't imp
 
 ### VIP — The High Roller
 
-<img src="images/patron-vip.png" alt="VIP" width="80" align="left" style="margin-right:16px" />
+<img src="./assets/patron_vip.png" alt="VIP" width="80" align="left" style="margin-right:16px" />
 
 **3 VP** base.<br>
 **+3 VP** if seated in a **front row** (first 2 rows).<br>
@@ -135,7 +135,7 @@ The rarest cards in the deck (only 4). Front-row VIPs score 6 VP — but keep th
 
 ### Lovebirds — The Inseparable Couple
 
-<img src="images/patron-lovebirds.png" alt="Lovebirds" width="80" align="left" style="margin-right:16px" />
+<img src="./assets/patron_lovebirds.png" alt="Lovebirds" width="80" align="left" style="margin-right:16px" />
 
 **1 VP** base (alone).<br>
 **+3 VP** if **horizontally paired** — adjacent to another Lovebirds in the same row.<br>
@@ -149,7 +149,7 @@ Pairs only! Two adjacent Lovebirds = 4 VP each. Three in a row? The first two pa
 
 ### Kid — The Wild Card
 
-<img src="images/patron-kid.png" alt="Kid" width="80" align="left" style="margin-right:16px" />
+<img src="./assets/patron_kid.png" alt="Kid" width="80" align="left" style="margin-right:16px" />
 
 **1 VP** uncapped.<br>
 **3 VP** when **capped** by Teachers.
@@ -162,7 +162,7 @@ A Kid is capped when a contiguous horizontal group of Kids has a **Teacher on bo
 
 ### Teacher — The Chaperone
 
-<img src="images/patron-teacher.png" alt="Teacher" width="80" align="left" style="margin-right:16px" />
+<img src="./assets/patron_teacher.png" alt="Teacher" width="80" align="left" style="margin-right:16px" />
 
 **3 VP** base.<br>
 **+1 VP** per adjacent **capped Kid**.
@@ -175,7 +175,7 @@ Teachers are useful solo (3 VP), but shine when capping Kids. A Teacher flanking
 
 ### Critic — The Aisle Snob
 
-<img src="images/patron-critic.png" alt="Critic" width="80" align="left" style="margin-right:16px" />
+<img src="./assets/patron_critic.png" alt="Critic" width="80" align="left" style="margin-right:16px" />
 
 **3 VP** base.<br>
 **+3 VP** if seated in an **aisle seat** (gold-bordered).<br>
@@ -189,7 +189,7 @@ Critics in the aisle score 6 VP — one of the easiest high-value placements. Bu
 
 ### Friends — The Social Butterflies
 
-<img src="images/patron-friends.png" alt="Friends" width="80" align="left" style="margin-right:16px" />
+<img src="./assets/patron_friends.png" alt="Friends" width="80" align="left" style="margin-right:16px" />
 
 **3 VP** base.<br>
 **+1 VP** per orthogonally adjacent **Friends**.
@@ -208,7 +208,7 @@ About 43% of cards have a **secondary trait** on top of their primary type. Trai
 
 ### Tall
 
-<img src="images/badge-tall.png" alt="Tall badge" width="48" align="left" style="margin-right:12px" />
+<img src="./assets/badge_tall.png" alt="Tall badge" width="48" align="left" style="margin-right:12px" />
 
 The patron seated **directly behind** this card gets **−2 VP**.
 
@@ -220,7 +220,7 @@ The Tall patron itself is unaffected. Place them in the **back row** where no on
 
 ### Short
 
-<img src="images/badge-short.png" alt="Short badge" width="48" align="left" style="margin-right:12px" />
+<img src="./assets/badge_short.png" alt="Short badge" width="48" align="left" style="margin-right:12px" />
 
 **+2 VP** if the seat directly in front is **empty** (or this is the front row).<br>
 **−3 VP** if a **Tall** patron is directly in front.
@@ -233,7 +233,7 @@ Short patrons love unobstructed views — place them in the front row or behind 
 
 ### Bespectacled
 
-<img src="images/badge-bespectacled.png" alt="Bespectacled badge" width="48" align="left" style="margin-right:12px" />
+<img src="./assets/badge_bespectacled.png" alt="Bespectacled badge" width="48" align="left" style="margin-right:12px" />
 
 **+2 VP** unless seated in the **back row**.
 
@@ -245,7 +245,7 @@ Simple and strong. Front three rows = bonus VP. Back row = no bonus. A Bespectac
 
 ### Noisy
 
-<img src="images/badge-noisy.png" alt="Noisy badge" width="48" align="left" style="margin-right:12px" />
+<img src="./assets/badge_noisy.png" alt="Noisy badge" width="48" align="left" style="margin-right:12px" />
 
 Each **orthogonally adjacent** patron (any type) gets **−1 VP**.
 
@@ -329,7 +329,7 @@ Each game is played on one of **8 unique theaters**. The theater defines the gri
 ### The Grand Empress
 
 <p align="center">
-  <img src="images/theater-grand-empress.png" alt="The Grand Empress" width="600" />
+  <img src="./assets/rules/theater-grand-empress.png" alt="The Grand Empress" width="600" />
 </p>
 
 **House Rule: "The Classics"** — No special demand. Vanilla scoring.
@@ -341,7 +341,7 @@ The learning theater. Wide aisles make Critics strong. Broad rows are ideal for 
 ### The Blackbox
 
 <p align="center">
-  <img src="images/theater-blackbox.png" alt="The Blackbox" width="600" />
+  <img src="./assets/rules/theater-blackbox.png" alt="The Blackbox" width="600" />
 </p>
 
 **House Rule: "Intimate Venue"** — Each patron adjacent to 3+ others gets **+1 VP**.
@@ -353,7 +353,7 @@ Narrow and deep (5 rows). Aisle seats are center-only, making Critic placement u
 ### The Opera House
 
 <p align="center">
-  <img src="images/theater-opera-house.png" alt="The Opera House" width="600" />
+  <img src="./assets/rules/theater-opera-house.png" alt="The Opera House" width="600" />
 </p>
 
 **House Rule: "Royal Approval"** — Your single highest-scoring patron gets **+3 VP**. Tiebreaker: front-most, then left-most.
@@ -365,7 +365,7 @@ Royal Boxes are isolated — they're not adjacent to any regular seats. A Bespec
 ### The Promenade
 
 <p align="center">
-  <img src="images/theater-promenade.png" alt="The Promenade" width="600" />
+  <img src="./assets/rules/theater-promenade.png" alt="The Promenade" width="600" />
 </p>
 
 **House Rule: "Wandering Critics"** — +1 VP per Critic if you have **3+ Critics in aisle seats**.
@@ -377,7 +377,7 @@ Aisles shift row by row, so you can't stack Critics in one column. Spreading Cri
 ### The Amphitheater
 
 <p align="center">
-  <img src="images/theater-amphitheater.png" alt="The Amphitheater" width="600" />
+  <img src="./assets/rules/theater-amphitheater.png" alt="The Amphitheater" width="600" />
 </p>
 
 **House Rule: "The Panorama"** — **+2 VP** for each completely filled row.
@@ -389,7 +389,7 @@ Zero aisles = Critics are dead (3 VP only, no aisle bonus). The narrow 3-seat fr
 ### The Dinner Playhouse
 
 <p align="center">
-  <img src="images/theater-dinner-playhouse.png" alt="The Dinner Playhouse" width="600" />
+  <img src="./assets/rules/theater-dinner-playhouse.png" alt="The Dinner Playhouse" width="600" />
 </p>
 
 **House Rule: "Full Tables"** — **+3 VP** for each 2×2 table where all 4 seats are occupied.
@@ -403,7 +403,7 @@ Gaps between tables break adjacency — Noisy only hurts tablemates. Lovebirds p
 ### The Ziegfeld Runway
 
 <p align="center">
-  <img src="images/theater-ziegfeld-runway.png" alt="The Ziegfeld Runway" width="600" />
+  <img src="./assets/rules/theater-ziegfeld-runway.png" alt="The Ziegfeld Runway" width="600" />
 </p>
 
 **House Rule: "Runway Pressure"** — A T-shaped stage runway splits the audience in two and shrinks total capacity to 15 seats.
@@ -417,7 +417,7 @@ The runway acts like a permanent wall where stage cells remove seat adjacency, s
 ### The Rotunda
 
 <p align="center">
-  <img src="images/theater-rotunda.png" alt="The Rotunda" width="600" />
+  <img src="./assets/rules/theater-rotunda.png" alt="The Rotunda" width="600" />
 </p>
 
 **House Rule: "In the Round"** — No back row. 10 inner-ring seats are front row. 6 outer-ring seats are aisles.

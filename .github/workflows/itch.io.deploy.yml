@@ -1,0 +1,37 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - v*
+
+jobs:
+  exports:
+    name: Build, Release, and Upload
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v2.x
+
+      - name: Install dependencies and Build
+        run: |
+          deno install
+          deno task build
+
+      - name: Set Version
+        run: |
+          echo "version=${GITHUB_REF/refs\/tags\/v/}" >> $GITHUB_ENV
+
+      - name: Upload web to itch.io project
+        uses: robpc/itchio-upload-action@v1
+        with:
+          path: dist/
+          project: gandazgul/overture
+          channel: web
+          version: ${{ env.version }}
+          api-key: ${{ secrets.ITCHIO_API_KEY }}

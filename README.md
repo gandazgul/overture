@@ -10,7 +10,7 @@ maximize victory points and manage theater chaos.
 Seat patrons strategically to earn victory points. Different patron types have
 special placement rules and synergies!
 
-📖 **[Read the full Rule Book](./docs/RULE_BOOK.md)** — covers all patrons, traits, theaters, and scoring in detail.
+📖 **[Read the full Rule Book](public/RULE_BOOK.md)** — covers all patrons, traits, theaters, and scoring in detail.
 
 ## 🚀 Play the Game
 
@@ -211,7 +211,7 @@ straightforward to test in isolation.
 
 ## 📚 Documentation
 
-- **[Rule Book](./docs/RULE_BOOK.md)** — Learn how to play: all patron types, traits, scoring rules, and 8 theaters explained with screenshots.
+- **[Rule Book](public/RULE_BOOK.md)** — Learn how to play: all patron types, traits, scoring rules, and 8 theaters explained with screenshots.
 - **[Game Design Document](./docs/GAME_DESIGN.md)** — Full design spec including planned features and ideas (lobby, play cards, season deck).
 
 ## 🚧 Roadmap
