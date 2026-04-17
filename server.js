@@ -13,6 +13,12 @@ const ANALYTICS_BASIC_AUTH_USER = Deno.env.get("ANALYTICS_BASIC_AUTH_USER") ?? "
 const ANALYTICS_BASIC_AUTH_PASS = Deno.env.get("ANALYTICS_BASIC_AUTH_PASS") ?? "";
 const RATE_LIMIT_PER_MINUTE = Number(Deno.env.get("ANALYTICS_RATE_LIMIT_PER_MINUTE") ?? "30");
 const MAX_BEACON_BYTES = Number(Deno.env.get("ANALYTICS_MAX_BEACON_BYTES") ?? "65536");
+const BEACON_ALLOWED_ORIGINS = new Set([
+    "https://gandazgul.itch.io",
+    "https://overture.dumbhome.uk",
+]);
+const LOCALHOST_CORS_PORT_MIN = 8080;
+const LOCALHOST_CORS_PORT_MAX = 8090;
 
 /** @type {Map<string, { windowStartMs: number, count: number }>} */
 const RATE_BUCKETS = new Map();
@@ -481,35 +487,104 @@ function renderReportHtml(data, crunchResult, debugFilter) {
 /**
  * @param {Request} req
  */
+function getBeaconCorsHeaders(req) {
+    const origin = req.headers.get("origin");
+    if (!origin) {
+        return null;
+    }
+
+    if (!BEACON_ALLOWED_ORIGINS.has(origin)) {
+        try {
+            const originUrl = new URL(origin);
+            const port = Number(originUrl.port);
+            const isAllowedLocalhost = originUrl.protocol === "http:" && originUrl.hostname === "localhost" &&
+                Number.isInteger(port) &&
+                port >= LOCALHOST_CORS_PORT_MIN &&
+                port <= LOCALHOST_CORS_PORT_MAX;
+
+            if (!isAllowedLocalhost) {
+                return null;
+            }
+        } catch {
+            return null;
+        }
+    }
+
+    return new Headers({
+        "Access-Control-Allow-Origin": origin,
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+        "Access-Control-Max-Age": "86400",
+        "Vary": "Origin",
+    });
+}
+
+/**
+ * @param {HeadersInit | undefined} baseHeaders
+ * @param {Headers | null} corsHeaders
+ */
+function mergeResponseHeaders(baseHeaders, corsHeaders) {
+    const headers = new Headers(baseHeaders);
+    if (corsHeaders) {
+        for (const [key, value] of corsHeaders.entries()) {
+            headers.set(key, value);
+        }
+    }
+    return headers;
+}
+
+/**
+ * @param {Request} req
+ */
 async function handleBeacon(req) {
+    const corsHeaders = getBeaconCorsHeaders(req);
+
+    /**
+     * @param {BodyInit | null} body
+     * @param {ResponseInit} init
+     */
+    const respond = (body, init) => {
+        return new Response(body, {
+            ...init,
+            headers: mergeResponseHeaders(init.headers, corsHeaders),
+        });
+    };
+
+    if (req.method === "OPTIONS") {
+        return respond(null, {
+            status: 204,
+            headers: { "Allow": "POST, OPTIONS" },
+        });
+    }
+
     if (req.method !== "POST") {
-        return new Response("Method not allowed", {
+        return respond("Method not allowed", {
             status: 405,
-            headers: { "Allow": "POST" },
+            headers: { "Allow": "POST, OPTIONS" },
         });
     }
 
     const ip = getClientIp(req);
     if (!consumeRateLimit(ip)) {
-        return new Response("Rate limit exceeded", { status: 429 });
+        return respond("Rate limit exceeded", { status: 429 });
     }
 
     const rawBody = await req.text();
     const bodyBytes = new TextEncoder().encode(rawBody).byteLength;
     if (bodyBytes > MAX_BEACON_BYTES) {
-        return new Response("Payload too large", { status: 413 });
+        return respond("Payload too large", { status: 413 });
     }
 
     let parsed;
     try {
         parsed = JSON.parse(rawBody);
     } catch {
-        return new Response("Invalid JSON", { status: 400 });
+        return respond("Invalid JSON", { status: 400 });
     }
 
     const validationError = validateBeaconPayload(parsed);
     if (validationError) {
-        return new Response(validationError, { status: 400 });
+        return respond(validationError, { status: 400 });
     }
 
     await ensureParentDir(ANALYTICS_JSONL_PATH);
@@ -525,7 +600,7 @@ async function handleBeacon(req) {
         { append: true, create: true },
     );
 
-    return new Response(null, {
+    return respond(null, {
         status: 204,
     });
 }
