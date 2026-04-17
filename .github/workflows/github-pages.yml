@@ -4,6 +4,8 @@ on:
     push:
         branches:
             - main
+        paths:
+            - public/RULE_BOOK.md
 
 permissions:
     contents: read

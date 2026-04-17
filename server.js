@@ -515,7 +515,7 @@ function getBeaconCorsHeaders(req) {
     return new Headers({
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
+        "Access-Control-Allow-Headers": "*",
         "Access-Control-Max-Age": "86400",
         "Vary": "Origin",
     });
@@ -532,6 +532,7 @@ function mergeResponseHeaders(baseHeaders, corsHeaders) {
             headers.set(key, value);
         }
     }
+
     return headers;
 }
 
@@ -555,7 +556,7 @@ async function handleBeacon(req) {
     if (req.method === "OPTIONS") {
         return respond(null, {
             status: 204,
-            headers: { "Allow": "POST, OPTIONS" },
+            headers: corsHeaders,
         });
     }
 
