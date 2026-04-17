@@ -490,9 +490,9 @@ function renderReportHtml(data, crunchResult, debugFilter) {
  */
 function getBeaconCorsHeaders(req) {
     const origin = req.headers.get("origin");
-    console.log(`got origin header`, origin);
+    console.log(`CORS: got origin header:`, origin);
     if (!origin) {
-        return null;
+        console.log(`CORS: would have denied because no origin`);
     }
 
     if (!BEACON_ALLOWED_ORIGINS.has(origin)) {
@@ -505,15 +505,15 @@ function getBeaconCorsHeaders(req) {
                 port <= LOCALHOST_CORS_PORT_MAX;
 
             if (!isAllowedLocalhost) {
-                return null;
+                console.log(`CORS: would have denied`)
             }
         } catch {
-            return null;
+            console.log(`CORS: would have denied`)
         }
     }
 
     return new Headers({
-        "Access-Control-Allow-Origin": origin,
+        "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type",
         "Access-Control-Max-Age": "86400",
