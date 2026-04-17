@@ -22,9 +22,12 @@
         "analytics:crunch": "deno run --env-file -A scripts/analytics-crunch.js"
     },
     "imports": {
+        "@src/": "./src/",
+        "@std/http/file-server": "jsr:@std/http/file-server",
+        "@google/genai": "npm:@google/genai@^1.49.0",
         "phaser": "npm:phaser@^3.86.0",
-        "sharp": "npm:sharp@^0.34.5",
-        "@google/genai": "npm:@google/genai@^1.49.0"
+        "pino": "npm:pino@^9.5.0",
+        "sharp": "npm:sharp@^0.34.5"
     },
     "exclude": [
         "dist/",

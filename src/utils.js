@@ -68,4 +68,50 @@ function randomInt(...args) {
     return min + (randomInt32 % (max - min + 1));
 }
 
-export { random, randomInt };
+/**
+ * @param {string} path
+ */
+function getParentDir(path) {
+    const normalized = path.replaceAll("\\", "/");
+    const lastSlash = normalized.lastIndexOf("/");
+
+    if (lastSlash <= 0) {
+        return ".";
+    }
+
+    return normalized.slice(0, lastSlash);
+}
+
+/**
+ * @param {string} path
+ */
+async function ensureParentDir(path) {
+    await Deno.mkdir(getParentDir(path), { recursive: true });
+}
+
+/**
+ * @param {Request} req
+ */
+function getClientIp(req) {
+    const forwarded = req.headers.get("x-forwarded-for");
+    if (forwarded) {
+        const first = forwarded.split(",")[0]?.trim();
+        if (first) {
+            return first;
+        }
+    }
+
+    const realIp = req.headers.get("x-real-ip");
+    if (realIp) {
+        return realIp;
+    }
+
+    const cfIp = req.headers.get("cf-connecting-ip");
+    if (cfIp) {
+        return cfIp;
+    }
+
+    return "unknown";
+}
+
+export { ensureParentDir, getClientIp, random, randomInt };
