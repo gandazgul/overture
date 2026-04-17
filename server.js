@@ -13,13 +13,6 @@ const ANALYTICS_BASIC_AUTH_USER = Deno.env.get("ANALYTICS_BASIC_AUTH_USER") ?? "
 const ANALYTICS_BASIC_AUTH_PASS = Deno.env.get("ANALYTICS_BASIC_AUTH_PASS") ?? "";
 const RATE_LIMIT_PER_MINUTE = Number(Deno.env.get("ANALYTICS_RATE_LIMIT_PER_MINUTE") ?? "30");
 const MAX_BEACON_BYTES = Number(Deno.env.get("ANALYTICS_MAX_BEACON_BYTES") ?? "65536");
-const BEACON_ALLOWED_ORIGINS = new Set([
-    "https://gandazgul.itch.io",
-    "https://html-classic.itch.zone",
-    "https://overture.dumbhome.uk",
-]);
-const LOCALHOST_CORS_PORT_MIN = 8080;
-const LOCALHOST_CORS_PORT_MAX = 8090;
 
 /** @type {Map<string, { windowStartMs: number, count: number }>} */
 const RATE_BUCKETS = new Map();
@@ -367,6 +360,7 @@ function renderReportHtml(data, crunchResult, debugFilter) {
       border: 1px solid var(--line);
       border-radius: 10px;
       padding: 14px;
+      overflow-x: auto;
     }
     table {
       width: 100%;
@@ -485,68 +479,34 @@ function renderReportHtml(data, crunchResult, debugFilter) {
 </html>`;
 }
 
-/**
- * @param {Request} req
- *
- * @return {Object} - the cors headers
- */
-function getBeaconCorsHeaders(req) {
-    const origin = req.headers.get("origin");
-    console.log(`CORS: got origin header:`, origin);
-    if (!origin) {
-        console.log(`CORS: would have denied because no origin`);
-    }
-
-    if (!BEACON_ALLOWED_ORIGINS.has(origin)) {
-        try {
-            const originUrl = new URL(origin);
-            const port = Number(originUrl.port);
-            const isAllowedLocalhost = originUrl.protocol === "http:" && originUrl.hostname === "localhost" &&
-                Number.isInteger(port) &&
-                port >= LOCALHOST_CORS_PORT_MIN &&
-                port <= LOCALHOST_CORS_PORT_MAX;
-
-            if (!isAllowedLocalhost) {
-                console.log(`CORS: would have denied`)
-            }
-        } catch {
-            console.log(`CORS: would have denied`)
-        }
-    }
-
-    const corsHeaders = {
-        "Access-Control-Allow-Origin": origin,
+function getBeaconCorsHeaders() {
+    return new Headers({
+        "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "content-type",
-        "Access-Control-Allow-Credentials": "true",
-    };
-
-    console.log(`CORS: headers:`, corsHeaders);
-
-    return corsHeaders;
+        "Access-Control-Allow-Headers": "Content-Type",
+        "Access-Control-Max-Age": "86400",
+    });
 }
 
 /**
  * @param {Request} req
  */
 async function handleBeacon(req) {
-    const corsHeaders = getBeaconCorsHeaders(req);
+    const corsHeaders = getBeaconCorsHeaders();
 
     /**
      * @param {BodyInit | null} body
      * @param {ResponseInit} init
      */
     const respond = (body, init) => {
-        const resHeaders = {
-            ...(init.headers || {}),
-            ...corsHeaders,
-        };
-
-        console.log(`CORS: response headers:`, resHeaders);
+        const headers = new Headers(init.headers);
+        for (const [key, value] of corsHeaders.entries()) {
+            headers.set(key, value);
+        }
 
         return new Response(body, {
             ...init,
-            headers: new Headers(resHeaders),
+            headers,
         });
     };
 
