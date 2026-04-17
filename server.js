@@ -15,6 +15,7 @@ const RATE_LIMIT_PER_MINUTE = Number(Deno.env.get("ANALYTICS_RATE_LIMIT_PER_MINU
 const MAX_BEACON_BYTES = Number(Deno.env.get("ANALYTICS_MAX_BEACON_BYTES") ?? "65536");
 const BEACON_ALLOWED_ORIGINS = new Set([
     "https://gandazgul.itch.io",
+    "https://html-classic.itch.zone",
     "https://overture.dumbhome.uk",
 ]);
 const LOCALHOST_CORS_PORT_MIN = 8080;
@@ -489,6 +490,7 @@ function renderReportHtml(data, crunchResult, debugFilter) {
  */
 function getBeaconCorsHeaders(req) {
     const origin = req.headers.get("origin");
+    console.log(`got origin header`, origin);
     if (!origin) {
         return null;
     }
