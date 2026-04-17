@@ -487,6 +487,8 @@ function renderReportHtml(data, crunchResult, debugFilter) {
 
 /**
  * @param {Request} req
+ *
+ * @return {Object} - the cors headers
  */
 function getBeaconCorsHeaders(req) {
     const origin = req.headers.get("origin");
@@ -512,28 +514,17 @@ function getBeaconCorsHeaders(req) {
         }
     }
 
-    return new Headers({
+    const corsHeaders = {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "POST, OPTIONS",
         "Access-Control-Allow-Headers": "*",
         "Access-Control-Max-Age": "86400",
         "Vary": "Origin",
-    });
-}
+    };
 
-/**
- * @param {HeadersInit | undefined} baseHeaders
- * @param {Headers | null} corsHeaders
- */
-function mergeResponseHeaders(baseHeaders, corsHeaders) {
-    const headers = new Headers(baseHeaders);
-    if (corsHeaders) {
-        for (const [key, value] of corsHeaders.entries()) {
-            headers.set(key, value);
-        }
-    }
+    console.log(`CORS: headers:`, corsHeaders);
 
-    return headers;
+    return corsHeaders;
 }
 
 /**
@@ -547,16 +538,23 @@ async function handleBeacon(req) {
      * @param {ResponseInit} init
      */
     const respond = (body, init) => {
+        const resHeaders = {
+            ...(init.headers || {}),
+            ...corsHeaders,
+        };
+
+        console.log(`CORS: response headers:`, resHeaders);
+
         return new Response(body, {
             ...init,
-            headers: mergeResponseHeaders(init.headers, corsHeaders),
+            headers: new Headers(resHeaders),
         });
     };
 
     if (req.method === "OPTIONS") {
         return respond(null, {
             status: 204,
-            headers: corsHeaders,
+            headers: { "Allow": "POST, OPTIONS" },
         });
     }
 
@@ -603,9 +601,7 @@ async function handleBeacon(req) {
         { append: true, create: true },
     );
 
-    return respond(null, {
-        status: 204,
-    });
+    return respond(null, { status: 204 });
 }
 
 /**
