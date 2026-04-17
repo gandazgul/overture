@@ -518,6 +518,7 @@ function getBeaconCorsHeaders(req) {
         "Access-Control-Allow-Origin": origin,
         "Access-Control-Allow-Methods": "POST, OPTIONS",
         "Access-Control-Allow-Headers": "content-type",
+        "Access-Control-Allow-Credentials": "true",
     };
 
     console.log(`CORS: headers:`, corsHeaders);
