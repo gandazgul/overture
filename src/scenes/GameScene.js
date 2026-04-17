@@ -486,7 +486,7 @@ export class GameScene extends Phaser.Scene {
             startingCard: this.serializeCard(this.analytics.startingCards[idx]),
         }));
 
-        sendAnalyticsBeacon("/api/analytics/beacon", {
+        sendAnalyticsBeacon({
             eventType: "game_start",
             eventId: crypto.randomUUID(),
             gameId: this.analytics.gameId,
@@ -1982,7 +1982,7 @@ export class GameScene extends Phaser.Scene {
     // ══════════════════════════════════════════════════════════════════
 
     endGame() {
-        sendAnalyticsBeacon("/api/analytics/beacon", this.buildGameEndPayload());
+        sendAnalyticsBeacon(this.buildGameEndPayload());
 
         this.scene.start("EndGameScene", {
             playerCount: this.playerCount,
