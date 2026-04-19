@@ -1,6 +1,6 @@
 import { buildAnalyticsReportData, crunchAnalytics } from "../../scripts/analytics-crunch.js";
-import { ensureParentDir } from "@src/utils.js";
-import { ANALYTICS_REPORT_TEMPLATE } from "@src/api/analytics-report-template.js";
+import { ensureParentDir } from "../utils.js";
+import { ANALYTICS_REPORT_TEMPLATE } from "./analytics-report-template.js";
 
 const ANALYTICS_JSONL_PATH = Deno.env.get("ANALYTICS_JSONL_PATH") ?? "/app/data/analytics.jsonl";
 const ANALYTICS_DB_PATH = Deno.env.get("ANALYTICS_DB_PATH") ?? "/app/data/analytics.sqlite";

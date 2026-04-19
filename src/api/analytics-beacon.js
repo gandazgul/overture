@@ -1,4 +1,4 @@
-import { ensureParentDir, getClientIp } from "@src/utils.js";
+import { ensureParentDir, getClientIp } from "../utils.js";
 
 const ANALYTICS_JSONL_PATH = Deno.env.get("ANALYTICS_JSONL_PATH") ?? "/app/data/analytics.jsonl";
 const RATE_LIMIT_PER_MINUTE = Number(Deno.env.get("ANALYTICS_RATE_LIMIT_PER_MINUTE") ?? "30");

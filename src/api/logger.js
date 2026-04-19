@@ -1,5 +1,5 @@
 import pino from "pino";
-import { getClientIp } from "@src/utils.js";
+import { getClientIp } from "../utils.js";
 
 const logger = pino({
     level: Deno.env.get("LOG_LEVEL") ?? "info",
