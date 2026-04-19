@@ -2,7 +2,7 @@
 
 import { handleAnalyticsBeacon } from "./src/api/analytics-beacon.js";
 import { handleAnalyticsReport } from "./src/api/analytics-report.js";
-import { handleIndex } from "./src/api";
+import { handleIndex } from "./src/api/index.js";
 import { logAccess, logRequestError } from "./src/api/logger.js";
 import { handleRules } from "./src/api/rules.js";
 import { handleStatic } from "./src/api/static.js";
