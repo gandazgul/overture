@@ -4,7 +4,8 @@
  * @typedef {{ type?: string, trait?: string | null }} AnalyticsCardLike
  */
 
-const ANALYTICS_ENDPOINT = "https://overture.dumbhome.uk/api/analytics/beacon";
+const HOST = import.meta.env?.VITE_ANALYTICS_HOST || "https://overture.dumbhome.uk";
+const ANALYTICS_ENDPOINT = `${HOST}/api/analytics/beacon`;
 
 /**
  * Create canonical card key used for analytics aggregation.
