@@ -99,6 +99,7 @@ Traits can be applied to any patron type, adding unique bonuses or penalties.
 - **Boot Screen** — Asset preloader with progress bar
 - **End Game Screen** — Winner announcement, per-type scoring breakdown, and play-again option
 - **Responsive Scaling** — DPR-aware, adapts to viewport aspect ratio, works on mobile
+- Able to cycle through opponents theater during play and at the end game screen
 
 ### Technical
 
@@ -120,16 +121,16 @@ Traits can be applied to any patron type, adding unique bonuses or penalties.
 
 All tasks are defined in `deno.json` and run via `deno task <name>`:
 
-| Task               | Command                                   | Description                                           |
-| ------------------ | ----------------------------------------- | ----------------------------------------------------- |
-| `dev`              | `deno run -A npm:vite@5`                  | Start the Vite dev server with HMR                    |
-| `build`            | `deno run -A npm:vite@5 build`            | Production build to `dist/`                           |
-| `preview`          | `deno run -A npm:vite@5 preview`          | Preview the production build locally                  |
-| `check`            | `deno check --doc src/**/*.js`            | Type-check JS files (validates JSDoc code blocks too) |
-| `lint`             | `deno lint src/`                          | Lint source files with Deno's built-in linter         |
-| `test`             | `deno test src/`                          | Run all unit tests                                    |
-| `ci`               | `check → lint → test`                     | Run the full CI pipeline sequentially                 |
-| `analytics:crunch` | `deno run -A scripts/analytics-crunch.js` | Crunch JSONL beacons into SQLite aggregates           |
+| Task               | Description                                           |
+| ------------------ | ----------------------------------------------------- |
+| `dev`              | Start the Vite dev server with HMR                    |
+| `build`            | Production build to `dist/`                           |
+| `preview`          | Preview the production build locally                  |
+| `check`            | Type-check JS files (validates JSDoc code blocks too) |
+| `lint`             | Lint source files with Deno's built-in linter         |
+| `test`             | Run all unit tests                                    |
+| `ci`               | Run the full CI pipeline sequentially                 |
+| `analytics:crunch` | Crunch JSONL beacons into SQLite aggregates           |
 
 ### Running CI Locally
 
@@ -241,8 +242,6 @@ deno task analytics:crunch
 
 ## 🚧 Roadmap
 
-- [ ] Ability to cycle through opponents theater during play
-- [ ] Ability to cycle through all theaters at the end of the game to see the last state
 - [ ] On mobile when discarding a card show the tooltip and confirm the action to prevent misclicks
 - [ ] Implement Undo & Confirm turn prompts before passing to the next player
 - [ ] **Online Multiplayer** — Play with friends remotely
