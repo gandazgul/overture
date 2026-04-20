@@ -241,9 +241,12 @@ deno task analytics:crunch
 
 ## 🚧 Roadmap
 
+- [ ] Ability to cycle through opponents theater during play
+- [ ] Ability to cycle through all theaters at the end of the game to see the last state
+- [ ] On mobile when discarding a card show the tooltip and confirm the action to prevent misclicks
+- [ ] Implement Undo & Confirm turn prompts before passing to the next player
 - [ ] **Online Multiplayer** — Play with friends remotely
 - [ ] **Play Variants** — Different "plays" with special rules
-- [x] **Analytics** — Self-hosted beacon ingestion + aggregated report endpoint
 - [ ] **Audio** — Ambient theater sounds and placement effects
 
 ## Acknowledgements

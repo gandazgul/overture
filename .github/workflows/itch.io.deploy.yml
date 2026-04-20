@@ -1,38 +1,38 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - v*
+    push:
+        tags:
+            - v*
 
 jobs:
-  exports:
-    name: Build, Release, and Upload
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v6
+    exports:
+        name: Build, Release, and Upload
+        runs-on: ubuntu-latest
+        steps:
+            - name: Check out repository
+              uses: actions/checkout@v6
 
-      - name: Setup Deno
-        uses: denoland/setup-deno@v1
-        with:
-          deno-version: v2.x
+            - name: Setup Deno
+              uses: denoland/setup-deno@v1
+              with:
+                  deno-version: v2.x
 
-      - name: Install dependencies and Build
-        run: |
-          deno install
-          deno task build
+            - name: Install dependencies and Build
+              run: |
+                  deno install
+                  deno task build
 
-      - name: Set Version
-        run: |
-          echo "version=${GITHUB_REF/refs\/tags\/v/}" >> $GITHUB_ENV
+            - name: Set Version
+              run: |
+                  echo "version=${GITHUB_REF/refs\/tags\/v/}" >> $GITHUB_ENV
 
-      - uses: Ayowel/butler-to-itch@v1
-        with:
-          butler_key: ${{ secrets.ITCHIO_API_KEY }}
-          itch_user: gandazgul
-          itch_game: overture
-          version: ${{ env.version }}
-          files: |
-            download dist/
-            web dist/
+            - uses: Ayowel/butler-to-itch@v1
+              with:
+                  butler_key: ${{ secrets.ITCHIO_API_KEY }}
+                  itch_user: gandazgul
+                  itch_game: overture
+                  version: ${{ env.version }}
+                  files: |
+                      download dist/
+                      web dist/

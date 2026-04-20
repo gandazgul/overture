@@ -5,8 +5,7 @@
  * AI player tests — run with `deno test src/ai.test.js`
  */
 
-import { assertEquals } from "https://deno.land/std@0.224.0/assert/assert_equals.ts";
-import { assert } from "https://deno.land/std@0.224.0/assert/assert.ts";
+import { assert, assertEquals } from "@std/assert";
 import {
     AIDifficulty,
     applyHeuristics,

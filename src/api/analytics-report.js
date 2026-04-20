@@ -1,23 +1,31 @@
+import { timingSafeEqual } from "@std/crypto/timing-safe-equal";
 import { buildAnalyticsReportData, crunchAnalytics } from "../../scripts/analytics-crunch.js";
-import { ensureParentDir } from "../utils.js";
 import { ANALYTICS_REPORT_TEMPLATE } from "./analytics-report-template.js";
+import { HttpError } from "./http-error.js";
 
 const ANALYTICS_JSONL_PATH = Deno.env.get("ANALYTICS_JSONL_PATH") ?? "/app/data/analytics.jsonl";
 const ANALYTICS_DB_PATH = Deno.env.get("ANALYTICS_DB_PATH") ?? "/app/data/analytics.sqlite";
 const ANALYTICS_BASIC_AUTH_USER = Deno.env.get("ANALYTICS_BASIC_AUTH_USER") ?? "";
 const ANALYTICS_BASIC_AUTH_PASS = Deno.env.get("ANALYTICS_BASIC_AUTH_PASS") ?? "";
 
+/** @type {{ all: string | null, debug0: string | null, debug1: string | null }} */
+const cachedReports = {
+    all: null,
+    debug0: null,
+    debug1: null,
+};
+
 /**
  * @param {Request} req
  */
 function isAuthorized(req) {
     if (!ANALYTICS_BASIC_AUTH_USER || !ANALYTICS_BASIC_AUTH_PASS) {
-        return { ok: false, status: 500, reason: "Basic auth credentials are not configured" };
+        throw new HttpError(500, "Basic auth credentials are not configured");
     }
 
     const header = req.headers.get("authorization") ?? "";
     if (!header.startsWith("Basic ")) {
-        return { ok: false, status: 401, reason: "Missing basic auth header" };
+        throw new HttpError(401, "Missing basic auth header");
     }
 
     const encoded = header.slice("Basic ".length);
@@ -25,22 +33,34 @@ function isAuthorized(req) {
     try {
         decoded = atob(encoded);
     } catch {
-        return { ok: false, status: 401, reason: "Invalid basic auth encoding" };
+        throw new HttpError(401, "Invalid basic auth encoding");
     }
 
     const separator = decoded.indexOf(":");
     if (separator < 0) {
-        return { ok: false, status: 401, reason: "Invalid basic auth format" };
+        throw new HttpError(401, "Invalid basic auth format");
     }
 
     const user = decoded.slice(0, separator);
     const pass = decoded.slice(separator + 1);
 
-    if (user !== ANALYTICS_BASIC_AUTH_USER || pass !== ANALYTICS_BASIC_AUTH_PASS) {
-        return { ok: false, status: 401, reason: "Invalid credentials" };
+    let valid = false;
+    try {
+        const u1 = new TextEncoder().encode(user);
+        const u2 = new TextEncoder().encode(ANALYTICS_BASIC_AUTH_USER);
+        const p1 = new TextEncoder().encode(pass);
+        const p2 = new TextEncoder().encode(ANALYTICS_BASIC_AUTH_PASS);
+
+        if (u1.byteLength === u2.byteLength && p1.byteLength === p2.byteLength) {
+            valid = timingSafeEqual(u1, u2) && timingSafeEqual(p1, p2);
+        }
+    } catch {
+        // Ignore crypto errors, will fail below
     }
 
-    return { ok: true, status: 200, reason: "ok" };
+    if (!valid) {
+        throw new HttpError(401, "Invalid credentials");
+    }
 }
 
 /**
@@ -209,38 +229,11 @@ function renderReportHtml(data, crunchResult, debugFilter) {
 }
 
 /**
- * @param {Request} req
+ * @param {string | null} debugFilter
  */
-async function handleAnalyticsReport(req) {
-    if (req.method !== "GET") {
-        return new Response("Method not allowed", {
-            status: 405,
-            headers: { Allow: "GET" },
-        });
-    }
-
-    const auth = isAuthorized(req);
-    if (!auth.ok) {
-        const headers = new Headers();
-        if (auth.status === 401) {
-            headers.set("WWW-Authenticate", 'Basic realm="Overture Analytics"');
-        }
-        return new Response(auth.reason, {
-            status: auth.status,
-            headers,
-        });
-    }
-
-    const url = new URL(req.url);
-    const debugFilter = url.searchParams.get("debug");
-
-    await ensureParentDir(ANALYTICS_JSONL_PATH);
-    await ensureParentDir(ANALYTICS_DB_PATH);
-
+async function generateReportHtml(debugFilter) {
     const isFiltered = debugFilter !== null;
-    const dbPath = isFiltered
-        ? `/tmp/analytics_report_${Math.random().toString(36).slice(2)}.sqlite`
-        : ANALYTICS_DB_PATH;
+    const dbPath = isFiltered ? `/tmp/analytics_report_${crypto.randomUUID()}.sqlite` : ANALYTICS_DB_PATH;
 
     const crunchResult = await crunchAnalytics({
         jsonlPath: ANALYTICS_JSONL_PATH,
@@ -257,7 +250,59 @@ async function handleAnalyticsReport(req) {
         }
     }
 
-    return new Response(renderReportHtml(reportData, crunchResult, debugFilter), {
+    return renderReportHtml(reportData, crunchResult, debugFilter);
+}
+
+export function setupAnalyticsCron() {
+    // Generate initially and fire and forget
+    generateReportHtml(null).then((h) => cachedReports.all = h).catch(console.error);
+    generateReportHtml("0").then((h) => cachedReports.debug0 = h).catch(console.error);
+    generateReportHtml("1").then((h) => cachedReports.debug1 = h).catch(console.error);
+
+    setInterval(async () => {
+        try {
+            cachedReports.all = await generateReportHtml(null);
+            cachedReports.debug0 = await generateReportHtml("0");
+            cachedReports.debug1 = await generateReportHtml("1");
+        } catch (e) {
+            console.error("Cron Report Crunch Error:", e);
+        }
+    }, 5 * 60 * 1000);
+}
+
+/**
+ * @param {Request} req
+ */
+async function handleAnalyticsReport(req) {
+    if (req.method !== "GET") {
+        throw new HttpError(405, "Method not allowed");
+    }
+
+    try {
+        isAuthorized(req);
+    } catch (e) {
+        if (e instanceof HttpError && e.status === 401) {
+            return new Response(e.message, {
+                status: 401,
+                headers: { "WWW-Authenticate": 'Basic realm="Overture Analytics"' },
+            });
+        }
+        throw e;
+    }
+
+    const url = new URL(req.url);
+    const debugFilter = url.searchParams.get("debug");
+
+    let html = cachedReports.all;
+    if (debugFilter === "0") html = cachedReports.debug0;
+    if (debugFilter === "1") html = cachedReports.debug1;
+
+    if (!html) {
+        // If still building on startup or cache is missed, build dynamically
+        html = await generateReportHtml(debugFilter);
+    }
+
+    return new Response(html, {
         status: 200,
         headers: {
             "Content-Type": "text/html; charset=utf-8",

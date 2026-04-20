@@ -126,8 +126,11 @@ export class SpeechBubble extends Phaser.GameObjects.Container {
         scene.add.existing(this);
     }
 
-    /** @override */
-    destroy(/** @type {boolean} [fromScene] */ fromScene) {
+    /**
+     * @param {boolean} [fromScene]
+     * @override
+     */
+    destroy(fromScene) {
         this.scene?.events?.off("update", this._updateHandler);
         super.destroy(fromScene);
     }

@@ -43,6 +43,7 @@ import { AISLE_GAP, SEAT_GAP, SEAT_SIZE } from "../constants.js";
  *   gridMarginTop: number,
  *   gridMarginBottom: number,
  *   totalGridW: number,
+ *   totalGridH: number,
  * }} FloorGeometry */
 
 /**
@@ -351,7 +352,7 @@ export class TheaterGrid extends Phaser.GameObjects.Container {
         const gridStartX = (width - totalGridW) / 2;
         const floorCenterY = gridStartY + totalGridH / 2 + gridMarginBottom / 2 - gridMarginTop / 2;
 
-        const bgImg = scene.add.image(stageX, floorCenterY, this.layout.bgKey);
+        const bgImg = scene.add.image(stageX, floorCenterY, this.layout.bgKey || "");
         const bgImgRatio = bgImg.width / bgImg.height;
         bgImg.setDisplaySize(floorH * bgImgRatio, floorH);
 

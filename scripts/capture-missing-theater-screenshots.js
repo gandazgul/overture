@@ -71,12 +71,12 @@ try {
         await page.waitForFunction(() => {
             const game = window.__PHASER_GAME__;
             if (!game) return false;
-            const scene = game.scene.getScene("GameScene");
-            return !!scene
-                && scene.scene.isActive()
-                && !!scene.theaterGrid
-                && scene.turnPhase === "play"
-                && !scene.passOverlay;
+            const scene = /** @type {any} */ (game.scene.getScene("GameScene"));
+            return !!scene &&
+                scene.scene.isActive() &&
+                !!scene.theaterGrid &&
+                scene.turnPhase === "play" &&
+                !scene.passOverlay;
         }, { timeout: 15_000 });
 
         // Allow an extra beat for textures/UI to settle

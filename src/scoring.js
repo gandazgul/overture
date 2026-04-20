@@ -765,7 +765,6 @@ function scoreHouseRule(grid, layout, perSeat) {
             }
             break;
         }
-
     }
 
     return bonus;

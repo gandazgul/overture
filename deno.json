@@ -22,6 +22,8 @@
         "analytics:crunch": "deno run --env-file -A scripts/analytics-crunch.js"
     },
     "imports": {
+        "@std/assert": "jsr:@std/assert@^0.224.0",
+        "@std/crypto": "jsr:@std/crypto@^1.0.3",
         "@std/http/file-server": "jsr:@std/http/file-server",
         "@google/genai": "npm:@google/genai@^1.49.0",
         "phaser": "npm:phaser@^3.86.0",
@@ -32,6 +34,7 @@
         "dist/",
         "node_modules/",
         "vite.config.js",
+        ".idea/",
         ".vite/",
         ".vera/"
     ],

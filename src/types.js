@@ -729,7 +729,8 @@ export const ZiegfeldRunwayLayout = {
         /* Row 3 */ [["back", "aisle"], ["back"], ["back"], ["back"], ["back", "aisle"]],
     ],
     houseRule: null,
-    houseRuleDescription: "Runway Proximity — Front-row prestige is concentrated at the stage edge and top runway seats.",
+    houseRuleDescription:
+        "Runway Proximity — Front-row prestige is concentrated at the stage edge and top runway seats.",
 };
 Object.freeze(ZiegfeldRunwayLayout);
 

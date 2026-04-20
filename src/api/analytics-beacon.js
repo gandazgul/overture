@@ -1,4 +1,4 @@
-import { ensureParentDir, getClientIp } from "../utils.js";
+import { getClientIp } from "../utils.js";
 
 const ANALYTICS_JSONL_PATH = Deno.env.get("ANALYTICS_JSONL_PATH") ?? "/app/data/analytics.jsonl";
 const RATE_LIMIT_PER_MINUTE = Number(Deno.env.get("ANALYTICS_RATE_LIMIT_PER_MINUTE") ?? "30");
@@ -27,6 +27,8 @@ function cleanupRateBuckets(nowMs) {
     }
 }
 
+setInterval(() => cleanupRateBuckets(Date.now()), 60_000);
+
 /**
  * @param {string} ip
  */
@@ -49,10 +51,6 @@ function consumeRateLimit(ip) {
     bucket.count++;
     RATE_BUCKETS.set(ip, bucket);
 
-    if (Math.random() < 0.01) {
-        cleanupRateBuckets(nowMs);
-    }
-
     return true;
 }
 
@@ -66,6 +64,10 @@ function isAllowedOrigin(origin) {
 
     if (BEACON_ALLOWED_ORIGINS.has(origin)) {
         return true;
+    }
+
+    if (Deno.env.get("CORS") !== "localhost") {
+        return false;
     }
 
     try {
@@ -194,8 +196,6 @@ async function handleAnalyticsBeacon(req) {
     if (validationError) {
         return respond(validationError, { status: 400 });
     }
-
-    await ensureParentDir(ANALYTICS_JSONL_PATH);
 
     const envelope = {
         ...parsed,

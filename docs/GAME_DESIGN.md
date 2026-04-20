@@ -54,7 +54,7 @@ With 3 players after each round discard a 4th card to simulate a 4th player (or 
 ## Components
 
 | Component      | Quantity         | Description                                                                       |
-|----------------|------------------|-----------------------------------------------------------------------------------|
+| -------------- | ---------------- | --------------------------------------------------------------------------------- |
 | Theater boards | 4                | Individual grids (layout defined by Theater card)                                 |
 | Patron deck    | 56 cards         | 6 primary types, 4 secondary traits                                               |
 | Season deck    | varies           | Theater cards, Play cards, Role cards, Demand cards, Understudy and Rivalry cards |
@@ -76,7 +76,7 @@ With 3 players after each round discard a 4th card to simulate a 4th player (or 
    place it face-down in the center.
 5. **Set up the Lobby:** Draw 3 cards from the patron deck and place them
    face-up in a row beside the deck.
-6. The first player is whoever went to the theater last. They take their turn and play proceeds 
+6. The first player is whoever went to the theater last. They take their turn and play proceeds
    clockwise until the Patrons run out.
 
 ---
@@ -702,16 +702,16 @@ referenced by specific Plays.
 
 ### Season Deck Composition
 
-| Card Type                      | Count  | Used By                |
-| ------------------------------ | ------ | ---------------------- |
-| Theater cards                  | 8      | Setup: draw 1 per game |
-| Play cards                     | 8      | Setup: draw 1 per game |
-| Role cards                     | 6      | The Casting Call play  |
-| Demand cards                   | 10     | The Mystery play       |
-| Understudy patron cards        | 3      | The Understudy play    |
-| Rivalry extra patron cards     | 4      | The Rivalry play       |
-| Manager's Attention card       | 1      | The Rivalry play       |
-| **Total**                      | **40** |                        |
+| Card Type                  | Count  | Used By                |
+| -------------------------- | ------ | ---------------------- |
+| Theater cards              | 8      | Setup: draw 1 per game |
+| Play cards                 | 8      | Setup: draw 1 per game |
+| Role cards                 | 6      | The Casting Call play  |
+| Demand cards               | 10     | The Mystery play       |
+| Understudy patron cards    | 3      | The Understudy play    |
+| Rivalry extra patron cards | 4      | The Rivalry play       |
+| Manager's Attention card   | 1      | The Rivalry play       |
+| **Total**                  | **40** |                        |
 
 ### Notable Theater × Play Combos
 
@@ -720,7 +720,7 @@ referenced by specific Plays.
 | **Amphitheater + The Avant-Garde**  | "Fill rows for +2 VP" vs. "leave gaps for +2 VP." Direct contradiction forces hard choices every turn.                   |
 | **Dinner Playhouse + The Mystery**  | Table layout fragments adjacency; demand cards might require cross-table planning.                                       |
 | **Blackbox + The Understudy**       | Only 16 seats, almost full. Understudies in a cramped space with tons of adjacency-their flex value is huge.             |
-| **Ziegfeld Runway + The Matinee**   | Limited front seats score twice at intermission, creating intense competition for just four premium placements.            |
+| **Ziegfeld Runway + The Matinee**   | Limited front seats score twice at intermission, creating intense competition for just four premium placements.          |
 | **Promenade + The Dress Rehearsal** | Staggered aisles + draft-and-pass. You can see what your neighbor needs AND deny them the right aisle-seat card.         |
 | **Opera House + The Casting Call**  | The Collector role loves the Royal Boxes (diverse types for +6 VP). The Architect can swap a patron INTO a Box mid-game. |
 | **Grand Empress + The Mystery**     | Vanilla layout lets you focus purely on demand adaptation. Good for learning The Mystery without layout complexity.      |

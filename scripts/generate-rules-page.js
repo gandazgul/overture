@@ -1,6 +1,6 @@
 // @ts-check
 
-import { marked } from 'npm:marked@13';
+import { marked } from "npm:marked@13";
 
 const SOURCE_MD = "public/RULE_BOOK.md";
 const OUTPUT_RULES_HTML = `public/rules.html`;
@@ -52,8 +52,6 @@ const markdown = await Deno.readTextFile(SOURCE_MD);
 marked.setOptions({
     gfm: true,
     breaks: false,
-    mangle: false,
-    headerIds: true,
 });
 
 const articleHtml = await marked.parse(markdown);

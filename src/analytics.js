@@ -4,7 +4,7 @@
  * @typedef {{ type?: string, trait?: string | null }} AnalyticsCardLike
  */
 
-const ANALYTICS_ENDPOINT = "https://overture.dumbhome.uk/api/analytics/beacon"
+const ANALYTICS_ENDPOINT = "https://overture.dumbhome.uk/api/analytics/beacon";
 
 /**
  * Create canonical card key used for analytics aggregation.
@@ -41,7 +41,7 @@ export function sendAnalyticsBeacon(payload) {
         // Fallback below
     }
 
-    void fetch(endpoint, {
+    void fetch(ANALYTICS_ENDPOINT, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body,
