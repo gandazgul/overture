@@ -31,21 +31,22 @@ const routes = [
 
 /**
  * @param {Request} req
+ * @param {Deno.ServeHandlerInfo} info
  * @returns {Promise<{ route: string, response: Response }>}
  */
-async function dispatchRoute(req) {
+async function dispatchRoute(req, info) {
     for (const route of routes) {
         if (route.pattern.test(req.url)) {
             return {
                 route: route.name,
-                response: await route.handler(req),
+                response: await route.handler(req, info),
             };
         }
     }
 
     return {
         route: "static",
-        response: await handleStatic(req),
+        response: await handleStatic(req, info),
     };
 }
 
@@ -54,12 +55,12 @@ await ensureParentDir(ANALYTICS_JSONL_PATH);
 await ensureParentDir(ANALYTICS_DB_PATH);
 setupAnalyticsCron();
 
-Deno.serve({ port: PORT, hostname: HOSTNAME }, async (/** @type {Request} */ req) => {
+Deno.serve({ port: PORT, hostname: HOSTNAME }, async (/** @type {Request} */ req, info) => {
     const startedAtMs = performance.now();
     let route = "unmatched";
 
     try {
-        const dispatched = await dispatchRoute(req);
+        const dispatched = await dispatchRoute(req, info);
         route = dispatched.route;
 
         logAccess({
@@ -67,6 +68,7 @@ Deno.serve({ port: PORT, hostname: HOSTNAME }, async (/** @type {Request} */ req
             response: dispatched.response,
             route,
             startedAtMs,
+            info,
         });
 
         return dispatched.response;
@@ -77,6 +79,7 @@ Deno.serve({ port: PORT, hostname: HOSTNAME }, async (/** @type {Request} */ req
             req,
             error,
             route,
+            info,
         });
 
         const status = error instanceof HttpError ? error.status : 500;
@@ -88,6 +91,7 @@ Deno.serve({ port: PORT, hostname: HOSTNAME }, async (/** @type {Request} */ req
             response,
             route,
             startedAtMs,
+            info,
         });
 
         return response;

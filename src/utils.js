@@ -91,8 +91,9 @@ async function ensureParentDir(path) {
 
 /**
  * @param {Request} req
+ * @param {Deno.ServeHandlerInfo} [info]
  */
-function getClientIp(req) {
+function getClientIp(req, info) {
     const forwarded = req.headers.get("x-forwarded-for");
     if (forwarded) {
         const first = forwarded.split(",")[0]?.trim();
@@ -109,6 +110,10 @@ function getClientIp(req) {
     const cfIp = req.headers.get("cf-connecting-ip");
     if (cfIp) {
         return cfIp;
+    }
+
+    if (info?.remoteAddr?.hostname) {
+        return info.remoteAddr.hostname;
     }
 
     return "unknown";

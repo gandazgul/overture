@@ -5,6 +5,7 @@ import { PatronTypeOrder, PlayerColors, PlayerColorsHex, PlayerNames } from "../
 import { scorePlayer } from "../scoring.js";
 import { createButton } from "../factories/Button.js";
 import { createLogo } from "../factories/Logo.js";
+import { TheaterOverlay } from "../objects/TheaterOverlay.js";
 
 /** Usher avatar texture keys, indexed by player index. */
 const USHER_KEYS = ["usher_blue", "usher_red", "usher_green", "usher_orange"];
@@ -389,14 +390,35 @@ export class EndGameScene extends Phaser.Scene {
             gfx.lineBetween(lineX, tableTop, lineX, totalY + totalRowH);
         }
 
-        // ── Play Again Button ───────────────────────────────────────────
-        const playAgainY = Math.min(height - s(30), totalY + totalRowH + s(85));
+        // ── Action Buttons ───────────────────────────────────────────
+        const buttonY = Math.min(height - s(30), totalY + totalRowH + s(85));
+
+        const { hitArea: seeTheatersHit } = createButton(
+            this,
+            width / 2 - s(120),
+            buttonY,
+            "See Theaters",
+            { fontSize: 20, width: 200 },
+        );
+        seeTheatersHit.on("pointerdown", () => {
+            if (this.theaterOverlay) return;
+            this.theaterOverlay = new TheaterOverlay(this, {
+                layout: this.layout,
+                placedPatrons: this.placedPatrons,
+                playerCount: this.playerCount,
+                initialPlayerIndex: 0,
+                onClose: () => {
+                    this.theaterOverlay = null;
+                },
+            });
+        });
+
         const { hitArea: playAgainHit } = createButton(
             this,
-            width / 2,
-            playAgainY,
+            width / 2 + s(120),
+            buttonY,
             "Play Again",
-            { fontSize: 20 },
+            { fontSize: 20, width: 200 },
         );
         playAgainHit.on("pointerdown", () => {
             this.scene.start("TitleScene");

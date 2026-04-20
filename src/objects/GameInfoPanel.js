@@ -42,6 +42,7 @@ export class GameInfoPanel extends Phaser.GameObjects.Container {
             playerColor,
             playerColorHex,
             usherKey,
+            onPlayerClick,
         } = options;
 
         this.setDepth(150);
@@ -115,6 +116,17 @@ export class GameInfoPanel extends Phaser.GameObjects.Container {
 
             panel.setData("text", text);
             panel.add(text);
+
+            const hitAreaW = width - s(30);
+            const hitAreaH = s(48);
+            const hitRect = scene.add.rectangle(hitAreaW / 2, s(18), hitAreaW, hitAreaH, 0x000000, 0)
+                .setInteractive({ useHandCursor: true });
+                
+            hitRect.on("pointerdown", () => {
+                if (onPlayerClick) onPlayerClick(p);
+            });
+            panel.add(hitRect);
+
             this.add(panel);
             this.scorePanels.push(panel);
         }

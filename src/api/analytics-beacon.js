@@ -138,8 +138,9 @@ function validateBeaconPayload(payload) {
 
 /**
  * @param {Request} req
+ * @param {Deno.ServeHandlerInfo} [info]
  */
-async function handleAnalyticsBeacon(req) {
+async function handleAnalyticsBeacon(req, info) {
     const origin = req.headers.get("origin");
     if (typeof origin !== "string" || !isAllowedOrigin(origin)) {
         return new Response("Origin not allowed", { status: 403 });
@@ -174,7 +175,7 @@ async function handleAnalyticsBeacon(req) {
         });
     }
 
-    const ip = getClientIp(req);
+    const ip = getClientIp(req, info);
     if (!consumeRateLimit(ip)) {
         return respond("Rate limit exceeded", { status: 429 });
     }

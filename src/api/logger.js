@@ -59,9 +59,9 @@ function getRequestTarget(req) {
 }
 
 /**
- * @param {{ req: Request, response: Response, route: string, startedAtMs: number }} args
+ * @param {{ req: Request, response: Response, route: string, startedAtMs: number, info?: Deno.ServeHandlerInfo }} args
  */
-function logAccess({ req, response, route, startedAtMs }) {
+function logAccess({ req, response, route, startedAtMs, info }) {
     const now = new Date();
     const durationMs = Number((performance.now() - startedAtMs).toFixed(2));
     const bodyBytesSent = getBodyBytesSent(response);
@@ -69,7 +69,7 @@ function logAccess({ req, response, route, startedAtMs }) {
     logger.info({
         type: "access",
         route,
-        remote_addr: getClientIp(req),
+        remote_addr: getClientIp(req, info),
         remote_user: "-",
         time_local: formatApacheTime(now),
         request: `${req.method} ${getRequestTarget(req)} HTTP/1.1`,
@@ -82,15 +82,15 @@ function logAccess({ req, response, route, startedAtMs }) {
 }
 
 /**
- * @param {{ req: Request, error: unknown, route: string }} args
+ * @param {{ req: Request, error: unknown, route: string, info?: Deno.ServeHandlerInfo }} args
  */
-function logRequestError({ req, error, route }) {
+function logRequestError({ req, error, route, info }) {
     logger.error({
         type: "request_error",
         route,
         method: req.method,
         url: req.url,
-        remote_addr: getClientIp(req),
+        remote_addr: getClientIp(req, info),
         err: error,
     }, "Unhandled request error");
 }

@@ -10,6 +10,7 @@ import { DrawReminderBanner } from "../objects/DrawReminderBanner.js";
 import { GameInfoPanel } from "../objects/GameInfoPanel.js";
 import { SpeechBubble } from "../objects/SpeechBubble.js";
 import { TheaterGrid } from "../objects/TheaterGrid.js";
+import { TheaterOverlay } from "../objects/TheaterOverlay.js";
 import { ProgressBar } from "../objects/ProgressBar.js";
 import { scorePlayer, scoreSeatBreakdown } from "../scoring.js";
 import { makeAnalyticsCardKey, sendAnalyticsBeacon } from "../analytics.js";
@@ -83,6 +84,9 @@ export class GameScene extends Phaser.Scene {
         // Visual references
         /** @type {TheaterGrid | null} */
         this.theaterGrid = null;
+
+        /** @type {TheaterOverlay | null} */
+        this.theaterOverlay = null;
 
         /** @type {Phaser.GameObjects.Container | null} */
         this.passOverlay = null;
@@ -294,6 +298,7 @@ export class GameScene extends Phaser.Scene {
         }
 
         this.theaterGrid = null;
+        this.theaterOverlay = null;
         this.gameInfoPanel = null;
         this.activePlayerAvatar = null;
         this.deckPileImage = null;
@@ -413,6 +418,7 @@ export class GameScene extends Phaser.Scene {
             playerColor: (p) => this.playerColor(p),
             playerColorHex: (p) => this.playerColorHex(p),
             usherKey: (p) => this.usherKey(p),
+            onPlayerClick: (p) => this.showTheaterOverlay(p),
         });
 
         // ── Lobby ─────────────────────────────────────────────────────
@@ -601,6 +607,29 @@ export class GameScene extends Phaser.Scene {
             },
             players,
         };
+    }
+
+    /**
+     * Shows an overlay representing a given player's theater state.
+     * @param {number} playerIndex
+     */
+    showTheaterOverlay(playerIndex) {
+        if (this.theaterOverlay) {
+            return;
+        }
+
+        this.hideScoringTooltip();
+        this.hideSeatScoreTooltip();
+
+        this.theaterOverlay = new TheaterOverlay(this, {
+            layout: this.layout,
+            placedPatrons: this.placedPatrons,
+            playerCount: this.playerCount,
+            initialPlayerIndex: playerIndex,
+            onClose: () => {
+                this.theaterOverlay = null;
+            },
+        });
     }
 
     // ══════════════════════════════════════════════════════════════════
