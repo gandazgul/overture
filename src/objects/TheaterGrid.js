@@ -42,6 +42,7 @@ import { AISLE_GAP, SEAT_GAP, SEAT_SIZE } from "../constants.js";
  *   gridStartY: number,
  *   gridMarginTop: number,
  *   gridMarginBottom: number,
+ *   totalGridW: number,
  * }} FloorGeometry */
 
 /**
