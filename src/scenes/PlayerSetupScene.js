@@ -91,7 +91,7 @@ export class PlayerSetupScene extends Phaser.Scene {
         this.children.removeAll(true);
         this.tweens.killAll();
 
-        const { width } = this.scale;
+        const { width, height } = this.scale;
         const count = this.selectedPlayerCount;
 
         const difficulties = [AIDifficulty.EASY, AIDifficulty.MEDIUM, AIDifficulty.HARD];
@@ -112,11 +112,15 @@ export class PlayerSetupScene extends Phaser.Scene {
         });
 
         // ── Header ──────────────────────────────────────────────────
-        const logoY = s(90);
-        createLogo(this, width / 2, logoY, { width: 320 });
+        const logoW = s(180);
+        const logoY = createLogo(this, {
+            width: logoW,
+            originX: width / 2 - logoW,
+            originY: height / 8
+        });
 
         this.add
-            .text(width / 2, logoY + s(100), "Player Setup", {
+            .text(width / 2, logoY + s(40), "Player Setup", {
                 fontSize: px(28),
                 fontFamily: "Georgia, serif",
                 color: "#ffd700",
@@ -128,7 +132,7 @@ export class PlayerSetupScene extends Phaser.Scene {
         const rowH = s(68);
         const headerH = s(34);
         const tableX = (width - tableW) / 2;
-        const tableY = logoY + s(160);
+        const tableY = logoY + s(70);
 
         // Column X positions (center-based, relative to tableX)
         const colAvatar = s(38);

@@ -30,6 +30,7 @@ export class GameInfoPanel extends Phaser.GameObjects.Container {
      *   playerColor: (player: number) => string,
      *   playerColorHex: (player: number) => number,
      *   usherKey: (player: number) => string,
+     *   onPlayerClick?: (player: number) => void,
      * }} options
      */
     constructor(scene, x, y, options) {

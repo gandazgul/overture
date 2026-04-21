@@ -74,8 +74,12 @@ export class EndGameScene extends Phaser.Scene {
         this.cameras.main.setBackgroundColor(0x0a0a1a);
 
         // ── Header (match setup/selection scenes) ───────────────────────
-        const logoY = s(90);
-        createLogo(this, width / 2, logoY, { width: 320 });
+        const logoW = s(180);
+        const logoY = createLogo(this, {
+            width: logoW,
+            originX: width / 2 - logoW,
+            originY: height / 8
+        });
 
         // ── Compute scores ──────────────────────────────────────────────
         /** @type {import('../scoring.js').PlayerScore[]} */
@@ -118,7 +122,7 @@ export class EndGameScene extends Phaser.Scene {
 
         // Subtitle position/style to match setup/selection scenes
         this.add
-            .text(width / 2, logoY + s(100), winnerMsg, {
+            .text(width / 2, logoY + s(40), winnerMsg, {
                 fontSize: px(28),
                 fontFamily: "Georgia, serif",
                 color: "#ffd700",
@@ -126,7 +130,7 @@ export class EndGameScene extends Phaser.Scene {
             .setOrigin(0.5);
 
         // ── Scoring Card Table ──────────────────────────────────────────
-        const tableTop = logoY + s(160);
+        const tableTop = logoY + s(70);
         const tableBottom = height - s(90);
         const tableAvailH = tableBottom - tableTop;
 

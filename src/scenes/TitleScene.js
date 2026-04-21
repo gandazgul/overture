@@ -68,13 +68,18 @@ export class TitleScene extends Phaser.Scene {
         const { width, height } = this.scale;
 
         // Title
-        createLogo(this, width / 2, height / 4, { width: 480 });
+        const logoW = 480;
+        const logoBottom = createLogo(this, {
+            width: logoW,
+            originX: width / 2 - logoW,
+            originY: height / 6
+        });
 
         // Subtitle
         this.add
             .text(
                 width / 2,
-                height / 4 + s(120),
+                logoBottom + s(40),
                 "A Card Game of Seating Strategy\nSeat patrons in your theater to earn the most victory points!",
                 {
                     fontSize: px(18),

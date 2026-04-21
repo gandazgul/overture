@@ -115,15 +115,19 @@ export class TheaterSelectionScene extends Phaser.Scene {
         this.children.removeAll(true);
         this.tweens.killAll();
 
-        const { width } = this.scale;
+        const { width, height } = this.scale;
 
         // ── Logo  ────────────────────────
-        const logoY = s(90);
-        createLogo(this, width / 2, logoY, { width: 320 });
+        const logoW = s(180);
+        const logoY = createLogo(this, {
+            width: logoW,
+            originX: width / 2 - logoW,
+            originY: height / 8
+        });
 
         // Subtitle
         this.add
-            .text(width / 2, logoY + s(100), "Choose Your Theater", {
+            .text(width / 2, logoY + s(40), "Choose Your Theater", {
                 fontSize: px(28),
                 fontFamily: "Georgia, serif",
                 color: "#ffd700",
@@ -139,7 +143,7 @@ export class TheaterSelectionScene extends Phaser.Scene {
         const gridCols = 4;
         const gridTotalW = gridCols * cardW + (gridCols - 1) * cardGapX;
         const gridStartX = (width - gridTotalW) / 2;
-        const gridStartY = logoY + s(160);
+        const gridStartY = logoY + s(70);
 
         for (let i = 0; i < layouts.length; i++) {
             const layout = layouts[i];

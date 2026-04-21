@@ -100,6 +100,8 @@ Traits can be applied to any patron type, adding unique bonuses or penalties.
 - **End Game Screen** — Winner announcement, per-type scoring breakdown, and play-again option
 - **Responsive Scaling** — DPR-aware, adapts to viewport aspect ratio, works on mobile
 - Able to cycle through opponents theater during play and at the end game screen
+- On mobile when discarding a card show the tooltip and confirm the action to prevent misclicks
+- Undo & Confirm turn prompts before passing to the next player
 
 ### Technical
 
@@ -242,8 +244,6 @@ deno task analytics:crunch
 
 ## 🚧 Roadmap
 
-- [ ] On mobile when discarding a card show the tooltip and confirm the action to prevent misclicks
-- [ ] Implement Undo & Confirm turn prompts before passing to the next player
 - [ ] **Online Multiplayer** — Play with friends remotely
 - [ ] **Play Variants** — Different "plays" with special rules
 - [ ] **Audio** — Ambient theater sounds and placement effects

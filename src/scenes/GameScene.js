@@ -34,6 +34,8 @@ const ENV = /** @type {{ VITE_DEBUG_AI?: string }} */ ((/** @type {any} */ (impo
 
 const AI_TURN_START_DELAY_MS = 520;
 const AI_ACTION_PAUSE_MS = 210;
+const DECK_PILE_LAYERS = 10;
+const DECK_PILE_OFFSET = s(-1);
 
 export class GameScene extends Phaser.Scene {
     constructor() {
@@ -44,6 +46,9 @@ export class GameScene extends Phaser.Scene {
 
         /** @type {import('../types.js').LayoutMeta} */
         this.layout = GrandEmpressLayout;
+
+        /** @type {number} */
+        this.logoWidth = 220;
 
         /** @type {number} */
         this.playerCount = 2;
@@ -77,7 +82,7 @@ export class GameScene extends Phaser.Scene {
 
         /**
          * Current phase of a turn.
-         * @type {'pass-screen' | 'play' | 'discard' | 'ghost-discard' | 'game-over'}
+         * @type {'pass-screen' | 'play' | 'discard' | 'confirm-turn' | 'ghost-discard' | 'game-over'}
          */
         this.turnPhase = "pass-screen";
 
@@ -93,6 +98,12 @@ export class GameScene extends Phaser.Scene {
 
         /** @type {GameInfoPanel | null} */
         this.gameInfoPanel = null;
+
+        /** @type {Phaser.GameObjects.Container | null} */
+        this.confirmOverlay = null;
+
+        /** @type {{ deck: import('../types.js').CardData[], lobbyCards: import('../types.js').CardData[], playerHand: import('../types.js').CardData[], placedPatrons: (import('../types.js').CardData | null)[][], drawsBySource: any, pickedByCard: any } | null} */
+        this.turnStartSnapshot = null;
 
         /** @type {ActivePlayerAvatar | null} */
         this.activePlayerAvatar = null;
@@ -296,14 +307,6 @@ export class GameScene extends Phaser.Scene {
             this.deck.pop();
             this.deck.pop();
         }
-
-        this.theaterGrid = null;
-        this.theaterOverlay = null;
-        this.gameInfoPanel = null;
-        this.activePlayerAvatar = null;
-        this.deckPileImage = null;
-        this.scoringTooltip = null;
-        this.seatScoreTooltip = null;
     }
 
     setupDebug() {
@@ -410,7 +413,7 @@ export class GameScene extends Phaser.Scene {
 
         // ── HUD Panel (Game Information) ────────────────────────────────
         const hudW = s(260);
-        const hudX = width - hudW - s(20);
+        const hudX = width - s(hudW / 2 + 20);
         this.gameInfoPanel = new GameInfoPanel(this, hudX, gridStartY, {
             width: hudW,
             playerCount: this.playerCount,
@@ -428,8 +431,6 @@ export class GameScene extends Phaser.Scene {
         // ── Active Player Large Avatar ──────────────────────────────────
         this.activePlayerAvatar = new ActivePlayerAvatar(
             this,
-            width - s(90),
-            height - s(90),
             {
                 usherKey: this.usherKey(0),
                 colorHex: this.playerColorHex(0),
@@ -457,7 +458,7 @@ export class GameScene extends Phaser.Scene {
 
         // ── Logo ────────────────────────────────────────────────────────
         // Centered at s(80) to perfectly align vertically with the player avatar
-        createLogo(this, s(120), s(60), { width: 220, depth: 150 });
+        createLogo(this, { width: this.logoWidth });
 
         this.sendGameStartAnalytics();
 
@@ -1132,7 +1133,15 @@ export class GameScene extends Phaser.Scene {
             if (!isAI) {
                 card.on("pointerdown", () => {
                     if (this.turnPhase === "discard") {
-                        this.discardCard(card);
+                        if (this.sys.game.device.input.touch) {
+                            if (this.selectedCard === card) {
+                                this.discardCard(card);
+                            } else {
+                                this.selectCard(card);
+                            }
+                        } else {
+                            this.discardCard(card);
+                        }
                     } else {
                         this.selectCard(card);
                     }
@@ -1336,6 +1345,10 @@ export class GameScene extends Phaser.Scene {
             return;
         }
 
+        if (!this.turnStartSnapshot) {
+            this.turnStartSnapshot = this.createTurnSnapshot();
+        }
+
         const cardData = this.selectedCard.cardData;
         // Update logical state
         this.placedPatrons[this.currentPlayer][row][col] = cardData;
@@ -1374,7 +1387,12 @@ export class GameScene extends Phaser.Scene {
         }
 
         // Otherwise, advance to next player
-        this.advanceTurn();
+        const isAI = !!this.aiConfig[this.currentPlayer];
+        if (isAI) {
+            this.advanceTurn();
+        } else {
+            this.promptEndTurn();
+        }
     }
 
     /**
@@ -1406,7 +1424,12 @@ export class GameScene extends Phaser.Scene {
 
         // Short delay then advance
         this.time.delayedCall(400, () => {
-            this.advanceTurn();
+            const isAI = !!this.aiConfig[this.currentPlayer];
+            if (isAI) {
+                this.advanceTurn();
+            } else {
+                this.promptEndTurn();
+            }
         });
     }
 
@@ -1416,8 +1439,8 @@ export class GameScene extends Phaser.Scene {
 
     getLobbyMetrics() {
         return {
-            deckX: s(130),
-            deckY: s(250),
+            deckX: s(this.logoWidth / 2 + 20 - DECK_PILE_LAYERS),
+            deckY: s(200),
             gap: s(20),
         };
     }
@@ -1734,13 +1757,11 @@ export class GameScene extends Phaser.Scene {
 
         const { deckX, deckY } = this.getLobbyMetrics();
         // Stack regular Image objects to form a card pile.
-        const PILE_LAYERS = 10;
-        const pileOffset = s(-1);
 
         this.deckPileImage = this.add.container(deckX, deckY);
-        for (let i = 0; i < PILE_LAYERS; i++) {
-            const ox = i * pileOffset;
-            const oy = i * pileOffset;
+        for (let i = 0; i < DECK_PILE_LAYERS; i++) {
+            const ox = i * DECK_PILE_OFFSET;
+            const oy = i * DECK_PILE_OFFSET;
             const background = this.add
                 .rectangle(ox, oy, Card.WIDTH, Card.HEIGHT, 0x000000)
                 .setStrokeStyle(s(2), 0x000000, 0.7);
@@ -1755,10 +1776,10 @@ export class GameScene extends Phaser.Scene {
         }
         this.deckPileImage.setInteractive({
             hitArea: new Phaser.Geom.Rectangle(
-                -Card.WIDTH / 2 - s(PILE_LAYERS),
-                -Card.HEIGHT / 2 - s(PILE_LAYERS),
-                Card.WIDTH + s(PILE_LAYERS),
-                Card.HEIGHT + s(PILE_LAYERS),
+                -Card.WIDTH / 2 - s(DECK_PILE_LAYERS),
+                -Card.HEIGHT / 2 - s(DECK_PILE_LAYERS),
+                Card.WIDTH + s(DECK_PILE_LAYERS),
+                Card.HEIGHT + s(DECK_PILE_LAYERS),
             ),
             hitAreaCallback: Phaser.Geom.Rectangle.Contains,
             useHandCursor: true,
@@ -1946,6 +1967,87 @@ export class GameScene extends Phaser.Scene {
 
         // Show pass screen for next player
         this.time.delayedCall(200, () => this.showPassScreen());
+    }
+
+    /** @returns {any} */
+    createTurnSnapshot() {
+        return {
+            deck: this.deck.slice(),
+            lobbyCards: this.lobbyCards.slice(),
+            playerHand: this.playerHands[this.currentPlayer].slice(),
+            placedPatrons: this.placedPatrons[this.currentPlayer].map((/** @type {any} */ row) => row.slice()),
+            drawsBySource: Object.assign({}, this.analytics.drawsBySource[this.currentPlayer]),
+            pickedByCard: Object.assign({}, this.analytics.pickedByCard[this.currentPlayer]),
+        };
+    }
+
+    promptEndTurn() {
+        this.turnPhase = "confirm-turn";
+
+        const { width, height } = this.scale;
+
+        this.confirmOverlay = this.add.container(0, 0).setDepth(200);
+
+        const dialogHeight = 150;
+        const centerY = height - s(dialogHeight / 2 + 20);
+
+        const bgRect = this.add.rectangle(width / 2, centerY, s(580), s(dialogHeight), 0x1a1a1a, 0.92).setOrigin(0.5);
+        bgRect.setStrokeStyle(s(4), 0xd4af37, 1);
+        this.confirmOverlay.add(bgRect);
+
+        const { container: confirmBtn, hitArea: confirmHit } = createButton(
+            this,
+            width / 2 + s(140),
+            centerY,
+            "End Turn",
+            { fontSize: 20, bgColor: 0x226622 }
+        );
+        confirmHit.on("pointerdown", () => {
+            if (this.confirmOverlay) {
+                this.confirmOverlay.destroy();
+                this.confirmOverlay = null;
+            }
+            this.turnStartSnapshot = null;
+            this.advanceTurn();
+        });
+
+        const { container: undoBtn, hitArea: undoHit } = createButton(
+            this,
+            width / 2 - s(140),
+            centerY,
+            "Undo Move",
+            { fontSize: 20, bgColor: 0x882222 }
+        );
+        undoHit.on("pointerdown", () => {
+            if (this.confirmOverlay) {
+                this.confirmOverlay.destroy();
+                this.confirmOverlay = null;
+            }
+            this.undoTurn();
+        });
+
+        this.confirmOverlay.add([confirmBtn, undoBtn]);
+    }
+
+    undoTurn() {
+        if (!this.turnStartSnapshot) return;
+
+        // Restore game state
+        this.deck = this.turnStartSnapshot.deck.slice();
+        this.lobbyCards = this.turnStartSnapshot.lobbyCards.slice();
+        this.playerHands[this.currentPlayer] = this.turnStartSnapshot.playerHand.slice();
+        this.placedPatrons[this.currentPlayer] = this.turnStartSnapshot.placedPatrons.map((/** @type {any} */ row) => row.slice());
+        this.analytics.drawsBySource[this.currentPlayer] = Object.assign({}, this.turnStartSnapshot.drawsBySource);
+        this.analytics.pickedByCard[this.currentPlayer] = Object.assign({}, this.turnStartSnapshot.pickedByCard);
+
+        this.turnStartSnapshot = null;
+
+        // Visual restore
+        this.turnPhase = "play";
+        this.renderTheater();
+        this.renderLobby();
+        this.renderHand();
+        this.updateUI();
     }
 
     // ══════════════════════════════════════════════════════════════════

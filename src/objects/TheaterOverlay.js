@@ -107,7 +107,7 @@ export class TheaterOverlay extends Phaser.GameObjects.Container {
     }
 
     renderView() {
-        const isAI = this.scene.aiConfig?.[this.currentPlayerView];
+        const isAI = /** @type {any} */ (this.scene).aiConfig?.[this.currentPlayerView];
         const nameLabel = isAI
             ? `${PlayerNames[this.currentPlayerView].replace("Player ", "P")} 🤖`
             : PlayerNames[this.currentPlayerView];

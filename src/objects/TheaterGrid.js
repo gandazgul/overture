@@ -206,7 +206,10 @@ export class TheaterGrid extends Phaser.GameObjects.Container {
         this.staggerRowOffsets = staggerRowOffsets;
         this.gridStartY = floorGeometry.gridStartY;
 
-        return { gridStartY: floorGeometry.gridStartY };
+        const IMAGE_BORDER = 4;
+
+        // return the Y of the theater background image so that the Info Panel can align its top edge to it
+        return { gridStartY: floorGeometry.gridStartY - floorGeometry.gridMarginTop + IMAGE_BORDER };
     }
 
     /**

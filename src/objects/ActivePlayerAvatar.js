@@ -24,13 +24,16 @@ export class ActivePlayerAvatar extends Phaser.GameObjects.Container {
      * @param {number} y
      * @param {{ usherKey: string, colorHex: number, color: string, playerNumber: number }} options
      */
-    constructor(scene, x, y, options) {
+    constructor(scene, options) {
+        const width = 140;
+        const x = scene.scale.width - s(width / 2 + 20);
+        const y = scene.scale.height - s(width / 2 + 20);
         super(scene, x, y);
 
         this.setDepth(5);
 
         this.avatar = scene.add.image(0, 0, options.usherKey);
-        this.avatar.setDisplaySize(s(140), s(140));
+        this.avatar.setDisplaySize(s(width), s(width));
 
         const avatarMask = scene.make.graphics();
         avatarMask.fillStyle(0xffffff);
