@@ -74,10 +74,10 @@ export class EndGameScene extends Phaser.Scene {
         this.cameras.main.setBackgroundColor(0x0a0a1a);
 
         // ── Header (match setup/selection scenes) ───────────────────────
-        const logoW = s(300);
+        const logoW = 300;
         const logoY = createLogo(this, {
             width: logoW,
-            originX: width / 2 - logoW / 2,
+            originX: width / 2 - s(logoW) / 2,
             originY: height / 8,
         });
 

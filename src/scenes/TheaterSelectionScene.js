@@ -118,10 +118,10 @@ export class TheaterSelectionScene extends Phaser.Scene {
         const { width, height } = this.scale;
 
         // ── Logo  ────────────────────────
-        const logoW = s(300);
+        const logoW = 300;
         const logoY = createLogo(this, {
             width: logoW,
-            originX: width / 2 - logoW / 2,
+            originX: width / 2 - s(logoW) / 2,
             originY: height / 8,
         });
 

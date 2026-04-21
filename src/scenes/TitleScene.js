@@ -71,7 +71,7 @@ export class TitleScene extends Phaser.Scene {
         const logoW = 480;
         const logoBottom = createLogo(this, {
             width: logoW,
-            originX: width / 2 - logoW / 2,
+            originX: width / 2 - s(logoW) / 2,
             originY: height / 6,
         });
 

@@ -454,7 +454,11 @@ export class GameScene extends Phaser.Scene {
         );
 
         // ── Logo ────────────────────────────────────────────────────────
-        createLogo(this, { width: this.logoWidth });
+        createLogo(this, { 
+            width: this.logoWidth,
+            originX: s(this.screenMargin),
+            originY: s(this.screenMargin),
+        });
 
         this.sendGameStartAnalytics();
 
