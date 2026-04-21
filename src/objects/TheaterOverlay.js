@@ -37,9 +37,15 @@ export class TheaterOverlay extends Phaser.GameObjects.Container {
             .setInteractive(); // Stop click propagation to elements beneath
         this.add(bg);
 
+        /** @type {TheaterGrid | null} */
+        this.theaterGrid = null;
+
+        // Render the theater grid first so UI elements layer on top
+        this.renderView();
+
         const btnY = height - s(60);
 
-        // Header text for player's theater (moved above buttons)
+        // Header text for player's theater
         this.headerText = scene.add
             .text(width / 2, btnY - s(80), "", {
                 fontSize: px(34),
@@ -60,6 +66,7 @@ export class TheaterOverlay extends Phaser.GameObjects.Container {
             "Close",
             { fontSize: 18, width: 140 },
         );
+
         closeHit.on("pointerdown", () => {
             this.onClose?.();
             this.destroy(); // Safely removes graphics and container
@@ -75,6 +82,7 @@ export class TheaterOverlay extends Phaser.GameObjects.Container {
                 "< Previous",
                 { fontSize: 20, width: 180 },
             );
+
             prevHit.on("pointerdown", () => this.cycle(-1));
             this.add(prevBtn);
 
@@ -85,14 +93,13 @@ export class TheaterOverlay extends Phaser.GameObjects.Container {
                 "Next >",
                 { fontSize: 20, width: 180 },
             );
+
             nextHit.on("pointerdown", () => this.cycle(1));
             this.add(nextBtn);
         }
 
-        /** @type {TheaterGrid | null} */
-        this.theaterGrid = null;
-
-        this.renderView();
+        // Update header text for the initial view
+        this.updateHeaderText();
 
         scene.add.existing(this);
     }
@@ -104,16 +111,22 @@ export class TheaterOverlay extends Phaser.GameObjects.Container {
     cycle(direction) {
         this.currentPlayerView = (this.currentPlayerView + direction + this.playerCount) % this.playerCount;
         this.renderView();
+        this.updateHeaderText();
     }
 
-    renderView() {
+    /**
+     * Update the header text to reflect the current player view.
+     */
+    updateHeaderText() {
+        if (!this.headerText) return;
         const isAI = /** @type {any} */ (this.scene).aiConfig?.[this.currentPlayerView];
         const nameLabel = isAI
             ? `${PlayerNames[this.currentPlayerView].replace("Player ", "P")} 🤖`
             : PlayerNames[this.currentPlayerView];
-
         this.headerText.setText(`${nameLabel}'s Theater`);
+    }
 
+    renderView() {
         if (this.theaterGrid) {
             this.theaterGrid.destroy();
         }
@@ -130,8 +143,7 @@ export class TheaterOverlay extends Phaser.GameObjects.Container {
         this.theaterGrid.setFrontSeatGuidance(false);
         this.theaterGrid.setAisleSeatGuidance(false);
 
-        this.add(this.theaterGrid);
-        // Ensure the theater is drawn beneath the overlay UI controls (buttons, header)
-        this.theaterGrid.setDepth(-1);
+        // Insert right after the dark background (index 0) so UI controls stay on top
+        this.addAt(this.theaterGrid, 1);
     }
 }

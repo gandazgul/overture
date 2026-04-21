@@ -21,7 +21,7 @@ export class EndGameScene extends Phaser.Scene {
     /** @type {(import('../types.js').CardData | null)[][][]} Per-player grids (set in init, before create). */
     placedPatrons = /** @type {*} */ ([]);
     /** @type {number[]} Maps player slot → color index. */
-    playerColorMap = [0, 1, 2, 3];
+    playerColorMap = [2, 0, 1, 3];
     /** @type {(string | null)[]} AI config per player. */
     aiConfig = [null, null, null, null];
 

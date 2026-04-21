@@ -1401,6 +1401,9 @@ export class GameScene extends Phaser.Scene {
      * @param {Card} card
      */
     discardCard(card) {
+        // Hide tooltip before animating
+        this.hideScoringTooltip();
+
         // Remove from data
         const handDataIndex = this.playerHands[this.currentPlayer].indexOf(
             card.cardData,

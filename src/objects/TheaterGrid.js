@@ -345,7 +345,7 @@ export class TheaterGrid extends Phaser.GameObjects.Container {
         const floorCenterY = gridStartY + totalGridH / 2 + gridMarginBottom / 2 - gridMarginTop / 2;
 
         const stageLabel = scene.add
-            .text(s(scene.scale.width / 2), stageTop + gridMarginTop / 2, this.layout.name, {
+            .text(scene.scale.width / 2, stageTop + gridMarginTop / 2, this.layout.name, {
                 fontSize: px(30),
                 color: "#ffd700",
                 fontFamily: "Georgia, serif",

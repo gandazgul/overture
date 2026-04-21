@@ -28,7 +28,7 @@ export class TitleScene extends Phaser.Scene {
                     { length: 4 },
                     (_, i) => i === 0 ? null : AIDifficulty.MEDIUM,
                 ),
-                playerColorMap: [0, 1, 2, 3],
+                playerColorMap: [2, 0, 1, 3],
                 debugAnalytics: true,
             });
         });
@@ -46,7 +46,7 @@ export class TitleScene extends Phaser.Scene {
                     { length: 4 },
                     (_, i) => i === 0 ? null : AIDifficulty.MEDIUM,
                 ),
-                playerColorMap: [0, 1, 2, 3],
+                playerColorMap: [2, 0, 1, 3],
                 debugAnalytics: true,
             });
         });
@@ -124,7 +124,7 @@ export class TitleScene extends Phaser.Scene {
                         { length: 4 },
                         (_, p) => p === 0 ? null : (p < count ? AIDifficulty.MEDIUM : null),
                     ),
-                    playerColorMap: [0, 1, 2, 3],
+                    playerColorMap: [2, 0, 1, 3],
                     debugAnalytics: false,
                 });
             });

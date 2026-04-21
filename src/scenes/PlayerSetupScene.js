@@ -31,7 +31,7 @@ export class PlayerSetupScene extends Phaser.Scene {
          * Default: [0, 1, 2, 3] (blue, red, green, orange).
          * @type {number[]}
          */
-        this.playerColorMap = [0, 1, 2, 3];
+        this.playerColorMap = [2, 0, 1, 3];
 
         /** @type {boolean} */
         this.debugAnalytics = false;
@@ -45,7 +45,7 @@ export class PlayerSetupScene extends Phaser.Scene {
         this.selectedPlayerCount = count;
         this.aiConfig = data?.aiConfig ||
             Array.from({ length: 4 }, (_, i) => i === 0 ? null : (i < count ? AIDifficulty.MEDIUM : null));
-        this.playerColorMap = data?.playerColorMap || [0, 1, 2, 3];
+        this.playerColorMap = data?.playerColorMap || [2, 0, 1, 3];
         this.debugAnalytics = !!data?.debugAnalytics;
     }
 

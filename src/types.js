@@ -358,11 +358,11 @@ export const PatronDeckSpec = Object.freeze(
  * Player colors and names for up to 4 players.
  * @type {string[]}
  */
-export const PlayerColors = ["#66bb6a", "#4fc3f7", "#ef5350", "#ffa726"];
+export const PlayerColors = ["#4fc3f7", "#ef5350", "#66bb6a", "#ffa726"];
 Object.freeze(PlayerColors);
 
-/** @type {number[]} */
-export const PlayerColorsHex = [0x66bb6a, 0x4fc3f7, 0xef5350, 0xffa726];
+/** Same order as PlayerColors but as hex numbers for Phaser tint/fill. */
+export const PlayerColorsHex = [0x4fc3f7, 0xef5350, 0x66bb6a, 0xffa726];
 Object.freeze(PlayerColorsHex);
 
 /** @type {string[]} */
