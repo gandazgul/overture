@@ -122,7 +122,7 @@ export class GameInfoPanel extends Phaser.GameObjects.Container {
             const hitAreaH = s(48);
             const hitRect = scene.add.rectangle(hitAreaW / 2, s(18), hitAreaW, hitAreaH, 0x000000, 0)
                 .setInteractive({ useHandCursor: true });
-                
+
             hitRect.on("pointerdown", () => {
                 if (onPlayerClick) onPlayerClick(p);
             });

@@ -1,3 +1,4 @@
+/// <reference lib="deno.ns" />
 const two32 = 4294967296;
 
 /**
@@ -112,8 +113,8 @@ function getClientIp(req, info) {
         return cfIp;
     }
 
-    if (info?.remoteAddr?.hostname) {
-        return info.remoteAddr.hostname;
+    if (info?.remoteAddr && "hostname" in info.remoteAddr) {
+        return /** @type {any} */ (info.remoteAddr).hostname;
     }
 
     return "unknown";

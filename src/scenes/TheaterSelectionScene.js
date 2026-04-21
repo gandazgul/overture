@@ -122,7 +122,7 @@ export class TheaterSelectionScene extends Phaser.Scene {
         const logoY = createLogo(this, {
             width: logoW,
             originX: width / 2 - logoW / 2,
-            originY: height / 8
+            originY: height / 8,
         });
 
         // Subtitle

@@ -804,9 +804,6 @@ export function createDeck() {
     const deck = [];
 
     for (const [type, trait, count] of PatronDeckSpec) {
-        const typeInfo = PatronInfo[type];
-        const traitInfo = trait ? TraitInfo[trait] : null;
-
         const label = trait ? `${trait} ${type}` : type;
 
         for (let i = 0; i < count; i++) {

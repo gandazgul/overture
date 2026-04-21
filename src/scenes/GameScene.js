@@ -1998,7 +1998,7 @@ export class GameScene extends Phaser.Scene {
             width / 2 + s(140),
             centerY,
             "Confirm",
-            { fontSize: 20, bgColor: 0x226622 }
+            { fontSize: 20, bgColor: 0x226622 },
         );
         confirmHit.on("pointerdown", () => {
             if (this.confirmOverlay) {
@@ -2014,7 +2014,7 @@ export class GameScene extends Phaser.Scene {
             width / 2 - s(140),
             centerY,
             "⤺ Undo",
-            { fontSize: 20, bgColor: 0x882222 }
+            { fontSize: 20, bgColor: 0x882222 },
         );
         undoHit.on("pointerdown", () => {
             if (this.confirmOverlay) {
@@ -2034,7 +2034,9 @@ export class GameScene extends Phaser.Scene {
         this.deck = this.turnStartSnapshot.deck.slice();
         this.lobbyCards = this.turnStartSnapshot.lobbyCards.slice();
         this.playerHands[this.currentPlayer] = this.turnStartSnapshot.playerHand.slice();
-        this.placedPatrons[this.currentPlayer] = this.turnStartSnapshot.placedPatrons.map((/** @type {any} */ row) => row.slice());
+        this.placedPatrons[this.currentPlayer] = this.turnStartSnapshot.placedPatrons.map((/** @type {any} */ row) =>
+            row.slice()
+        );
         this.analytics.drawsBySource[this.currentPlayer] = Object.assign({}, this.turnStartSnapshot.drawsBySource);
         this.analytics.pickedByCard[this.currentPlayer] = Object.assign({}, this.turnStartSnapshot.pickedByCard);
 

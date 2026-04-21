@@ -72,7 +72,7 @@ export class TitleScene extends Phaser.Scene {
         const logoBottom = createLogo(this, {
             width: logoW,
             originX: width / 2 - logoW / 2,
-            originY: height / 6
+            originY: height / 6,
         });
 
         // Subtitle

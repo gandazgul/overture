@@ -46,7 +46,7 @@ async function dispatchRoute(req, info) {
 
     return {
         route: "static",
-        response: await handleStatic(req, info),
+        response: await handleStatic(req),
     };
 }
 

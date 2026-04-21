@@ -20,8 +20,6 @@ export class ActivePlayerAvatar extends Phaser.GameObjects.Container {
 
     /**
      * @param {Phaser.Scene} scene
-     * @param {number} x
-     * @param {number} y
      * @param {{ usherKey: string, colorHex: number, color: string, playerNumber: number }} options
      */
     constructor(scene, options) {

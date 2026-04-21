@@ -35,7 +35,7 @@ const DEFAULTS = {
  * Also wires up a changedata listener so any future registry.set() calls
  * for setting keys are automatically persisted to localStorage.
  *
- * @param {Phaser.Data.DataManager} registry - scene.registry or game.registry
+ * @param {import("phaser").Data.DataManager} registry - scene.registry or game.registry
  */
 export function loadSettings(registry) {
     /** @type {Record<string, any>} */
@@ -67,7 +67,7 @@ export function loadSettings(registry) {
 /**
  * Persist current settings from the Phaser registry to localStorage.
  *
- * @param {Phaser.Data.DataManager} registry - scene.registry or game.registry
+ * @param {import("phaser").Data.DataManager} registry - scene.registry or game.registry
  */
 export function saveSettings(registry) {
     /** @type {Record<string, any>} */

@@ -55,7 +55,7 @@ try {
 
     for (const target of missingTargets) {
         await page.evaluate((layoutId) => {
-            const game = window.__PHASER_GAME__;
+            const game = /** @type {any} */ (window).__PHASER_GAME__;
             if (!game) {
                 throw new Error("window.__PHASER_GAME__ not found");
             }
@@ -69,7 +69,7 @@ try {
         }, target.layoutId);
 
         await page.waitForFunction(() => {
-            const game = window.__PHASER_GAME__;
+            const game = /** @type {any} */ (window).__PHASER_GAME__;
             if (!game) return false;
             const scene = /** @type {any} */ (game.scene.getScene("GameScene"));
             return !!scene &&

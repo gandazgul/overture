@@ -75,7 +75,7 @@ function isAllowedOrigin(origin) {
         const port = Number(originUrl.port);
 
         return originUrl.protocol === "http:" &&
-            (originUrl.hostname === "localhost" || originUrl.hostname === '127.0.0.1') &&
+            (originUrl.hostname === "localhost" || originUrl.hostname === "127.0.0.1") &&
             Number.isInteger(port) &&
             port >= LOCALHOST_CORS_PORT_MIN &&
             port <= LOCALHOST_CORS_PORT_MAX;

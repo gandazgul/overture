@@ -122,10 +122,16 @@ for (const bg of globFiles(SRC, "bg_")) {
         archived = join(ARCHIVE, basename(bg));
         copyFileSync(bg, archived);
         unlinkSync(bg);
-        try { unlinkSync(fullPath); } catch { /* ignore if they don't exist */ }
-        try { unlinkSync(thumbPath); } catch { /* ignore if they don't exist */ }
+        try {
+            unlinkSync(fullPath);
+        } catch { /* ignore if they don't exist */ }
+        try {
+            unlinkSync(thumbPath);
+        } catch { /* ignore if they don't exist */ }
         console.log(`  Archived new asset: ${bg}`);
     }
+
+    if (!archived) throw new Error(`Missing archived path for ${bg}`);
 
     if (!existsSync(fullPath)) {
         await resizeJpeg(archived, fullPath, 1250, 85);
@@ -143,12 +149,13 @@ for (const bg of globFiles(SRC, "bg_")) {
 }
 console.log("");
 
+/** @type {Record<string, number>} */
 const UI_MAP = {
     ui_logo: 600,
     ui_button_frame: 256,
     ui_stage: 640,
     ui_card_back: 128,
-    ui_brass_stanchion: 50
+    ui_brass_stanchion: 50,
 };
 // --- UI  ---
 console.log("--- UI assets ---");
@@ -161,9 +168,9 @@ for (const ui of globFiles(SRC, "ui_")) {
         unlinkSync(ui);
         console.log(`  Archived new asset: ${name}`);
 
-        ext === '.jpg' ?
-            await resizeJpeg(archived, ui, UI_MAP[name], 85) :
-            await resizePng(archived, ui, { width: UI_MAP[name] });
+        ext === ".jpg"
+            ? await resizeJpeg(archived, ui, UI_MAP[name], 85)
+            : await resizePng(archived, ui, { width: UI_MAP[name] });
 
         console.log(`  ${name}: wrote full asset`);
     } else {
@@ -183,9 +190,9 @@ for (const patron of globFiles(SRC, "patron_")) {
         unlinkSync(patron);
         console.log(`  Archived new asset: ${name}`);
 
-        ext === '.jpg' ?
-            await resizeJpeg(archived, patron, 168, 85) :
-            await resizePng(archived, patron, { width: 168, trim: true });
+        ext === ".jpg"
+            ? await resizeJpeg(archived, patron, 168, 85)
+            : await resizePng(archived, patron, { width: 168, trim: true });
 
         console.log(`  ${name}: wrote`);
     } else {
@@ -207,7 +214,8 @@ for (const usher of globFiles(SRC, "usher_")) {
     } else if (existsSync(archivedPng)) {
         archived = archivedPng;
     }
-    if (!existsSync(archived)) {
+    if (!archived) {
+        archived = join(ARCHIVE, basename(usher));
         copyFileSync(usher, archived);
         unlinkSync(usher);
         console.log(`  Archived new asset: ${usher}`);
@@ -232,9 +240,9 @@ for (const badge of globFiles(SRC, "badge_")) {
         unlinkSync(badge);
         console.log(`  Archived new asset: ${name}`);
 
-        ext === '.jpg' ?
-            await resizeJpeg(archived, badge, 64, 85) :
-            await resizePng(archived, badge, { width: 64, trim: true });
+        ext === ".jpg"
+            ? await resizeJpeg(archived, badge, 64, 85)
+            : await resizePng(archived, badge, { width: 64, trim: true });
 
         console.log(`  ${name}: wrote`);
     } else {

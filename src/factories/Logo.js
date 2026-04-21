@@ -49,12 +49,11 @@ export function createLogo(scene, options) {
             fontFamily: "Georgia, serif",
             color: "#f5c518",
             fontStyle: "bold",
-            border: px(1)
         });
 
-    fallback.setPosition(originX, originY)
+    fallback.setPosition(originX, originY);
 
     if (depth !== undefined) fallback.setDepth(depth);
 
-    return originY + displayH;
+    return originY + fallback.height;
 }
