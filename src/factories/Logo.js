@@ -33,8 +33,8 @@ export function createLogo(scene, options) {
         if (frame?.width && frame?.height) {
             const displayW = s(width);
             const displayH = Math.round(displayW * (frame.height / frame.width));
-            const logoX = displayW / 2 + originX;
-            const logoY = displayH / 2 + originY;
+            const logoX = s(displayW / 2 + originX);
+            const logoY = s(displayH / 2 + originY);
             const logo = scene.add.image(logoX, logoY, logoKey);
             logo.setDisplaySize(displayW, displayH);
             if (depth !== undefined) logo.setDepth(depth);
