@@ -149,7 +149,7 @@ export class GameInfoPanel extends Phaser.GameObjects.Container {
                 ruleY + s(8),
                 houseRuleDescription,
                 {
-                    fontSize: px(11),
+                    fontSize: px(14),
                     fontFamily: "Georgia, serif",
                     color: "#f5c518",
                     fontStyle: "italic",
@@ -157,6 +157,7 @@ export class GameInfoPanel extends Phaser.GameObjects.Container {
                     align: "center",
                 },
             ).setOrigin(0.5, 0);
+            ruleText.setPadding(0, 0, 0, 10);
             this.add(ruleText);
         }
 

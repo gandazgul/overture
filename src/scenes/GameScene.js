@@ -243,7 +243,7 @@ export class GameScene extends Phaser.Scene {
         }
 
         // ── Game UI assets ──────────────────────────────────────────────
-        loadIfMissing("card_back", "assets/card_back.png");
+        loadIfMissing("ui_card_back", "assets/ui_card_back.png");
         loadIfMissing("ui_stage", "assets/ui_stage.png");
         loadIfMissing("ui_logo", "assets/ui_logo.png");
         loadIfMissing("ui_button_frame", "assets/ui_button_frame.png");
@@ -346,24 +346,19 @@ export class GameScene extends Phaser.Scene {
 
             // One card per patron type (no trait)
             for (const type of Object.values(PatronType)) {
-                const info = PatronInfo[type];
                 hand.push({
                     type,
                     label: type,
-                    description: info.description,
                 });
             }
 
             // One Standard card per trait
             const baseType = PatronType.STANDARD;
-            const baseInfo = PatronInfo[baseType];
             for (const trait of Object.values(Trait)) {
-                const tInfo = TraitInfo[trait];
                 hand.push({
                     type: baseType,
                     trait,
                     label: `${trait} ${baseType}`,
-                    description: `${baseInfo.description} ${tInfo.description}`,
                 });
             }
 
@@ -407,7 +402,7 @@ export class GameScene extends Phaser.Scene {
             onSeatPointerDown: (row, col, seat) => this.handleSeatPointerDown(row, col, seat),
         });
 
-        const { gridStartY } = this.theaterGrid.build();
+        this.theaterGrid.build();
 
         // ── Full Background Fill ──────────────────────────────────────────────
         // Ensure we cover the TitleScene/other scenes since theater floor is masked
@@ -416,7 +411,7 @@ export class GameScene extends Phaser.Scene {
         // ── HUD Panel (Game Information) ────────────────────────────────
         const hudW = s(260);
         const hudX = width - hudW - this.screenMargin;
-        this.gameInfoPanel = new GameInfoPanel(this, hudX, gridStartY, {
+        this.gameInfoPanel = new GameInfoPanel(this, hudX, this.screenMargin, {
             width: hudW,
             playerCount: this.playerCount,
             houseRuleDescription: this.layout.houseRuleDescription,
@@ -1120,15 +1115,16 @@ export class GameScene extends Phaser.Scene {
             return;
         }
 
-        const handStartX = width / 2 - ((handSize - 1) * (Card.WIDTH + s(20))) / 2;
-        const handY = height - s(100);
+        const HAND_CARD_GAP = s(20);
+        const handStartX = width / 2 - ((handSize - 1) * (Card.WIDTH + HAND_CARD_GAP)) / 2;
+        const handY = height - Card.HEIGHT / 2 - this.screenMargin;
 
         // AI turn check: if current player is AI, cards are not interactive
         const isAI = !!this.aiConfig[this.currentPlayer];
 
         for (let i = 0; i < handSize; i++) {
             const cardData = hand[i];
-            const x = handStartX + i * (Card.WIDTH + s(20));
+            const x = handStartX + i * (Card.WIDTH + HAND_CARD_GAP);
             const card = new Card(this, x, handY, cardData);
 
             if (!isAI) {
@@ -1602,7 +1598,7 @@ export class GameScene extends Phaser.Scene {
         const backBorder = this.add
             .rectangle(0, 0, Card.WIDTH, Card.HEIGHT, 0x000000)
             .setStrokeStyle(s(2), 0x000000, 0.7);
-        const backImage = this.add.image(0, 0, "card_back").setDisplaySize(Card.WIDTH, Card.HEIGHT);
+        const backImage = this.add.image(0, 0, "ui_card_back").setDisplaySize(Card.WIDTH, Card.HEIGHT);
         back.add([backBorder, backImage]);
 
         await new Promise((resolve) => {
@@ -1768,7 +1764,7 @@ export class GameScene extends Phaser.Scene {
                 .rectangle(ox, oy, Card.WIDTH, Card.HEIGHT, 0x000000)
                 .setStrokeStyle(s(2), 0x000000, 0.7);
 
-            const image = this.add.image(ox, oy, "card_back");
+            const image = this.add.image(ox, oy, "ui_card_back");
             image.setDisplaySize(Card.WIDTH, Card.HEIGHT);
 
             /** @type {Phaser.GameObjects.GameObject[]} */
@@ -2001,7 +1997,7 @@ export class GameScene extends Phaser.Scene {
             this,
             width / 2 + s(140),
             centerY,
-            "End Turn",
+            "Confirm",
             { fontSize: 20, bgColor: 0x226622 }
         );
         confirmHit.on("pointerdown", () => {
@@ -2017,7 +2013,7 @@ export class GameScene extends Phaser.Scene {
             this,
             width / 2 - s(140),
             centerY,
-            "Undo Move",
+            "⤺ Undo",
             { fontSize: 20, bgColor: 0x882222 }
         );
         undoHit.on("pointerdown", () => {

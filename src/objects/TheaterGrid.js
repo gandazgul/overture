@@ -1,7 +1,6 @@
 // @ts-check
 import Phaser from "phaser";
-import { s } from "../config.js";
-import { createStage } from "../factories/Stage.js";
+import { px, s } from "../config.js";
 import { seatExists } from "../scoring.js";
 import { hasSeatLabel, TraitColors } from "../types.js";
 import { AISLE_GAP, SEAT_GAP, SEAT_SIZE } from "../constants.js";
@@ -206,10 +205,8 @@ export class TheaterGrid extends Phaser.GameObjects.Container {
         this.staggerRowOffsets = staggerRowOffsets;
         this.gridStartY = floorGeometry.gridStartY;
 
-        const IMAGE_BORDER = 4;
-
         // return the Y of the theater background image so that the Info Panel can align its top edge to it
-        return { gridStartY: floorGeometry.gridStartY - floorGeometry.gridMarginTop + IMAGE_BORDER };
+        return { gridStartY: floorGeometry.gridStartY };
     }
 
     /**
@@ -341,33 +338,33 @@ export class TheaterGrid extends Phaser.GameObjects.Container {
         const gridMarginTop = s(this.layout.gridMarginTop ?? 40);
         const gridMarginBottom = s(this.layout.gridMarginBottom ?? 40);
         const floorH = totalGridH + gridMarginTop + gridMarginBottom;
-        const stageTop = s(10);
-        const stageX = width / 2;
-        const { stage, height: stageHeight } = createStage(scene, {
-            label: this.layout.name,
-            x: stageX,
-            top: stageTop,
-        });
 
-        // Keep current visual spacing behavior: with equal margins this matches
-        // prior `bleedHeight` placement while allowing independent top/bottom tuning.
-        const gridStartY = stageTop + stageHeight + gridMarginTop / 2;
+        const stageTop = s(20);
+        const gridStartY = stageTop + gridMarginTop;
         const gridStartX = (width - totalGridW) / 2;
         const floorCenterY = gridStartY + totalGridH / 2 + gridMarginBottom / 2 - gridMarginTop / 2;
 
-        const bgImg = scene.add.image(stageX, floorCenterY, this.layout.bgKey || "");
+        const stageLabel = scene.add
+            .text(s(scene.scale.width / 2), stageTop + gridMarginTop / 2, this.layout.name, {
+                fontSize: px(30),
+                color: "#ffd700",
+                fontFamily: "Georgia, serif",
+                fontStyle: "italic",
+                shadow: { blur: 4, color: "#000000", fill: true, stroke: true, offsetX: 2, offsetY: 2 },
+            });
+        stageLabel.setPadding(0, 0, 0, 10);
+        stageLabel.setOrigin(0.5);
+
+        const bgImg = scene.add.image(scene.scale.width / 2, floorCenterY, this.layout.bgKey || "");
         const bgImgRatio = bgImg.width / bgImg.height;
         bgImg.setDisplaySize(floorH * bgImgRatio, floorH);
-
-        // const bgMaskGraphic = scene.make.graphics();
-        // bgMaskGraphic.fillRect(gridStartX, gridStartY, totalGridW, floorH);
-        // bgImg.setMask(bgMaskGraphic.createGeometryMask());
+        console.log(`Background size: ${floorH * bgImgRatio} x ${floorH}`);
 
         this.add(bgImg);
-        this.add(stage);
+        this.add(stageLabel);
 
         return {
-            stageX,
+            stageX: scene.scale.width / 2,
             totalGridW,
             totalGridH,
             floorW: totalGridW,

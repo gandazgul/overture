@@ -51,7 +51,6 @@ function card(type, trait) {
     const c = {
         type,
         label: trait ? `${trait} ${type}` : type,
-        description: "",
     };
     if (trait) c.trait = trait;
     return c;
@@ -565,7 +564,6 @@ Deno.test("Unknown patron type scores 0 VP", () => {
     grid[1][1] = {
         type: "UNKNOWN",
         label: "UNKNOWN",
-        description: "",
     };
     const result = scorePlayer(grid, DefaultLayout);
     assertEquals(result.perSeat[1][1], 0);
@@ -644,12 +642,11 @@ Deno.test("createDeck trait distribution: 7 Tall, 7 Short, 6 Bespectacled, 4 Noi
     assertEquals(traitCounts[Trait.NOISY], 4);
 });
 
-Deno.test("createDeck cards have, type, label & description", () => {
+Deno.test("createDeck cards have type & label", () => {
     const deck = createDeck();
     for (const c of deck) {
         assertEquals(!!c.type, true);
         assertEquals(!!c.label, true);
-        assertEquals(!!c.description, true);
     }
 });
 

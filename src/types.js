@@ -87,7 +87,6 @@ Object.freeze(Trait);
  *
  * @type {Record<string, {
  *   color: number,
- *   description: string,
  *   scoringHint: string,
  *   scoring: ScoringParams,
  *   deck: PatronDeckInfo,
@@ -98,7 +97,6 @@ Object.freeze(Trait);
 export const PatronInfo = {
     [PatronType.STANDARD]: {
         color: 0x607d8b,
-        description: "A regular patron. Worth 3 VP anywhere.",
         scoringHint: "Base 3VP",
         scoring: { base: 3 },
         deck: {
@@ -115,8 +113,7 @@ export const PatronInfo = {
     },
     [PatronType.VIP]: {
         color: 0xffc107,
-        description: "3 VP base. +3 VP in front rows. −3 per adjacent Kid or Noisy.",
-        scoringHint: "Base 3 VP\n+3VP in the front 2 rows\n⚠ −3VP per adjacent Kid or Noisy",
+        scoringHint: "Base 3VP\n+3VP in the front seats (Thick red edge)\n⚠ −3VP per adjacent Kid or Noisy",
         scoring: {
             base: 3,
             rowBonusValue: 3,
@@ -134,8 +131,7 @@ export const PatronInfo = {
     },
     [PatronType.LOVEBIRDS]: {
         color: 0xe91e63,
-        description: "1 VP alone. +3 if horizontally paired. +2 in back row.",
-        scoringHint: "+3VP if paired side by side with another.\n+2VP in back row\n⚠ 0 VP if alone",
+        scoringHint: "1VP alone.\n+3VP if horizontally paired.\n+2VP in back row.",
         scoring: {
             base: 1,
             adjacentMatchBonus: 3,
@@ -153,7 +149,6 @@ export const PatronInfo = {
     },
     [PatronType.KID]: {
         color: 0x4caf50,
-        description: "1 VP uncapped. 3 VP when capped by Teachers in a row/column chain.",
         scoringHint: "Base 1VP\n+2VP when capped (row/column) e.g. T-K-T",
         scoring: {
             base: 1,
@@ -172,7 +167,6 @@ export const PatronInfo = {
     },
     [PatronType.TEACHER]: {
         color: 0x8bc34a,
-        description: "3 VP base. +1 VP per capped Kid this Teacher caps.",
         scoringHint: "Base 3VP\n+1VP per Kid this Teacher caps",
         scoring: {
             base: 3,
@@ -191,7 +185,6 @@ export const PatronInfo = {
     },
     [PatronType.CRITIC]: {
         color: 0x9c27b0,
-        description: "+3 VP in aisle seat. Noisy neighbors nullify the bonus!",
         scoringHint: "Base 3VP\n+3VP in an aisle seat (gold border)",
         scoring: {
             base: 3,
@@ -210,7 +203,6 @@ export const PatronInfo = {
     },
     [PatronType.FRIENDS]: {
         color: 0x00bcd4,
-        description: "3 VP base. +1 VP per adjacent Friend.",
         scoringHint: "Base 3VP\n+1VP per adjacent Friend",
         scoring: {
             base: 3,
@@ -235,7 +227,6 @@ Object.freeze(PatronInfo);
  *
  * @type {Record<string, {
  *   color: number,
- *   description: string,
  *   scoringHint: string,
  *   scoring: TraitScoringParams,
  *   badgeAssetKey: string,
@@ -245,7 +236,6 @@ Object.freeze(PatronInfo);
 export const TraitInfo = {
     [Trait.TALL]: {
         color: 0x795548,
-        description: "Patron behind gets −2 VP.",
         scoringHint: "⚠ Patron behind gets −2VP",
         scoring: { behindPenalty: -2 },
         badgeAssetKey: "badge_tall",
@@ -253,8 +243,7 @@ export const TraitInfo = {
     },
     [Trait.SHORT]: {
         color: 0xff9800,
-        description: "+2 VP if no one in front. −3 VP if Tall is in front.",
-        scoringHint: "+2VP if no one in front\n⚠ −3 VP if Tall in front",
+        scoringHint: "+2VP if no one in front\n⚠ −3VP if Tall in front",
         scoring: {
             emptyFrontBonus: 2,
             tallInFrontPenalty: -3,
@@ -264,7 +253,6 @@ export const TraitInfo = {
     },
     [Trait.BESPECTACLED]: {
         color: 0x2196f3,
-        description: "+2 VP in front 3 rows (closer to stage).",
         scoringHint: "+2VP unless seated on the back row",
         scoring: {
             rowBonusValue: 2,
@@ -275,7 +263,6 @@ export const TraitInfo = {
     },
     [Trait.NOISY]: {
         color: 0xf44336,
-        description: "Each adjacent patron gets −1 VP.",
         scoringHint: "⚠ Each adjacent patron gets −1VP",
         scoring: { adjacentPenalty: -1 },
         badgeAssetKey: "badge_noisy",
@@ -390,7 +377,6 @@ Object.freeze(PlayerNames);
  * @property {string} type - One of the PatronType values (primary identity)
  * @property {string} [trait] - Optional secondary trait (one of Trait values)
  * @property {string} label - Display name (e.g. "Tall Kid")
- * @property {string} description - Short tooltip text
  */
 
 /**
@@ -512,8 +498,8 @@ export const GrandEmpressLayout = {
     description: "Classic wide theater. Plentiful aisle seats. No house rule.",
     rows: 4,
     cols: 5,
-    gridMarginTop: 30,
-    gridMarginBottom: 80,
+    gridMarginTop: 220,
+    gridMarginBottom: 45,
     aisleCols: [0, 4],
     frontRows: [0],
     backRows: [3],
@@ -532,8 +518,8 @@ export const BlackboxLayout = {
     description: "Deep & narrow. Center aisles only. Dense packing rewarded.",
     rows: 5,
     cols: 4,
-    gridMarginTop: 30,
-    gridMarginBottom: 55,
+    gridMarginTop: 140,
+    gridMarginBottom: 20,
     aisleCols: [1, 2],
     frontRows: [0],
     backRows: [4],
@@ -552,8 +538,8 @@ export const OperaHouseLayout = {
     description: "Royal Boxes in the front corners. Best patron gets +3 VP.",
     rows: 4,
     cols: 5,
-    gridMarginTop: 30,
-    gridMarginBottom: 80,
+    gridMarginTop: 210,
+    gridMarginBottom: 40,
     aisleCols: [0, 4],
     frontRows: [0, 1],
     backRows: [3],
@@ -578,8 +564,8 @@ export const PromenadeLayout = {
     description: "Staggered aisles every row. Critics spread out.",
     rows: 4,
     cols: 5,
-    gridMarginTop: 30,
-    gridMarginBottom: 80,
+    gridMarginTop: 225,
+    gridMarginBottom: 45,
     aisleCols: [], // not used — aisleColsByRow takes precedence
     frontRows: [0],
     aisleColsByRow: [
@@ -606,8 +592,8 @@ export const AmphitheaterLayout = {
     description: "Tiered rows widen toward the back. No aisles. Fill rows for bonus VP.",
     rows: 4,
     cols: 6,
-    gridMarginTop: 30,
-    gridMarginBottom: 80,
+    gridMarginTop: 210,
+    gridMarginBottom: 55,
     aisleCols: [],
     frontRows: [0],
     backRows: [3],
@@ -657,8 +643,8 @@ export const DinnerPlayhouseLayout = {
     description: "Intimate tables of 4. Fill a table for +3 VP.",
     rows: 4,
     cols: 8,
-    gridMarginTop: 30,
-    gridMarginBottom: 80,
+    gridMarginTop: 220,
+    gridMarginBottom: 20,
     aisleCols: [],
     frontRows: [0],
     backRows: [3],
@@ -710,8 +696,8 @@ export const ZiegfeldRunwayLayout = {
     description: "T-shaped runway splits the house. Tight space, high-value front seats.",
     rows: 4,
     cols: 5,
-    gridMarginTop: 30,
-    gridMarginBottom: 80,
+    gridMarginTop: 100,
+    gridMarginBottom: 50,
     aisleCols: [],
     backRows: [3],
     seatMask: [
@@ -743,7 +729,7 @@ export const RotundaLayout = {
     description: "Theater in the round. No back row. Stage-side seats are front row.",
     rows: 5,
     cols: 5,
-    gridMarginTop: 30,
+    gridMarginTop: 100,
     gridMarginBottom: 50,
     aisleCols: [],
     backRows: [],
@@ -822,11 +808,10 @@ export function createDeck() {
         const traitInfo = trait ? TraitInfo[trait] : null;
 
         const label = trait ? `${trait} ${type}` : type;
-        const description = traitInfo ? `${typeInfo.description} ${traitInfo.description}` : typeInfo.description;
 
         for (let i = 0; i < count; i++) {
             /** @type {CardData} */
-            const card = { type, label, description };
+            const card = { type, label };
             if (trait) card.trait = trait;
             deck.push(card);
         }

@@ -37,13 +37,12 @@ function fileSize(filePath) {
  * Glob files from a directory matching a pattern prefix and extension.
  * @param {string} dir
  * @param {string} prefix - e.g. "patron_"
- * @param {string} ext - e.g. ".png"
  * @returns {string[]} Full paths sorted alphabetically
  */
-function globFiles(dir, prefix, ext) {
+function globFiles(dir, prefix) {
     if (!existsSync(dir)) return [];
     return readdirSync(dir)
-        .filter((f) => f.startsWith(prefix) && f.endsWith(ext))
+        .filter((f) => f.startsWith(prefix))
         .sort()
         .map((f) => join(dir, f));
 }
@@ -70,25 +69,7 @@ console.log(`Source:  ${SRC}`);
 console.log(`Archive: ${ARCHIVE}`);
 console.log("");
 
-if (existsSync(ARCHIVE)) {
-    console.log("Archive exists, syncing new assets...");
-    for (const f of readdirSync(SRC).filter((n) => n.endsWith(".png"))) {
-        const dest = join(ARCHIVE, f);
-        if (!existsSync(dest)) {
-            copyFileSync(join(SRC, f), dest);
-            console.log(`  Archived new asset: ${f}`);
-        }
-    }
-} else {
-    console.log(`Copying originals to ${ARCHIVE}...`);
-    mkdirSync(ARCHIVE, { recursive: true });
-    for (const f of readdirSync(SRC)) {
-        if (f === ".DS_Store") continue;
-        copyFileSync(join(SRC, f), join(ARCHIVE, f));
-    }
-    console.log("Done.");
-}
-console.log("");
+mkdirSync(ARCHIVE, { recursive: true });
 
 // ── Step 2: Resize assets ───────────────────────────────────────────
 
@@ -120,21 +101,41 @@ async function resizeJpeg(input, output, width, quality) {
 
 // --- Backgrounds ---
 console.log("--- Backgrounds (game: 800px wide JPEG, thumbnails: 320px wide JPEG) ---");
-for (const bg of globFiles(ARCHIVE, "bg_", ".png")) {
-    const name = basename(bg, ".png");
+for (const bg of globFiles(SRC, "bg_")) {
+    if (bg.endsWith("_thumb.jpg")) {
+        continue; //skip thumbs
+    }
+    const ext = extname(bg);
+    const name = basename(bg, ext);
+    let archived;
+    const archivedJpg = join(ARCHIVE, `${name}.jpg`);
+    const archivedPng = join(ARCHIVE, `${name}.png`);
+    if (existsSync(archivedJpg)) {
+        archived = archivedJpg;
+    } else if (existsSync(archivedPng)) {
+        archived = archivedPng;
+    }
     const fullPath = join(SRC, `${name}.jpg`);
     const thumbPath = join(SRC, `${name}_thumb.jpg`);
 
+    if (!existsSync(archivedJpg) && !existsSync(archivedPng)) {
+        archived = join(ARCHIVE, basename(bg));
+        copyFileSync(bg, archived);
+        unlinkSync(bg);
+        try { unlinkSync(fullPath); } catch { /* ignore if they don't exist */ }
+        try { unlinkSync(thumbPath); } catch { /* ignore if they don't exist */ }
+        console.log(`  Archived new asset: ${bg}`);
+    }
+
     if (!existsSync(fullPath)) {
-        await resizeJpeg(bg, fullPath, 800, 85);
+        await resizeJpeg(archived, fullPath, 1250, 85);
         console.log(`  ${name}: wrote full asset`);
     } else {
         console.log(`  ${name}: skipped (full asset exists)`);
     }
-    const oldPng = join(SRC, `${name}.png`);
-    if (existsSync(oldPng)) unlinkSync(oldPng);
+
     if (!existsSync(thumbPath)) {
-        await resizeJpeg(bg, thumbPath, 320, 80);
+        await resizeJpeg(archived, thumbPath, 320, 80);
         console.log(`  ${name}: wrote thumb`);
     } else {
         console.log(`  ${name}: skipped (thumb exists)`);
@@ -142,65 +143,50 @@ for (const bg of globFiles(ARCHIVE, "bg_", ".png")) {
 }
 console.log("");
 
-// --- Card Back ---
-console.log("--- Card Back (128px wide) ---");
-{
-    const out = join(SRC, "card_back.png");
-    if (!existsSync(out)) {
-        await resizePng(join(ARCHIVE, "card_back.png"), out, { width: 128 });
-        console.log(`  card_back: wrote`);
-    } else {
-        console.log(`  card_back: skipped (exists)`);
-    }
-}
-console.log("");
+const UI_MAP = {
+    ui_logo: 600,
+    ui_button_frame: 256,
+    ui_stage: 640,
+    ui_card_back: 128,
+    ui_brass_stanchion: 50
+};
+// --- UI  ---
+console.log("--- UI assets ---");
+for (const ui of globFiles(SRC, "ui_")) {
+    const ext = extname(ui);
+    const name = basename(ui, ext);
+    const archived = join(ARCHIVE, basename(ui));
+    if (!existsSync(archived)) {
+        copyFileSync(ui, archived);
+        unlinkSync(ui);
+        console.log(`  Archived new asset: ${name}`);
 
-// --- UI Logo ---
-console.log("--- UI Logo (600px wide) ---");
-{
-    const out = join(SRC, "ui_logo.png");
-    if (!existsSync(out)) {
-        await resizePng(join(ARCHIVE, "ui_logo.png"), out, { width: 600 });
-        console.log(`  ui_logo: wrote`);
-    } else {
-        console.log(`  ui_logo: skipped (exists)`);
-    }
-}
-console.log("");
+        ext === '.jpg' ?
+            await resizeJpeg(archived, ui, UI_MAP[name], 85) :
+            await resizePng(archived, ui, { width: UI_MAP[name] });
 
-// --- UI Button Frame ---
-console.log("--- UI Button Frame (256px wide) ---");
-{
-    const out = join(SRC, "ui_button_frame.png");
-    if (!existsSync(out)) {
-        await resizePng(join(ARCHIVE, "ui_button_frame.png"), out, { width: 256 });
-        console.log(`  ui_button_frame: wrote`);
+        console.log(`  ${name}: wrote full asset`);
     } else {
-        console.log(`  ui_button_frame: skipped (exists)`);
-    }
-}
-console.log("");
-
-// --- UI Stage ---
-console.log("--- UI Stage (640px wide) ---");
-{
-    const out = join(SRC, "ui_stage.png");
-    if (!existsSync(out)) {
-        await resizePng(join(ARCHIVE, "ui_stage.png"), out, { width: 640 });
-        console.log(`  ui_stage: wrote`);
-    } else {
-        console.log(`  ui_stage: skipped (exists)`);
+        console.log(`  ${name}: skipped (exists)`);
     }
 }
 console.log("");
 
 // --- Patron Cards (trimmed) ---
 console.log("--- Patron Cards (168px wide, trimmed) ---");
-for (const patron of globFiles(ARCHIVE, "patron_", ".png")) {
-    const name = basename(patron, ".png");
-    const out = join(SRC, `${name}.png`);
-    if (!existsSync(out)) {
-        await resizePng(patron, out, { width: 168, trim: true });
+for (const patron of globFiles(SRC, "patron_")) {
+    const ext = extname(patron);
+    const name = basename(patron, ext);
+    const archived = join(ARCHIVE, basename(patron));
+    if (!existsSync(archived)) {
+        copyFileSync(patron, archived);
+        unlinkSync(patron);
+        console.log(`  Archived new asset: ${name}`);
+
+        ext === '.jpg' ?
+            await resizeJpeg(archived, patron, 168, 85) :
+            await resizePng(archived, patron, { width: 168, trim: true });
+
         console.log(`  ${name}: wrote`);
     } else {
         console.log(`  ${name}: skipped (exists)`);
@@ -210,11 +196,24 @@ console.log("");
 
 // --- Ushers ---
 console.log("--- Ushers (160px wide) ---");
-for (const usher of globFiles(ARCHIVE, "usher_", ".png")) {
-    const name = basename(usher, ".png");
-    const out = join(SRC, `${name}.png`);
-    if (!existsSync(out)) {
-        await resizePng(usher, out, { width: 160 });
+for (const usher of globFiles(SRC, "usher_")) {
+    const ext = extname(usher);
+    const name = basename(usher, ext);
+    let archived;
+    const archivedJpg = join(ARCHIVE, `${name}.jpg`);
+    const archivedPng = join(ARCHIVE, `${name}.png`);
+    if (existsSync(archivedJpg)) {
+        archived = archivedJpg;
+    } else if (existsSync(archivedPng)) {
+        archived = archivedPng;
+    }
+    if (!existsSync(archived)) {
+        copyFileSync(usher, archived);
+        unlinkSync(usher);
+        console.log(`  Archived new asset: ${usher}`);
+
+        await resizeJpeg(archived, join(SRC, `${name}.jpg`), 160, 90);
+
         console.log(`  ${name}: wrote`);
     } else {
         console.log(`  ${name}: skipped (exists)`);
@@ -224,35 +223,22 @@ console.log("");
 
 // --- Badges (trimmed) ---
 console.log("--- Badges (64px, trimmed) ---");
-for (const badge of globFiles(ARCHIVE, "badge_", ".png")) {
-    const name = basename(badge, ".png");
-    const out = join(SRC, `${name}.png`);
-    if (!existsSync(out)) {
-        await resizePng(badge, out, { width: 64, height: 64, trim: true });
+for (const badge of globFiles(SRC, "badge_")) {
+    const ext = extname(badge);
+    const name = basename(badge, ext);
+    const archived = join(ARCHIVE, basename(badge));
+    if (!existsSync(archived)) {
+        copyFileSync(badge, archived);
+        unlinkSync(badge);
+        console.log(`  Archived new asset: ${name}`);
+
+        ext === '.jpg' ?
+            await resizeJpeg(archived, badge, 64, 85) :
+            await resizePng(archived, badge, { width: 64, trim: true });
+
         console.log(`  ${name}: wrote`);
     } else {
         console.log(`  ${name}: skipped (exists)`);
-    }
-}
-console.log("");
-
-// --- Tokens (trimmed) ---
-console.log("--- Tokens (64px, trimmed) ---");
-{
-    const tokens = globContains(ARCHIVE, "token", ".png");
-    if (tokens.length === 0) {
-        console.log("  (no token files found)");
-    } else {
-        for (const token of tokens) {
-            const name = basename(token, ".png");
-            const out = join(SRC, `${name}.png`);
-            if (!existsSync(out)) {
-                await resizePng(token, out, { width: 64, height: 64, trim: true });
-                console.log(`  ${name}: wrote`);
-            } else {
-                console.log(`  ${name}: skipped (exists)`);
-            }
-        }
     }
 }
 console.log("");

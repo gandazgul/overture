@@ -170,7 +170,7 @@ const ASSETS = [
 
     // ── Game UI & Extras ─────────────────────────────────────────
     {
-        filename: "card_back.png",
+        filename: "ui_card_back.png",
         prompt:
             "A 2D stylized playing card back featuring an elegant Art Deco geometric pattern of a theater stage curtain and marquee stars. Symmetrical, classic playing card design, rich gold, black, and red colors.",
         aspectRatio: "3:4",

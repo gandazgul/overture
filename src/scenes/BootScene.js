@@ -48,10 +48,10 @@ export class BootScene extends Phaser.Scene {
         this.load.image("ui_button_frame", "assets/ui_button_frame.png");
 
         // ── Usher avatars (needed in TitleScene player setup) ────────────
-        this.load.image("usher_blue", "assets/usher_blue.png");
-        this.load.image("usher_red", "assets/usher_red.png");
-        this.load.image("usher_green", "assets/usher_green.png");
-        this.load.image("usher_orange", "assets/usher_orange.png");
+        this.load.image("usher_blue", "assets/usher_blue.jpg");
+        this.load.image("usher_red", "assets/usher_red.jpg");
+        this.load.image("usher_green", "assets/usher_green.jpg");
+        this.load.image("usher_orange", "assets/usher_orange.jpg");
     }
 
     debugTheaterStart() {
