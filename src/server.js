@@ -1,13 +1,13 @@
 /// <reference lib="deno.ns" />
 
-import { handleAnalyticsBeacon } from "./src/api/analytics-beacon.js";
-import { handleAnalyticsReport, setupAnalyticsCron } from "./src/api/analytics-report.js";
-import { handleIndex } from "./src/api/index.js";
-import { logAccess, logRequestError } from "./src/api/logger.js";
-import { handleRules } from "./src/api/rules.js";
-import { handleStatic } from "./src/api/static.js";
-import { ensureParentDir } from "./src/utils.js";
-import { HttpError } from "./src/api/http-error.js";
+import { handleAnalyticsBeacon } from "./api/analytics-beacon.js";
+import { handleAnalyticsReport, setupAnalyticsCron } from "./api/analytics-report.js";
+import { handleIndex } from "./api/index.js";
+import { logAccess, logRequestError } from "./api/logger.js";
+import { handleRules } from "./api/rules.js";
+import { handleStatic } from "./api/static.js";
+import { ensureParentDir } from "./utils.js";
+import { HttpError } from "./api/http-error.js";
 
 const PORT = Number(Deno.env.get("PORT") ?? "8080");
 const HOSTNAME = "0.0.0.0";

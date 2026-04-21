@@ -26,7 +26,7 @@ COPY . .
 RUN deno task build
 
 # Cache server dependencies to ensure they are available offline
-RUN deno cache server.js
+RUN deno cache src/server.js
 
 # Stage 2: Production runtime using distroless
 # Debian 13 provides newer glibc (>= 2.38), required by @db/sqlite native library
@@ -51,12 +51,12 @@ COPY --from=builder --chown=nonroot:nonroot /app/scripts/analytics-crunch.js ./s
 # Copy Deno configuration for runtime import mappings
 COPY --from=builder --chown=nonroot:nonroot /app/deno.json /app/deno.lock ./
 
-# Copy the production server
-COPY --from=builder --chown=nonroot:nonroot /app/server.js ./
+# Copy the production server and its dependencies
+COPY --from=builder --chown=nonroot:nonroot /app/src ./src
 
 ENV PORT=8080
 
 EXPOSE 8080
 
 # Run the production server
-CMD ["/bin/deno", "run", "-A", "server.js"]
+CMD ["/bin/deno", "run", "-A", "src/server.js"]
