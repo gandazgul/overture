@@ -39,28 +39,22 @@ export function createLogo(scene, options) {
             logo.setDisplaySize(displayW, displayH);
             if (depth !== undefined) logo.setDepth(depth);
 
-            // Create a graphics object
-            const graphics = scene.add.graphics();
-
-            // Set the line style: thickness (4px), color (red: 0xff0000), and alpha (1)
-            graphics.lineStyle(4, 0xff0000, 1);
-
-            // Draw from the top-middle to the bottom-middle
-            graphics.lineBetween(logoX, 0, logoX, 1900);
-
             return originY + displayH;
         }
     }
 
     const fallback = scene.add
-        .text(originX, originY, fallbackText, {
+        .text(0, 0, fallbackText, {
             fontSize: px(fallbackFontSize),
             fontFamily: "Georgia, serif",
             color: "#f5c518",
             fontStyle: "bold",
+            border: px(1)
         });
+
+    fallback.setPosition(originX, originY)
 
     if (depth !== undefined) fallback.setDepth(depth);
 
-    return originY;
+    return originY + displayH;
 }

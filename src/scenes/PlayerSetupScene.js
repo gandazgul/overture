@@ -112,10 +112,10 @@ export class PlayerSetupScene extends Phaser.Scene {
         });
 
         // ── Header ──────────────────────────────────────────────────
-        const logoW = s(180);
+        const logoW = s(300);
         const logoY = createLogo(this, {
             width: logoW,
-            originX: width / 2 - logoW,
+            originX: width / 2 - logoW / 2,
             originY: height / 8
         });
 

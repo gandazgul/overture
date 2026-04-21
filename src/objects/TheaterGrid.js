@@ -464,7 +464,9 @@ export class TheaterGrid extends Phaser.GameObjects.Container {
          * @param {number} aisleWidth
          */
         const drawAisleStrip = (centerX, aisleWidth) => {
-            const borderInset = s(6);
+            const DASH_GAP = 14;
+            const BORDER_WIDTH = 2;
+            const borderInset = s(8);
             const stripW = Math.max(0, aisleWidth - borderInset);
             const centerY = floorGeometry.gridStartY + totalGridH / 2;
 
@@ -476,19 +478,19 @@ export class TheaterGrid extends Phaser.GameObjects.Container {
                     totalGridH,
                     TheaterGrid.BLACKBOX_AISLE_COLOR,
                 )
-                .setStrokeStyle(s(2), TheaterGrid.BLACKBOX_AISLE_BORDER_COLOR);
+                .setStrokeStyle(s(BORDER_WIDTH), TheaterGrid.BLACKBOX_AISLE_BORDER_COLOR);
             this.add(strip);
 
             for (
-                let dy = floorGeometry.gridMarginTop + s(2);
-                dy < floorGeometry.floorH - floorGeometry.gridMarginBottom;
-                dy += s(14)
+                let dy = DASH_GAP / 2 + BORDER_WIDTH * 2;
+                dy < floorGeometry.floorH - floorGeometry.gridMarginBottom - floorGeometry.gridMarginTop;
+                dy += s(DASH_GAP)
             ) {
                 const dash = scene.add.rectangle(
                     centerX,
-                    floorGeometry.gridStartY + dy + s(2),
-                    s(2),
-                    s(7),
+                    floorGeometry.gridStartY + dy,
+                    s(BORDER_WIDTH),
+                    s(DASH_GAP / 2),
                     TheaterGrid.BLACKBOX_AISLE_DASH_COLOR,
                 );
                 this.add(dash);
@@ -496,8 +498,8 @@ export class TheaterGrid extends Phaser.GameObjects.Container {
         };
 
         for (const gapAfterCol of centerAisleGaps) {
-            const leftEdge = colX[gapAfterCol] + SEAT_SIZE / 2 + s(1);
-            const rightEdge = colX[gapAfterCol + 1] - SEAT_SIZE / 2 - s(1);
+            const leftEdge = colX[gapAfterCol] + SEAT_SIZE / 2;
+            const rightEdge = colX[gapAfterCol + 1] - SEAT_SIZE / 2;
 
             drawAisleStrip((leftEdge + rightEdge) / 2, rightEdge - leftEdge);
         }

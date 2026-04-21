@@ -49,6 +49,8 @@ export class GameScene extends Phaser.Scene {
 
         /** @type {number} */
         this.logoWidth = 220;
+        /** @type {number} the margin around the screen  */
+        this.screenMargin = 20;
 
         /** @type {number} */
         this.playerCount = 2;
@@ -413,7 +415,7 @@ export class GameScene extends Phaser.Scene {
 
         // ── HUD Panel (Game Information) ────────────────────────────────
         const hudW = s(260);
-        const hudX = width - s(hudW / 2 + 20);
+        const hudX = width - hudW - this.screenMargin;
         this.gameInfoPanel = new GameInfoPanel(this, hudX, gridStartY, {
             width: hudW,
             playerCount: this.playerCount,
@@ -457,7 +459,6 @@ export class GameScene extends Phaser.Scene {
         );
 
         // ── Logo ────────────────────────────────────────────────────────
-        // Centered at s(80) to perfectly align vertically with the player avatar
         createLogo(this, { width: this.logoWidth });
 
         this.sendGameStartAnalytics();
@@ -1439,7 +1440,7 @@ export class GameScene extends Phaser.Scene {
 
     getLobbyMetrics() {
         return {
-            deckX: s(this.logoWidth / 2 + 20 - DECK_PILE_LAYERS),
+            deckX: s(this.logoWidth / 2 + this.screenMargin),
             deckY: s(200),
             gap: s(20),
         };
@@ -1759,7 +1760,8 @@ export class GameScene extends Phaser.Scene {
         // Stack regular Image objects to form a card pile.
 
         this.deckPileImage = this.add.container(deckX, deckY);
-        for (let i = 0; i < DECK_PILE_LAYERS; i++) {
+        const layers = Math.ceil(this.deck.length / (56 / DECK_PILE_LAYERS));
+        for (let i = 0; i < layers; i++) {
             const ox = i * DECK_PILE_OFFSET;
             const oy = i * DECK_PILE_OFFSET;
             const background = this.add
@@ -2074,13 +2076,6 @@ export class GameScene extends Phaser.Scene {
         this.gameInfoPanel?.setScores(rows, showAll, this.currentPlayer);
     }
 
-    /**
-     * Re-render and update the lobby visuals.
-     */
-    updateLobby() {
-        this.renderLobby();
-    }
-
     // ══════════════════════════════════════════════════════════════════
     // UI UPDATE
     // ══════════════════════════════════════════════════════════════════
@@ -2098,7 +2093,7 @@ export class GameScene extends Phaser.Scene {
             this.deckPileImage.setAlpha(ratio > 0 ? 0.5 + 0.5 * ratio : 0.2);
         }
 
-        this.updateLobby();
+        this.renderLobby();
 
         this.activePlayerAvatar?.setPlayer({
             usherKey: this.usherKey(this.currentPlayer),
