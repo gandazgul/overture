@@ -62,6 +62,12 @@ function getRequestTarget(req) {
  * @param {{ req: Request, response: Response, route: string, startedAtMs: number, info?: Deno.ServeHandlerInfo }} args
  */
 function logAccess({ req, response, route, startedAtMs, info }) {
+    const ua = req.headers.get("user-agent") ?? "-";
+    // dont log the kube probe
+    if (ua.startsWith('kube-probe/')) {
+        return;
+    }
+
     const now = new Date();
     const durationMs = Number((performance.now() - startedAtMs).toFixed(2));
     const bodyBytesSent = getBodyBytesSent(response);
@@ -76,7 +82,7 @@ function logAccess({ req, response, route, startedAtMs, info }) {
         status: response.status,
         body_bytes_sent: bodyBytesSent,
         http_referer: req.headers.get("referer") ?? "-",
-        http_user_agent: req.headers.get("user-agent") ?? "-",
+        http_user_agent: ua,
         duration_ms: durationMs,
     });
 }
