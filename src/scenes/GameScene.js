@@ -122,6 +122,9 @@ export class GameScene extends Phaser.Scene {
         /** @type {DrawReminderBanner | null} */
         this.drawReminderBanner = null;
 
+        /** @type {DrawReminderBanner | null} */
+        this.statusBanner = null;
+
         /** @type {import('../types.js').CardData[]} */
         this.lobbyCards = [];
 
@@ -368,6 +371,37 @@ export class GameScene extends Phaser.Scene {
             }
             this.handCards = [];
             this.renderHand();
+        });
+
+        // ── SUPPORT SHORTCUT (Shift+G) — copy game ID for bug reports ─
+        this.input.keyboard?.on("keydown-G", (/** @type {KeyboardEvent} */ e) => {
+            if (!e.shiftKey) {
+                return;
+            }
+
+            const gameId = this.analytics.gameId;
+            if (!gameId) {
+                this.showStatusBanner("Game ID unavailable");
+                return;
+            }
+
+            const clipboard = globalThis.navigator?.clipboard;
+            if (!clipboard?.writeText) {
+                console.log(`[SUPPORT] Game ID: ${gameId}`);
+                this.showStatusBanner(`Game ID: ${gameId}`);
+                return;
+            }
+
+            void clipboard.writeText(gameId)
+                .then(() => {
+                    console.log(`[SUPPORT] Copied Game ID: ${gameId}`);
+                    this.showStatusBanner("Game ID copied to clipboard");
+                })
+                .catch((err) => {
+                    console.warn("[SUPPORT] Failed to copy Game ID", err);
+                    console.log(`[SUPPORT] Game ID: ${gameId}`);
+                    this.showStatusBanner(`Game ID: ${gameId}`);
+                });
         });
 
         // ── DEV DEBUG THEATER CYCLE (Shift+T) ─────────────────────────
@@ -1320,6 +1354,27 @@ export class GameScene extends Phaser.Scene {
         this.drawReminderBanner = banner; // Banner will self-destroy after its duration.
     }
 
+    /**
+     * @param {string} msg
+     */
+    showStatusBanner(msg) {
+        if (this.statusBanner) {
+            this.statusBanner.destroy();
+            this.statusBanner = null;
+        }
+
+        const { width, height } = this.scale;
+        const banner = new DrawReminderBanner(this, width / 2, height / 2, msg);
+        this.add.existing(banner);
+        this.statusBanner = banner;
+
+        banner.once("destroy", () => {
+            if (this.statusBanner === banner) {
+                this.statusBanner = null;
+            }
+        });
+    }
+
     /** Remove the scoring tooltip if visible. */
     hideScoringTooltip() {
         if (this.scoringTooltip) {
@@ -1947,6 +2002,10 @@ export class GameScene extends Phaser.Scene {
     }
 
     advanceTurn() {
+        // Snapshot only applies to the active turn. Always clear on turn boundary
+        // so AI snapshots cannot leak into the next player's Undo.
+        this.turnStartSnapshot = null;
+
         const nextPlayer = this.currentPlayer + 1;
 
         if (nextPlayer >= this.playerCount) {
