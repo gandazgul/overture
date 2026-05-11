@@ -180,6 +180,16 @@ async function handleAnalyticsBeacon(req, info) {
         return respond("Rate limit exceeded", { status: 429 });
     }
 
+    // Check Content-Length header first to prevent memory exhaustion attacks.
+    // If header is missing, fall back to reading the body (with size limit).
+    const contentLength = req.headers.get("content-length");
+    if (contentLength) {
+        const parsedLength = Number(contentLength);
+        if (!Number.isFinite(parsedLength) || parsedLength > MAX_BEACON_BYTES) {
+            return respond("Payload too large", { status: 413 });
+        }
+    }
+
     const rawBody = await req.text();
     const bodyBytes = new TextEncoder().encode(rawBody).byteLength;
     if (bodyBytes > MAX_BEACON_BYTES) {

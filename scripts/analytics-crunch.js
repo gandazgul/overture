@@ -534,11 +534,12 @@ function parseEvent(raw) {
 }
 
 /**
- * @param {{ jsonlPath?: string, dbPath?: string }} [options]
+ * @param {{ jsonlPath?: string, dbPath?: string, debugFilter?: * }} [options]
  */
 export async function crunchAnalytics(options = {}) {
     const jsonlPath = options.jsonlPath ?? DEFAULT_JSONL_PATH;
     const dbPath = options.dbPath ?? DEFAULT_DB_PATH;
+    const debugFilter = options.debugFilter ?? null;
 
     await ensureParentDir(dbPath);
 
@@ -615,6 +616,9 @@ export async function crunchAnalytics(options = {}) {
         db.close();
         throw err;
     }
+
+    // Apply debug filter if requested (only on temp databases, not the main DB).
+    applyReportsFilter(db, debugFilter);
 
     db.close();
 

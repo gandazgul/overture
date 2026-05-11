@@ -353,10 +353,10 @@ export function pickDrawAction(lobby, deckSize, difficulty, grid, layout) {
         }
 
         case AIDifficulty.HARD: {
-            if (hasLobby) {
-                let bestScore = -Infinity;
-                let bestIdx = -1;
+            let bestScore = -Infinity;
+            let bestIdx = -1;
 
+            if (hasLobby) {
                 for (let i = 0; i < availableLobby.length; i++) {
                     const card = availableLobby[i];
                     const seats = scoreAllSeats(grid, card, layout);
@@ -380,7 +380,7 @@ export function pickDrawAction(lobby, deckSize, difficulty, grid, layout) {
                     return { source: "lobby", index: bestIdx };
                 }
             }
-            return hasDeck ? { source: "deck" } : (hasLobby ? { source: "lobby", index: lobbyStartIndex } : null);
+            return hasDeck ? { source: "deck" } : (hasLobby ? { source: "lobby", index: bestIdx } : null);
         }
 
         default:

@@ -488,7 +488,7 @@ export class GameScene extends Phaser.Scene {
         );
 
         // ── Logo ────────────────────────────────────────────────────────
-        createLogo(this, { 
+        createLogo(this, {
             width: this.logoWidth,
             originX: s(this.screenMargin),
             originY: s(this.screenMargin),
@@ -946,6 +946,7 @@ export class GameScene extends Phaser.Scene {
                     for (const card of this.handCards) {
                         if (card.cardData.label === cardData.label) {
                             this.selectCard(card);
+                            break; // Stop after first match to avoid processing duplicate cards
                         }
                     }
                     break;
@@ -971,6 +972,7 @@ export class GameScene extends Phaser.Scene {
                     for (const card of this.handCards) {
                         if (card.cardData.label === cardData.label) {
                             this.discardCard(card);
+                            break; // Stop after first match to avoid processing duplicate cards
                         }
                     }
                     break;
@@ -1813,6 +1815,12 @@ export class GameScene extends Phaser.Scene {
         }
         this.lobbyCardVisuals = [];
         this.clearLobbyBarrierVisuals();
+
+        // Destroy old deck pile container to prevent memory leak
+        if (this.deckPileImage) {
+            this.deckPileImage.destroy();
+            this.deckPileImage = null;
+        }
 
         const { deckX, deckY } = this.getLobbyMetrics();
         // Stack regular Image objects to form a card pile.

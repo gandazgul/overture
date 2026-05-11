@@ -238,6 +238,7 @@ async function generateReportHtml(debugFilter) {
     const crunchResult = await crunchAnalytics({
         jsonlPath: ANALYTICS_JSONL_PATH,
         dbPath,
+        debugFilter,
     });
 
     const reportData = buildAnalyticsReportData({ dbPath });

@@ -64,7 +64,7 @@ function getRequestTarget(req) {
 function logAccess({ req, response, route, startedAtMs, info }) {
     const ua = req.headers.get("user-agent") ?? "-";
     // dont log the kube probe
-    if (ua.startsWith('kube-probe/')) {
+    if (ua.startsWith("kube-probe/")) {
         return;
     }
 
