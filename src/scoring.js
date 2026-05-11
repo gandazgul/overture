@@ -108,8 +108,21 @@ export function getOrthogonalNeighbors(row, col, rows, cols, layout) {
 
     // Optional layout extension (e.g. Amphitheater staggered rows)
     if (layout?.extendedAdjacency) {
-        const frontDeltas = layout.extendedAdjacency.frontColDeltas ?? [];
-        const backDeltas = layout.extendedAdjacency.backColDeltas ?? [];
+        let frontDeltas = layout.extendedAdjacency.frontColDeltas ?? [];
+        let backDeltas = layout.extendedAdjacency.backColDeltas ?? [];
+
+        if (layout.staggered) {
+            // Amphitheater staggered rows alternate offsets.
+            // Even rows are offset by -0.5, odd rows by 0.
+            // So deltas depend on source row parity.
+            if (row % 2 === 0) {
+                frontDeltas = [-1, 0];
+                backDeltas = [-1, 0];
+            } else {
+                frontDeltas = [0, 1];
+                backDeltas = [0, 1];
+            }
+        }
 
         for (const d of frontDeltas) {
             tryAdd(row - 1, col + d);

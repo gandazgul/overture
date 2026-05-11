@@ -1,7 +1,7 @@
 // @ts-check
 import Phaser from "phaser";
 import { px, s } from "../config.js";
-import { PatronTypeOrder, PlayerColors, PlayerColorsHex, PlayerNames } from "../types.js";
+import { PatronTypeOrder, PlayerColors, PlayerColorsHex, PlayerNames, Trait } from "../types.js";
 import { scorePlayer } from "../scoring.js";
 import { createButton } from "../factories/Button.js";
 import { createLogo } from "../factories/Logo.js";
@@ -114,11 +114,75 @@ export class EndGameScene extends Phaser.Scene {
 
         // ── Winner announcement ─────────────────────────────────────────
         const maxScore = Math.max(...totals);
-        const winners = totals
-            .map((sc, i) => (sc === maxScore ? PlayerNames[i] : null))
-            .filter(Boolean);
-        const isTie = winners.length > 1;
-        const winnerMsg = isTie ? `It's a tie! ${winners.join(" & ")}` : `${winners[0]} wins!`;
+        const potentialWinners = [];
+        for (let i = 0; i < this.playerCount; i++) {
+            if (totals[i] === maxScore) {
+                potentialWinners.push(i);
+            }
+        }
+
+        let winners = potentialWinners;
+        let tiebreakerReason = "";
+
+        if (winners.length > 1) {
+            // Tiebreaker 1: The Lead Usher (most Noisy patrons)
+            const noisyCounts = winners.map(p => {
+                let count = 0;
+                const grid = this.placedPatrons[p];
+                for (let r = 0; r < this.layout.rows; r++) {
+                    for (let c = 0; c < this.layout.cols; c++) {
+                        if (grid[r][c]?.trait === Trait.NOISY) {
+                            count++;
+                        }
+                    }
+                }
+                return { player: p, count };
+            });
+
+            const maxNoisy = Math.max(...noisyCounts.map(x => x.count));
+            const afterTB1 = noisyCounts.filter(x => x.count === maxNoisy).map(x => x.player);
+
+            if (afterTB1.length === 1) {
+                winners = afterTB1;
+                tiebreakerReason = "Most noisy patrons";
+            } else {
+                // Tiebreaker 2: The Ensemble (most unique primary types)
+                const uniqueTypesCounts = afterTB1.map(p => {
+                    const types = new Set();
+                    const grid = this.placedPatrons[p];
+                    for (let r = 0; r < this.layout.rows; r++) {
+                        for (let c = 0; c < this.layout.cols; c++) {
+                            const card = grid[r][c];
+                            if (card) {
+                                types.add(card.type);
+                            }
+                        }
+                    }
+                    return { player: p, count: types.size };
+                });
+
+                const maxUnique = Math.max(...uniqueTypesCounts.map(x => x.count));
+                const afterTB2 = uniqueTypesCounts.filter(x => x.count === maxUnique).map(x => x.player);
+                
+                winners = afterTB2;
+                if (winners.length === 1) {
+                    tiebreakerReason = "Most unique primary types";
+                }
+            }
+        }
+
+        const winnerNames = winners.map(p => PlayerNames[p]);
+        const isTie = winnerNames.length > 1;
+        
+        let winnerMsg = "";
+        if (isTie) {
+            winnerMsg = `It's a tie! ${winnerNames.join(" & ")}`;
+        } else {
+            winnerMsg = `${winnerNames[0]} wins!`;
+            if (tiebreakerReason) {
+                winnerMsg += ` (${tiebreakerReason})`;
+            }
+        }
 
         // Subtitle position/style to match setup/selection scenes
         this.add
