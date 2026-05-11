@@ -333,3 +333,18 @@ Deno.test("pickDrawAction — slot 0 stays unavailable while deck has cards", ()
     assertEquals(medium?.index, 1);
     assertEquals(hard?.index === 0, false);
 });
+
+Deno.test("pickDrawAction — HARD AI falls back to lobbyStartIndex when grid is full and deck empty", () => {
+    const grid = emptyGrid(GrandEmpressLayout);
+    // Fill all seats
+    for (let r = 0; r < GrandEmpressLayout.rows; r++) {
+        for (let c = 0; c < GrandEmpressLayout.cols; c++) {
+            grid[r][c] = card(PatronType.STANDARD);
+        }
+    }
+    const lobby = [card(PatronType.VIP), card(PatronType.STANDARD)];
+    
+    const result = pickDrawAction(lobby, 0, AIDifficulty.HARD, grid, GrandEmpressLayout);
+    
+    assertEquals(result, { source: "lobby", index: 0 });
+});

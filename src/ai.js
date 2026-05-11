@@ -354,7 +354,7 @@ export function pickDrawAction(lobby, deckSize, difficulty, grid, layout) {
 
         case AIDifficulty.HARD: {
             let bestScore = -Infinity;
-            let bestIdx = -1;
+            let bestIdx = lobbyStartIndex;
 
             if (hasLobby) {
                 for (let i = 0; i < availableLobby.length; i++) {

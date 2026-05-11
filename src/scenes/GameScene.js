@@ -1458,6 +1458,7 @@ export class GameScene extends Phaser.Scene {
      * @param {Card} card
      */
     discardCard(card) {
+        this.turnPhase = "discarding";
         // Hide tooltip before animating
         this.hideScoringTooltip();
 
