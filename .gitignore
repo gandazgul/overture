@@ -1,13 +1,11 @@
 node_modules/
 dist/
 .vite/
-.vera/
+.history/
 public/rules.html
 
 .coverage/
 .playwright-cli/
-
-PLAN.md
 
 .env
 
