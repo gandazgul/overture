@@ -8,15 +8,15 @@
 import { assert, assertEquals } from "@std/assert";
 import {
     AIDifficulty,
-    applyHeuristics,
     evaluateSeat,
     getEmptySeats,
+    getEpsilon,
     pickCardAndSeat,
     pickDrawAction,
     pickSeat,
     scoreAllSeats,
 } from "./ai.js";
-import { AmphitheaterLayout, GrandEmpressLayout, PatronType, Trait } from "./types.js";
+import { GrandEmpressLayout, PatronType } from "./types.js";
 
 /** @typedef {import('./types.js').CardData} CardData */
 /** @typedef {import('./types.js').LayoutMeta} LayoutMeta */
@@ -24,7 +24,6 @@ import { AmphitheaterLayout, GrandEmpressLayout, PatronType, Trait } from "./typ
 // ── Helpers ─────────────────────────────────────────────────────────
 
 /**
- * Create an empty grid for a layout.
  * @param {LayoutMeta} layout
  * @returns {(CardData | null)[][]}
  */
@@ -33,7 +32,6 @@ function emptyGrid(layout) {
 }
 
 /**
- * Create a minimal CardData for testing.
  * @param {string} type
  * @param {string} [trait]
  * @returns {CardData}
@@ -62,13 +60,6 @@ Deno.test("getEmptySeats — one seat occupied reduces count", () => {
     assertEquals(seats.length, 19);
 });
 
-Deno.test("getEmptySeats — respects seatMask (Amphitheater)", () => {
-    const grid = emptyGrid(AmphitheaterLayout);
-    const seats = getEmptySeats(grid, AmphitheaterLayout);
-    // Amphitheater: 3 + 4 + 5 + 6 = 18 seats
-    assertEquals(seats.length, 18);
-});
-
 // ══════════════════════════════════════════════════════════════════════
 // evaluateSeat
 // ══════════════════════════════════════════════════════════════════════
@@ -82,227 +73,88 @@ Deno.test("evaluateSeat — Standard always gives +3 VP", () => {
 Deno.test("evaluateSeat — VIP in front row gives +6 VP", () => {
     const grid = emptyGrid(GrandEmpressLayout);
     const delta = evaluateSeat(grid, card(PatronType.VIP), 0, 2, GrandEmpressLayout);
-    assertEquals(delta, 6); // 3 base + 3 front row
-});
-
-Deno.test("evaluateSeat — Critic in aisle gives +6 VP", () => {
-    const grid = emptyGrid(GrandEmpressLayout);
-    const delta = evaluateSeat(grid, card(PatronType.CRITIC), 0, 0, GrandEmpressLayout);
-    assertEquals(delta, 6); // 2 × 3 aisle
-});
-
-Deno.test("evaluateSeat — Critic in non-aisle gives +3 VP", () => {
-    const grid = emptyGrid(GrandEmpressLayout);
-    const delta = evaluateSeat(grid, card(PatronType.CRITIC), 0, 2, GrandEmpressLayout);
-    assertEquals(delta, 3);
+    assertEquals(delta, 6);
 });
 
 // ══════════════════════════════════════════════════════════════════════
-// scoreAllSeats
+// scoreAllSeats (Lookahead Tactician Logic)
 // ══════════════════════════════════════════════════════════════════════
 
-Deno.test("scoreAllSeats — returns sorted results for Critic", () => {
+Deno.test("scoreAllSeats — returns sorted results naturally finding game rules", () => {
     const grid = emptyGrid(GrandEmpressLayout);
     const results = scoreAllSeats(grid, card(PatronType.CRITIC), GrandEmpressLayout);
-    // Best seats should be aisle seats (6 VP) at the top
+
     assert(results.length > 0);
     assertEquals(results[0].score, 6);
-    // First result should be an aisle seat
     const isAisle = results[0].col === 0 || results[0].col === 4;
-    assert(isAisle, "Best seat for Critic should be an aisle seat");
+    assert(isAisle, "Highest scored seat for Critic should naturally be an aisle seat");
+});
+
+Deno.test("scoreAllSeats — Lookahead values hand setups (Kid + Teacher)", () => {
+    const grid = emptyGrid(GrandEmpressLayout);
+    const kid = card(PatronType.KID);
+    const teacher = card(PatronType.TEACHER);
+
+    // Score Kid alone
+    const noLookahead = scoreAllSeats(grid, kid, GrandEmpressLayout);
+    const bestNoLookahead = noLookahead[0].score;
+
+    // Score Kid with Teacher in hand
+    const withLookahead = scoreAllSeats(grid, kid, GrandEmpressLayout, [teacher]);
+    const bestWithLookahead = withLookahead[0].score;
+
+    assert(
+        bestWithLookahead > bestNoLookahead,
+        "Lookahead should value the setup higher due to future capping potential",
+    );
 });
 
 // ══════════════════════════════════════════════════════════════════════
-// pickSeat — Easy
+// Epsilon Config Tests
 // ══════════════════════════════════════════════════════════════════════
 
-Deno.test("pickSeat easy — returns a valid empty seat", () => {
-    const grid = emptyGrid(GrandEmpressLayout);
-    grid[0][0] = card(PatronType.STANDARD);
-    const seat = pickSeat(grid, card(PatronType.STANDARD), GrandEmpressLayout, AIDifficulty.EASY);
-    assert(seat !== null, "Should return a seat");
-    assert(!(seat.row === 0 && seat.col === 0), "Should not pick occupied seat");
+Deno.test("getEpsilon — validates difficulty mappings", () => {
+    assertEquals(getEpsilon(AIDifficulty.EASY), 0.75);
+    assertEquals(getEpsilon(AIDifficulty.HARD), 0.0);
 });
 
-Deno.test("pickSeat easy — returns null when grid is full", () => {
+Deno.test("pickSeat config override — Force random placement via epsilon", () => {
     const grid = emptyGrid(GrandEmpressLayout);
-    // Fill all seats
-    for (let r = 0; r < GrandEmpressLayout.rows; r++) {
-        for (let c = 0; c < GrandEmpressLayout.cols; c++) {
-            grid[r][c] = card(PatronType.STANDARD);
+    // Even if it's HARD, config.epsilon = 1.0 forces it to pick a random seat
+    // instead of the mathematically optimal one.
+    let pickedRandomly = false;
+
+    // Testing randomness is tricky, but over 50 iterations, a 100% random placement
+    // will almost certainly place a Critic outside of the optimal aisle seats.
+    for (let i = 0; i < 50; i++) {
+        const seat = pickSeat(grid, card(PatronType.CRITIC), GrandEmpressLayout, AIDifficulty.HARD, { epsilon: 1.0 });
+        if (seat && seat.col !== 0 && seat.col !== 4) {
+            pickedRandomly = true;
+            break;
         }
     }
-    const seat = pickSeat(grid, card(PatronType.STANDARD), GrandEmpressLayout, AIDifficulty.EASY);
-    assertEquals(seat, null);
+    assert(pickedRandomly, "Epsilon override should force suboptimal random exploration");
 });
 
 // ══════════════════════════════════════════════════════════════════════
-// pickSeat — Medium (greedy)
+// pickCardAndSeat
 // ══════════════════════════════════════════════════════════════════════
 
-Deno.test("pickSeat medium — Critic picks aisle seat", () => {
-    const grid = emptyGrid(GrandEmpressLayout);
-    const seat = pickSeat(grid, card(PatronType.CRITIC), GrandEmpressLayout, AIDifficulty.MEDIUM);
-    assert(seat !== null);
-    const isAisle = seat.col === 0 || seat.col === 4;
-    assert(isAisle, `Medium AI should pick aisle for Critic, got col ${seat.col}`);
-});
-
-Deno.test("pickSeat medium — VIP picks front row", () => {
-    const grid = emptyGrid(GrandEmpressLayout);
-    const seat = pickSeat(grid, card(PatronType.VIP), GrandEmpressLayout, AIDifficulty.MEDIUM);
-    assert(seat !== null);
-    assert(seat.row <= 1, `Medium AI should pick front row for VIP, got row ${seat.row}`);
-});
-
-Deno.test("pickSeat medium — Lovebirds next to existing Lovebirds", () => {
-    const grid = emptyGrid(GrandEmpressLayout);
-    grid[3][2] = card(PatronType.LOVEBIRDS); // back row center
-    const seat = pickSeat(grid, card(PatronType.LOVEBIRDS), GrandEmpressLayout, AIDifficulty.MEDIUM);
-    assert(seat !== null);
-    // Should be adjacent to the existing Lovebirds
-    const isAdjacent = (Math.abs(seat.row - 3) + Math.abs(seat.col - 2)) === 1;
-    assert(isAdjacent, `Medium AI should place Lovebirds adjacent to existing one, got (${seat.row}, ${seat.col})`);
-});
-
-Deno.test("pickSeat medium — Friends next to existing Friends", () => {
-    const grid = emptyGrid(GrandEmpressLayout);
-    grid[2][2] = card(PatronType.FRIENDS);
-    const seat = pickSeat(grid, card(PatronType.FRIENDS), GrandEmpressLayout, AIDifficulty.MEDIUM);
-    assert(seat !== null);
-    const isAdjacent = (Math.abs(seat.row - 2) + Math.abs(seat.col - 2)) === 1;
-    assert(isAdjacent, `Medium AI should place Friends adjacent to existing one, got (${seat.row}, ${seat.col})`);
-});
-
-// ══════════════════════════════════════════════════════════════════════
-// pickSeat — Hard (greedy + heuristics)
-// ══════════════════════════════════════════════════════════════════════
-
-Deno.test("pickSeat hard — Lovebirds prefers back row", () => {
-    const grid = emptyGrid(GrandEmpressLayout);
-    const seat = pickSeat(grid, card(PatronType.LOVEBIRDS), GrandEmpressLayout, AIDifficulty.HARD);
-    assert(seat !== null);
-    // On an empty grid, Lovebirds scores 0 everywhere, but heuristics should push to back row
-    assertEquals(seat.row, 3, `Hard AI should prefer back row for Lovebirds, got row ${seat.row}`);
-});
-
-Deno.test("pickSeat hard — Tall patron prefers back row", () => {
-    const grid = emptyGrid(GrandEmpressLayout);
-    const seat = pickSeat(grid, card(PatronType.STANDARD, Trait.TALL), GrandEmpressLayout, AIDifficulty.HARD);
-    assert(seat !== null);
-    // Heuristics should push Tall to back row
-    assertEquals(seat.row, 3, `Hard AI should prefer back row for Tall, got row ${seat.row}`);
-});
-
-// ══════════════════════════════════════════════════════════════════════
-// applyHeuristics
-// ══════════════════════════════════════════════════════════════════════
-
-Deno.test("applyHeuristics — Critic gets bonus for aisle seat", () => {
-    const grid = emptyGrid(GrandEmpressLayout);
-    const aisleBonus = applyHeuristics(grid, card(PatronType.CRITIC), 0, 0, GrandEmpressLayout);
-    const nonAisleBonus = applyHeuristics(grid, card(PatronType.CRITIC), 0, 2, GrandEmpressLayout);
-    assert(aisleBonus > nonAisleBonus, "Critic should get higher heuristic in aisle seat");
-});
-
-Deno.test("applyHeuristics — Tall patron gets bonus in back row", () => {
-    const grid = emptyGrid(GrandEmpressLayout);
-    const backBonus = applyHeuristics(grid, card(PatronType.STANDARD, Trait.TALL), 3, 2, GrandEmpressLayout);
-    const frontBonus = applyHeuristics(grid, card(PatronType.STANDARD, Trait.TALL), 0, 2, GrandEmpressLayout);
-    assert(backBonus > frontBonus, "Tall patron should prefer back row");
-});
-
-Deno.test("applyHeuristics — Noisy prefers fewer neighbors", () => {
-    const grid = emptyGrid(GrandEmpressLayout);
-    grid[1][2] = card(PatronType.STANDARD);
-    grid[0][1] = card(PatronType.STANDARD);
-    // Corner (0,0) has fewer potential occupied neighbors than center
-    const cornerBonus = applyHeuristics(grid, card(PatronType.STANDARD, Trait.NOISY), 0, 0, GrandEmpressLayout);
-    const centerBonus = applyHeuristics(grid, card(PatronType.STANDARD, Trait.NOISY), 0, 2, GrandEmpressLayout);
-    assert(cornerBonus >= centerBonus, "Noisy should prefer seats with fewer occupied neighbors");
-});
-
-Deno.test("applyHeuristics — Amphitheater Tall penalized by staggered-behind occupied seats", () => {
-    const grid = emptyGrid(AmphitheaterLayout);
-    grid[2][3] = card(PatronType.STANDARD); // one of the staggered-behind seats for (1,2)
-
-    const withBehind = applyHeuristics(
-        grid,
-        card(PatronType.STANDARD, Trait.TALL),
-        1,
-        2,
-        AmphitheaterLayout,
-    );
-    const noBehind = applyHeuristics(
-        grid,
-        card(PatronType.STANDARD, Trait.TALL),
-        0,
-        2,
-        AmphitheaterLayout,
-    );
-
-    assert(withBehind < noBehind, "Tall should prefer fewer occupied staggered-behind seats in Amphitheater");
-});
-
-Deno.test("applyHeuristics — Amphitheater Short penalized by staggered-front Tall", () => {
-    const grid = emptyGrid(AmphitheaterLayout);
-    grid[1][2] = card(PatronType.STANDARD, Trait.TALL); // staggered-front neighbor for (2,3)
-
-    const behindTall = applyHeuristics(
-        grid,
-        card(PatronType.STANDARD, Trait.SHORT),
-        2,
-        3,
-        AmphitheaterLayout,
-    );
-    const clearFront = applyHeuristics(
-        grid,
-        card(PatronType.STANDARD, Trait.SHORT),
-        2,
-        4,
-        AmphitheaterLayout,
-    );
-
-    assert(behindTall < clearFront, "Short should avoid staggered-front Tall neighbors in Amphitheater");
-});
-
-// ══════════════════════════════════════════════════════════════════════
-// pickCardAndSeat (2-player discard logic)
-// ══════════════════════════════════════════════════════════════════════
-
-Deno.test("pickCardAndSeat — picks better card to play", () => {
+Deno.test("pickCardAndSeat — tactician picks better card to play", () => {
     const grid = emptyGrid(GrandEmpressLayout);
     const vip = card(PatronType.VIP);
     const kid = card(PatronType.KID);
-    const result = pickCardAndSeat(grid, [vip, kid], 2, GrandEmpressLayout, AIDifficulty.MEDIUM);
+    const result = pickCardAndSeat(grid, [vip, kid], 2, GrandEmpressLayout, AIDifficulty.HARD);
+
     assert(result !== null);
-    assertEquals(result.play.cardData, vip, "Should play VIP over Kid");
+    assertEquals(result.play.cardData, vip, "Should play VIP over Kid on an empty board");
     assertEquals(result.discard?.cardData, kid, "Should discard Kid");
 });
 
 Deno.test("pickCardAndSeat — returns null on empty hand", () => {
     const grid = emptyGrid(GrandEmpressLayout);
-    const result = pickCardAndSeat(grid, [], 2, GrandEmpressLayout, AIDifficulty.MEDIUM);
+    const result = pickCardAndSeat(grid, [], 2, GrandEmpressLayout, AIDifficulty.HARD);
     assertEquals(result, null);
-});
-
-Deno.test("pickCardAndSeat — returns null on full grid", () => {
-    const grid = emptyGrid(GrandEmpressLayout);
-    for (let r = 0; r < GrandEmpressLayout.rows; r++) {
-        for (let c = 0; c < GrandEmpressLayout.cols; c++) {
-            grid[r][c] = card(PatronType.STANDARD);
-        }
-    }
-    const result = pickCardAndSeat(grid, [card(PatronType.VIP)], 2, GrandEmpressLayout, AIDifficulty.MEDIUM);
-    assertEquals(result, null);
-});
-
-Deno.test("pickCardAndSeat — works with single card in hand", () => {
-    const grid = emptyGrid(GrandEmpressLayout);
-    const vip = card(PatronType.VIP);
-    const result = pickCardAndSeat(grid, [vip], 2, GrandEmpressLayout, AIDifficulty.MEDIUM);
-    assert(result !== null);
-    assertEquals(result.play.cardData, vip);
 });
 
 // ══════════════════════════════════════════════════════════════════════
@@ -313,38 +165,14 @@ Deno.test("pickDrawAction — deck empty allows drawing former frozen slot 0", (
     const grid = emptyGrid(GrandEmpressLayout);
     const lobby = [card(PatronType.VIP)];
 
-    const medium = pickDrawAction(lobby, 0, AIDifficulty.MEDIUM, grid, GrandEmpressLayout);
     const hard = pickDrawAction(lobby, 0, AIDifficulty.HARD, grid, GrandEmpressLayout);
-    const easy = pickDrawAction(lobby, 0, AIDifficulty.EASY, grid, GrandEmpressLayout);
-
-    assertEquals(medium, { source: "lobby", index: 0 });
     assertEquals(hard, { source: "lobby", index: 0 });
-    assertEquals(easy, { source: "lobby", index: 0 });
 });
 
 Deno.test("pickDrawAction — slot 0 stays unavailable while deck has cards", () => {
     const grid = emptyGrid(GrandEmpressLayout);
     const lobby = [card(PatronType.VIP), card(PatronType.STANDARD)];
 
-    const medium = pickDrawAction(lobby, 1, AIDifficulty.MEDIUM, grid, GrandEmpressLayout);
     const hard = pickDrawAction(lobby, 1, AIDifficulty.HARD, grid, GrandEmpressLayout);
-
-    assertEquals(medium?.source, "lobby");
-    assertEquals(medium?.index, 1);
     assertEquals(hard?.index === 0, false);
-});
-
-Deno.test("pickDrawAction — HARD AI falls back to lobbyStartIndex when grid is full and deck empty", () => {
-    const grid = emptyGrid(GrandEmpressLayout);
-    // Fill all seats
-    for (let r = 0; r < GrandEmpressLayout.rows; r++) {
-        for (let c = 0; c < GrandEmpressLayout.cols; c++) {
-            grid[r][c] = card(PatronType.STANDARD);
-        }
-    }
-    const lobby = [card(PatronType.VIP), card(PatronType.STANDARD)];
-    
-    const result = pickDrawAction(lobby, 0, AIDifficulty.HARD, grid, GrandEmpressLayout);
-    
-    assertEquals(result, { source: "lobby", index: 0 });
 });

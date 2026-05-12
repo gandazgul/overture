@@ -16,3 +16,4 @@ analytics.jsonl
 analytics.db
 
 *.log
+sim-results/

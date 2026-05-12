@@ -126,7 +126,7 @@ export class EndGameScene extends Phaser.Scene {
 
         if (winners.length > 1) {
             // Tiebreaker 1: The Lead Usher (most Noisy patrons)
-            const noisyCounts = winners.map(p => {
+            const noisyCounts = winners.map((p) => {
                 let count = 0;
                 const grid = this.placedPatrons[p];
                 for (let r = 0; r < this.layout.rows; r++) {
@@ -139,15 +139,15 @@ export class EndGameScene extends Phaser.Scene {
                 return { player: p, count };
             });
 
-            const maxNoisy = Math.max(...noisyCounts.map(x => x.count));
-            const afterTB1 = noisyCounts.filter(x => x.count === maxNoisy).map(x => x.player);
+            const maxNoisy = Math.max(...noisyCounts.map((x) => x.count));
+            const afterTB1 = noisyCounts.filter((x) => x.count === maxNoisy).map((x) => x.player);
 
             if (afterTB1.length === 1) {
                 winners = afterTB1;
                 tiebreakerReason = "Most noisy patrons";
             } else {
                 // Tiebreaker 2: The Ensemble (most unique primary types)
-                const uniqueTypesCounts = afterTB1.map(p => {
+                const uniqueTypesCounts = afterTB1.map((p) => {
                     const types = new Set();
                     const grid = this.placedPatrons[p];
                     for (let r = 0; r < this.layout.rows; r++) {
@@ -161,9 +161,9 @@ export class EndGameScene extends Phaser.Scene {
                     return { player: p, count: types.size };
                 });
 
-                const maxUnique = Math.max(...uniqueTypesCounts.map(x => x.count));
-                const afterTB2 = uniqueTypesCounts.filter(x => x.count === maxUnique).map(x => x.player);
-                
+                const maxUnique = Math.max(...uniqueTypesCounts.map((x) => x.count));
+                const afterTB2 = uniqueTypesCounts.filter((x) => x.count === maxUnique).map((x) => x.player);
+
                 winners = afterTB2;
                 if (winners.length === 1) {
                     tiebreakerReason = "Most unique primary types";
@@ -171,9 +171,9 @@ export class EndGameScene extends Phaser.Scene {
             }
         }
 
-        const winnerNames = winners.map(p => PlayerNames[p]);
+        const winnerNames = winners.map((p) => PlayerNames[p]);
         const isTie = winnerNames.length > 1;
-        
+
         let winnerMsg = "";
         if (isTie) {
             winnerMsg = `It's a tie! ${winnerNames.join(" & ")}`;

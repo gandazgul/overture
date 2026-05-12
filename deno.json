@@ -36,7 +36,7 @@
         "vite.config.js",
         ".idea/",
         ".vite/",
-        ".vera/"
+        ".history/"
     ],
     "fmt": {
         "useTabs": false,

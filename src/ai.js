@@ -4,22 +4,18 @@
  * ========================================================================
  * AI PLAYER - Pure decision logic, no Phaser dependency
  * ========================================================================
- * Provides seat-selection strategies for AI-controlled players.
- * Three difficulty levels:
- *   - easy:   random valid seat
- *   - medium: greedy (maximise immediate total VP)
- *   - hard:   greedy + positional heuristics for future value
+ * Provides seat-selection strategies using Epsilon-Greedy Lookahead.
+ * The AI "discovers" optimal plays by temporarily placing cards on the grid
+ * and evaluating the actual scoring engine, looking one turn ahead.
+ *
+ * Difficulty is determined by the Epsilon (ε) exploration rate:
+ *   - easy:   ε = 0.75 (Mostly random placements)
+ *   - medium: ε = 0.20 (Greedy with occasional mistakes)
+ *   - hard:   ε = 0.00 (Pure tactician, always maximizes Lookahead VP)
  * ========================================================================
  */
 
-import {
-    getBackRowNeighbors,
-    getFrontRowNeighbors,
-    getOrthogonalNeighbors,
-    scorePlayer,
-    seatExists,
-} from "./scoring.js";
-import { hasSeatLabel, PatronType, Trait } from "./types.js";
+import { scorePlayer, seatExists } from "./scoring.js";
 import { random, randomInt } from "./utils.js";
 
 /** @typedef {import('./types.js').CardData} CardData */
@@ -60,20 +56,28 @@ export function getEmptySeats(grid, layout) {
 }
 
 /**
- * Deep-clone a grid (shallow-copy each cell reference - CardData is immutable).
+ * Maps the human-readable difficulty to an Epsilon exploration rate (0.0 to 1.0).
  *
- * @param {(CardData | null)[][]} grid
- * @returns {(CardData | null)[][]}
+ * @param {string} difficulty
+ * @returns {number}
  */
-function cloneGrid(grid) {
-    return grid.map((row) => [...row]);
+export function getEpsilon(difficulty) {
+    switch (difficulty) {
+        case AIDifficulty.EASY:
+            return 0.75;
+        case AIDifficulty.MEDIUM:
+            return 0.20;
+        case AIDifficulty.HARD:
+            return 0.0;
+        default:
+            return 0.0;
+    }
 }
 
-// ── Greedy evaluation ───────────────────────────────────────────────
+// ── Tactician Evaluation ──────────────────────────────────────────────
 
 /**
- * Evaluate placing a card at a specific seat.
- * Returns the delta in total VP compared to the current grid.
+ * Evaluate placing a card at a specific seat safely without cloning the grid.
  *
  * @param {(CardData | null)[][]} grid - Current grid state
  * @param {CardData} card - Card to place
@@ -84,197 +88,59 @@ function cloneGrid(grid) {
  */
 export function evaluateSeat(grid, card, row, col, layout) {
     const currentScore = scorePlayer(grid, layout).total;
-    const newGrid = cloneGrid(grid);
-    newGrid[row][col] = card;
-    const newScore = scorePlayer(newGrid, layout).total;
+    grid[row][col] = card; // Mutate temporarily
+    const newScore = scorePlayer(grid, layout).total;
+    grid[row][col] = null; // Revert immediately
     return newScore - currentScore;
 }
 
 /**
- * Score every empty seat for a card placement.
+ * Score every empty seat for a card placement, looking one turn ahead to measure
+ * synergistic potential with the remaining hand.
  *
  * @param {(CardData | null)[][]} grid
  * @param {CardData} card
  * @param {LayoutMeta} layout
+ * @param {CardData[]} lookaheadCards - Other cards currently in hand/lobby to evaluate setup potential
  * @returns {{row: number, col: number, score: number}[]} Sorted descending by score
  */
-export function scoreAllSeats(grid, card, layout) {
+export function scoreAllSeats(grid, card, layout, lookaheadCards = []) {
     const empty = getEmptySeats(grid, layout);
-    const results = empty.map(({ row, col }) => ({
-        row,
-        col,
-        score: evaluateSeat(grid, card, row, col, layout),
-    }));
+    const results = [];
+    const currentScore = scorePlayer(grid, layout).total;
+
+    for (const { row, col } of empty) {
+        grid[row][col] = card; // Apply base placement
+        const newScore = scorePlayer(grid, layout).total;
+        const immediateDelta = newScore - currentScore;
+        let lookaheadDelta = 0;
+
+        if (lookaheadCards.length > 0) {
+            const remainingEmpty = empty.filter((e) => e.row !== row || e.col !== col);
+            let bestFuture = 0;
+
+            for (const futureCard of lookaheadCards) {
+                for (const fSeat of remainingEmpty) {
+                    grid[fSeat.row][fSeat.col] = futureCard; // Apply future placement
+                    const futureScore = scorePlayer(grid, layout).total;
+                    grid[fSeat.row][fSeat.col] = null; // Revert future
+
+                    const fDelta = futureScore - newScore;
+                    if (fDelta > bestFuture) {
+                        bestFuture = fDelta;
+                    }
+                }
+            }
+            // Weight future potential at 80% to prioritize immediate guaranteed points on ties
+            lookaheadDelta = bestFuture * 0.8;
+        }
+
+        grid[row][col] = null; // Revert base placement
+        results.push({ row, col, score: immediateDelta + lookaheadDelta });
+    }
+
     results.sort((a, b) => b.score - a.score);
     return results;
-}
-
-// ── Hard-mode heuristics ────────────────────────────────────────────
-
-/**
- * Compute a heuristic bonus for placing a card at a given position.
- * Rewards strategic placements that set up future scoring opportunities.
- *
- * @param {(CardData | null)[][]} grid
- * @param {CardData} card
- * @param {number} row
- * @param {number} col
- * @param {LayoutMeta} layout
- * @returns {number} Heuristic bonus (can be negative for bad positions)
- */
-export function applyHeuristics(grid, card, row, col, layout) {
-    let bonus = 0;
-    const { rows, cols } = layout;
-    const neighbors = getOrthogonalNeighbors(row, col, rows, cols, layout);
-
-    // ── Type-specific heuristics ───────────────────────────────────
-
-    switch (card.type) {
-        case PatronType.LOVEBIRDS: {
-            // Prefer back row for ×2 multiplier
-            if (hasSeatLabel(row, col, "back", layout)) {
-                bonus += 2;
-            }
-            // Bonus for being near empty seats (future Lovebirds can pair up)
-            const emptyNeighbors = neighbors.filter((n) => !grid[n.row][n.col]);
-            bonus += emptyNeighbors.length * 0.5;
-            // Bonus for being near existing Lovebirds
-            const lovebirdNeighbors = neighbors.filter(
-                (n) => grid[n.row]?.[n.col]?.type === PatronType.LOVEBIRDS,
-            );
-            bonus += lovebirdNeighbors.length * 1.5;
-            break;
-        }
-
-        case PatronType.VIP: {
-            // Prefer front row seats
-            if (hasSeatLabel(row, col, "front", layout)) {
-                bonus += 1.5;
-            }
-            // Avoid seats adjacent to Kids or Noisy patrons
-            for (const n of neighbors) {
-                const nb = grid[n.row]?.[n.col];
-                if (nb?.type === PatronType.KID) {
-                    bonus -= 1;
-                }
-                if (nb?.trait === Trait.NOISY) {
-                    bonus -= 1;
-                }
-            }
-            break;
-        }
-
-        case PatronType.CRITIC: {
-            // Strongly prefer aisle seats
-            if (hasSeatLabel(row, col, "aisle", layout)) {
-                bonus += 3;
-            }
-            break;
-        }
-
-        case PatronType.KID: {
-            // Prefer positions that could be capped (between empty slots for Teachers)
-            // Check if left or right neighbors are empty (potential Teacher spots)
-            const leftEmpty = col > 0 && seatExists(row, col - 1, layout) && !grid[row][col - 1];
-            const rightEmpty = col < cols - 1 && seatExists(row, col + 1, layout) && !grid[row][col + 1];
-            if (leftEmpty && rightEmpty) {
-                bonus += 1;
-            }
-            // Bonus for being next to an existing Teacher
-            const teacherNeighbors = neighbors.filter(
-                (n) => grid[n.row]?.[n.col]?.type === PatronType.TEACHER,
-            );
-            bonus += teacherNeighbors.length;
-            // Bonus for being next to other Kids (Teacher can cap a chain)
-            const kidNeighbors = neighbors.filter(
-                (n) => grid[n.row]?.[n.col]?.type === PatronType.KID && n.col === col - 1 || n.col === col + 1,
-            );
-            bonus += kidNeighbors.length * 0.5;
-            break;
-        }
-
-        case PatronType.TEACHER: {
-            // Prefer positions adjacent to Kids
-            const adjacentKids = neighbors.filter(
-                (n) => grid[n.row]?.[n.col]?.type === PatronType.KID,
-            );
-            bonus += adjacentKids.length * 1.5;
-            break;
-        }
-
-        case PatronType.STANDARD: {
-            // No special heuristic - Standards are flexible
-            break;
-        }
-
-        case PatronType.FRIENDS: {
-            // Prefer seats adjacent to existing Friends
-            const friendNeighbors = neighbors.filter(
-                (n) => grid[n.row]?.[n.col]?.type === PatronType.FRIENDS,
-            );
-            bonus += friendNeighbors.length * 1.5;
-            // Bonus for empty seats nearby (future Friends can cluster)
-            const emptyNearby = neighbors.filter((n) => !grid[n.row][n.col]);
-            bonus += emptyNearby.length * 0.3;
-            break;
-        }
-    }
-
-    // ── Trait-specific heuristics ──────────────────────────────────
-
-    if (card.trait) {
-        switch (card.trait) {
-            case Trait.TALL: {
-                // Prefer back row (fewer adjacent seats behind to penalize)
-                if (hasSeatLabel(row, col, "back", layout)) {
-                    bonus += 2;
-                }
-                // Penalty if someone is already in adjacent behind seat(s)
-                const behindNeighbors = getBackRowNeighbors(row, col, rows, cols, layout);
-                const occupiedBehind = behindNeighbors.filter((n) => grid[n.row]?.[n.col]);
-                bonus -= occupiedBehind.length * 2;
-                break;
-            }
-
-            case Trait.SHORT: {
-                // Prefer seats with no adjacent patrons in front row
-                const frontNeighbors = getFrontRowNeighbors(row, col, rows, cols, layout);
-                const frontCards = frontNeighbors
-                    .map((n) => grid[n.row]?.[n.col])
-                    .filter((x) => !!x);
-
-                if (frontCards.length === 0) {
-                    bonus += row === 0 ? 1.5 : 1;
-                }
-                // Avoid placing behind Tall patron(s)
-                if (frontCards.some((x) => x?.trait === Trait.TALL)) {
-                    bonus -= 2;
-                }
-                break;
-            }
-
-            case Trait.BESPECTACLED: {
-                // Prefer non-back rows
-                if (!hasSeatLabel(row, col, "back", layout)) {
-                    bonus += 1;
-                }
-                break;
-            }
-
-            case Trait.NOISY: {
-                // Prefer seats with fewer occupied neighbors (minimize damage)
-                const occupiedNeighbors = neighbors.filter((n) => grid[n.row]?.[n.col]);
-                bonus -= occupiedNeighbors.length * 0.5;
-                // Prefer edge/corner seats
-                if (neighbors.length <= 2) {
-                    bonus += 1;
-                }
-                break;
-            }
-        }
-    }
-
-    return bonus;
 }
 
 // ── Drawing Logic ──────────────────────────────────────────────────────────
@@ -282,222 +148,171 @@ export function applyHeuristics(grid, card, row, col, layout) {
 /**
  * Decide whether to draw from the lobby or the deck.
  *
- * @param {CardData[]} lobby - The lobby cards (index 0 is frozen while deck has cards)
- * @param {number} deckSize - Current size of the deck
- * @param {string} difficulty - AI difficulty
- * @param {(CardData | null)[][]} grid - Current grid to evaluate lobby cards
- * @param {LayoutMeta} layout - Current theater layout
+ * @param {CardData[]} lobby
+ * @param {number} deckSize
+ * @param {string} difficulty
+ * @param {(CardData | null)[][]} grid
+ * @param {LayoutMeta} layout
+ * @param {CardData[]} currentHand - Used to evaluate synergy with the lobby card
+ * @param {{ epsilon?: number }} config
  * @returns {{source: 'lobby' | 'deck', index?: number} | null} Action to take
  */
-export function pickDrawAction(lobby, deckSize, difficulty, grid, layout) {
+export function pickDrawAction(lobby, deckSize, difficulty, grid, layout, currentHand = [], config = {}) {
     const lobbyStartIndex = deckSize > 0 ? 1 : 0;
     const availableLobby = lobby.slice(lobbyStartIndex);
     const hasLobby = availableLobby.length > 0;
     const hasDeck = deckSize > 0;
+    const epsilon = config.epsilon ?? getEpsilon(difficulty);
 
-    const debugAI = import.meta.env?.VITE_DEBUG_AI === "true";
-    if (debugAI) {
-        console.log(
-            `[AI DEBUG] Evaluating draw: LobbySize=${availableLobby.length}, DeckSize=${deckSize}, Difficulty=${difficulty}`,
-        );
+    if (!hasLobby && !hasDeck) return null;
+
+    // Explore (Random)
+    if (random() < epsilon) {
+        const sources = [];
+        if (hasLobby) sources.push("lobby");
+        if (hasDeck) sources.push("deck");
+        const choice = sources[randomInt(sources.length - 1)];
+
+        if (choice === "lobby") {
+            return {
+                source: "lobby",
+                index: lobbyStartIndex + randomInt(availableLobby.length - 1),
+            };
+        }
+        return { source: "deck" };
     }
 
-    if (!hasLobby && !hasDeck) {
-        return null;
+    // Exploit (Greedy Tactician)
+    if (hasLobby) {
+        let bestScore = -Infinity;
+        let bestIdx = -1;
+
+        for (let i = 0; i < availableLobby.length; i++) {
+            const card = availableLobby[i];
+
+            // Pass the current hand into scoreAllSeats so the AI knows if this lobby card completes a combo!
+            const seats = scoreAllSeats(grid, card, layout, currentHand);
+            const score = seats.length > 0 ? seats[0].score : 0;
+
+            if (score > bestScore) {
+                bestScore = score;
+                bestIdx = lobbyStartIndex + i;
+            }
+        }
+
+        // Standard baseline threshold: +2 VP (or forced if deck is empty)
+        if (bestScore > 2 || !hasDeck) {
+            return { source: "lobby", index: bestIdx };
+        }
     }
 
-    switch (difficulty) {
-        case AIDifficulty.EASY: {
-            const sources = [];
-            if (hasLobby) {
-                sources.push("lobby");
-            }
-            if (hasDeck) {
-                sources.push("deck");
-            }
-            const choice = sources[randomInt(sources.length - 1)];
-            if (choice === "lobby") {
-                return {
-                    source: "lobby",
-                    index: lobbyStartIndex + randomInt(availableLobby.length - 1),
-                };
-            }
-
-            return { source: "deck" };
-        }
-
-        case AIDifficulty.MEDIUM: {
-            if (hasLobby) {
-                let bestScore = -Infinity;
-                let bestIdx = -1;
-
-                for (let i = 0; i < availableLobby.length; i++) {
-                    const card = availableLobby[i];
-                    const seats = scoreAllSeats(grid, card, layout);
-                    const score = seats.length > 0 ? seats[0].score : 0;
-                    if (debugAI) {
-                        console.log(
-                            `[AI DEBUG] Lobby Card ${i + lobbyStartIndex} (${
-                                card.label || card.type
-                            }) potential: ${score} VP`,
-                        );
-                    }
-                    if (score > bestScore) {
-                        bestScore = score;
-                        bestIdx = lobbyStartIndex + i;
-                    }
-                }
-                return { source: "lobby", index: bestIdx };
-            }
-            return hasDeck ? { source: "deck" } : null;
-        }
-
-        case AIDifficulty.HARD: {
-            let bestScore = -Infinity;
-            let bestIdx = lobbyStartIndex;
-
-            if (hasLobby) {
-                for (let i = 0; i < availableLobby.length; i++) {
-                    const card = availableLobby[i];
-                    const seats = scoreAllSeats(grid, card, layout);
-                    if (seats.length > 0) {
-                        const score = seats[0].score + applyHeuristics(grid, card, seats[0].row, seats[0].col, layout);
-                        if (debugAI) {
-                            console.log(
-                                `[AI DEBUG] Lobby Card ${i + lobbyStartIndex} (${
-                                    card.label || card.type
-                                }) heuristic score: ${score} VP`,
-                            );
-                        }
-                        if (score > bestScore) {
-                            bestScore = score;
-                            bestIdx = lobbyStartIndex + i;
-                        }
-                    }
-                }
-
-                if (bestScore > 3) {
-                    return { source: "lobby", index: bestIdx };
-                }
-            }
-            return hasDeck ? { source: "deck" } : (hasLobby ? { source: "lobby", index: bestIdx } : null);
-        }
-
-        default:
-            return hasDeck ? { source: "deck" } : (hasLobby ? { source: "lobby", index: lobbyStartIndex } : null);
-    }
+    return { source: "deck" };
 }
 
 /**
- * Pick the best seat for a card given the AI difficulty level.
- *
- * @param {(CardData | null)[][]} grid - Current grid state
- * @param {CardData} card - Card to place
- * @param {LayoutMeta} layout
- * @param {string} difficulty - One of AIDifficulty values
- * @returns {{row: number, col: number} | null} Best seat, or null if no seats available
- */
-export function pickSeat(grid, card, layout, difficulty) {
-    const empty = getEmptySeats(grid, layout);
-    if (empty.length === 0) {
-        return null;
-    }
-
-    switch (difficulty) {
-        case AIDifficulty.EASY: {
-            // Random seat
-            const idx = randomInt(empty.length - 1);
-            return empty[idx];
-        }
-
-        case AIDifficulty.MEDIUM: {
-            // Greedy: maximize immediate VP delta
-            const scored = scoreAllSeats(grid, card, layout);
-            return scored.length > 0 ? { row: scored[0].row, col: scored[0].col } : null;
-        }
-
-        case AIDifficulty.HARD: {
-            // Greedy + heuristics + jitter
-            const scored = scoreAllSeats(grid, card, layout);
-            if (scored.length === 0) {
-                return null;
-            }
-
-            // Add heuristic bonus
-            const enhanced = scored.map((s) => ({
-                row: s.row,
-                col: s.col,
-                score: s.score + applyHeuristics(grid, card, s.row, s.col, layout),
-            }));
-
-            // Add slight jitter (±0.5) to avoid perfectly predictable play
-            for (const e of enhanced) {
-                e.score += random() - 0.5;
-            }
-
-            enhanced.sort((a, b) => b.score - a.score);
-            return { row: enhanced[0].row, col: enhanced[0].col };
-        }
-
-        default:
-            // Fallback to random
-            return empty[randomInt(empty.length - 1)];
-    }
-}
-
-/**
- * For 2-player mode: pick which card to play (and where) and which to discard.
- * Returns the card to play + its best seat, and the card to discard.
+ * Pick the best seat for a single card (Used primarily for EndGame/1-card scenarios).
  *
  * @param {(CardData | null)[][]} grid
- * @param {CardData[]} hand - The player's hand (2+ cards)
- * @param {number} payerCount - Number of payers in the game (to determine if discards matter)
+ * @param {CardData} card
  * @param {LayoutMeta} layout
  * @param {string} difficulty
+ * @param {{ epsilon?: number }} config
+ * @returns {{row: number, col: number} | null}
+ */
+export function pickSeat(grid, card, layout, difficulty, config = {}) {
+    const empty = getEmptySeats(grid, layout);
+    if (empty.length === 0) return null;
+
+    const epsilon = config.epsilon ?? getEpsilon(difficulty);
+
+    if (random() < epsilon) {
+        return empty[randomInt(empty.length - 1)];
+    }
+
+    const scored = scoreAllSeats(grid, card, layout);
+    return scored.length > 0 ? { row: scored[0].row, col: scored[0].col } : null;
+}
+
+/**
+ * Pick which card to play (and where) and which to discard, evaluating hand synergies.
+ *
+ * @param {(CardData | null)[][]} grid
+ * @param {CardData[]} hand
+ * @param {number} playerCount
+ * @param {LayoutMeta} layout
+ * @param {string} difficulty
+ * @param {{ epsilon?: number }} config
  * @returns {{play: {cardData: CardData, row: number, col: number}, discard?: {cardData: CardData}} | null}
  */
-export function pickCardAndSeat(grid, hand, payerCount, layout, difficulty) {
+export function pickCardAndSeat(grid, hand, playerCount, layout, difficulty, config = {}) {
     if (hand.length === 0) return null;
 
     const empty = getEmptySeats(grid, layout);
     if (empty.length === 0) return null;
 
-    // end of the game we only have 1 card
-    if (hand.length === 1) {
-        const seat = pickSeat(grid, hand[0], layout, difficulty);
-        if (!seat) return null;
+    const epsilon = config.epsilon ?? getEpsilon(difficulty);
 
+    // End of the game, only 1 card left
+    if (hand.length === 1) {
+        const seat = pickSeat(grid, hand[0], layout, difficulty, config);
+        if (!seat) return null;
         return { play: { cardData: hand[0], ...seat } };
     }
 
-    // Evaluate each card's best seat
+    // Explore (Random)
+    if (random() < epsilon) {
+        const randomCardIdx = randomInt(hand.length - 1);
+        const randomSeatIdx = randomInt(empty.length - 1);
+        const playCard = hand[randomCardIdx];
+        const seat = empty[randomSeatIdx];
+
+        /** @type {{play: {cardData: CardData, row: number, col: number}, discard?: {cardData: CardData}}} */
+        const result = { play: { cardData: playCard, row: seat.row, col: seat.col } };
+
+        if (playerCount === 2 && hand.length > 1) {
+            let discardIdx = randomInt(hand.length - 1);
+            while (discardIdx === randomCardIdx) {
+                discardIdx = randomInt(hand.length - 1);
+            }
+            result.discard = { cardData: hand[discardIdx] };
+        }
+        return result;
+    }
+
+    // Exploit (Greedy Tactician with Hand Lookahead)
     /** @type {{cardData: CardData, row: number, col: number, score: number}[]} */
     const candidates = [];
 
-    for (const cardData of hand) {
-        const seat = pickSeat(grid, cardData, layout, difficulty);
-        if (seat) {
-            const score = evaluateSeat(grid, cardData, seat.row, seat.col, layout);
+    for (let i = 0; i < hand.length; i++) {
+        const card = hand[i];
+        // The Tactician considers how placing THIS card sets up the OTHER cards in hand
+        const remainingHand = hand.filter((_, idx) => idx !== i);
+        const scoredSeats = scoreAllSeats(grid, card, layout, remainingHand);
 
-            candidates.push({ cardData, ...seat, score });
+        if (scoredSeats.length > 0) {
+            candidates.push({
+                cardData: card,
+                row: scoredSeats[0].row,
+                col: scoredSeats[0].col,
+                score: scoredSeats[0].score,
+            });
         }
     }
 
     if (candidates.length === 0) return null;
 
-    // Sort by score descending - play the best, discard the worst
     candidates.sort((a, b) => b.score - a.score);
     const best = candidates[0];
     const worst = candidates.at(-1);
 
-    if (payerCount === 2 && worst && worst.cardData !== best.cardData) {
-        return {
-            play: { cardData: best.cardData, row: best.row, col: best.col },
-            discard: { cardData: worst.cardData },
-        };
-    }
-
-    return {
+    /** @type {{play: {cardData: CardData, row: number, col: number}, discard?: {cardData: CardData}}} */
+    const result = {
         play: { cardData: best.cardData, row: best.row, col: best.col },
     };
+
+    if (playerCount === 2 && worst && worst.cardData !== best.cardData) {
+        result.discard = { cardData: worst.cardData };
+    }
+
+    return result;
 }

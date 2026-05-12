@@ -84,7 +84,7 @@ export class GameScene extends Phaser.Scene {
 
         /**
          * Current phase of a turn.
-         * @type {'pass-screen' | 'play' | 'discard' | 'confirm-turn' | 'ghost-discard' | 'game-over'}
+         * @type {'pass-screen' | 'play' | 'discard' | 'confirm-turn' | 'ghost-discard' | 'game-over' | 'discarding'}
          */
         this.turnPhase = "pass-screen";
 
