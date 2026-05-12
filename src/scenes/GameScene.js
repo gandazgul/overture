@@ -793,6 +793,7 @@ export class GameScene extends Phaser.Scene {
     // ══════════════════════════════════════════════════════════════════
 
     startTurn() {
+        this.lobbyDrawsThisTurn = 0;
         // Initialize lobby if empty
         this.fillLobby();
 
@@ -844,13 +845,19 @@ export class GameScene extends Phaser.Scene {
         const tempLobby = [...this.lobbyCards];
         let tempDeckCount = this.deck.length;
 
+        let tempLobbyDrawsThisTurn = this.lobbyDrawsThisTurn || 0;
+
         while (tempHand.length < this.maxCardsInHand) {
+            const canDrawLobby = this.playerCount !== 2 || tempDeckCount === 0 || tempLobbyDrawsThisTurn < 1;
+            const availableLobby = canDrawLobby ? tempLobby : [];
+
             const action = pickDrawAction(
-                tempLobby,
+                availableLobby,
                 tempDeckCount,
                 difficulty,
                 grid,
                 this.layout,
+                tempHand,
             );
 
             if (!action) {
@@ -858,6 +865,9 @@ export class GameScene extends Phaser.Scene {
             }
 
             const { source, index: lobbyIdx } = action;
+            if (source === "lobby") {
+                tempLobbyDrawsThisTurn++;
+            }
             if (ENV.VITE_DEBUG_AI === "true") {
                 console.log(
                     `[AI DEBUG] Action ${actions.length + 1}: Draw from ${source}${
@@ -1352,15 +1362,16 @@ export class GameScene extends Phaser.Scene {
 
     /**
      * @param {string} msg
+     * @param {number} [bannerWidth]
      */
-    showStatusBanner(msg) {
+    showStatusBanner(msg, bannerWidth) {
         if (this.statusBanner) {
             this.statusBanner.destroy();
             this.statusBanner = null;
         }
 
         const { width, height } = this.scale;
-        const banner = new DrawReminderBanner(this, width / 2, height / 2, msg);
+        const banner = new DrawReminderBanner(this, width / 2, height / 2, msg, bannerWidth);
         this.add.existing(banner);
         this.statusBanner = banner;
 
@@ -1877,9 +1888,19 @@ export class GameScene extends Phaser.Scene {
             });
 
             const slotZeroLocked = i === 0 && this.deck.length > 0;
-            if (slotZeroLocked) {
-                card.setInteractive(false);
+            const lobbyLimitReached = this.playerCount === 2 && this.deck.length > 0 && (this.lobbyDrawsThisTurn || 0) >= 1;
+
+            if (slotZeroLocked || lobbyLimitReached) {
                 this.renderLockedLobbyBarrier(slot.x, slot.y);
+                if (!isAI) {
+                    card.on("pointerdown", () => {
+                        if (slotZeroLocked) {
+                            this.showStatusBanner("Card is locked while the deck has cards.", s(600));
+                        } else {
+                            this.showStatusBanner("Max 1 lobby draw per turn in 2-player games.", s(600));
+                        }
+                    });
+                }
             } else if (!isAI) {
                 card.on("pointerdown", () => {
                     void this.drawFromLobby(i);
@@ -1905,7 +1926,13 @@ export class GameScene extends Phaser.Scene {
             return false;
         }
 
+        if (this.playerCount === 2 && this.deck.length > 0 && this.lobbyDrawsThisTurn >= 1) {
+            this.showStatusBanner("Max 1 lobby draw per turn in 2-player games.", s(600));
+            return false;
+        }
+
         if (index === 0 && this.deck.length > 0) {
+            this.showStatusBanner("This card is locked while the deck has cards.", s(600));
             return false;
         }
 
@@ -1941,6 +1968,7 @@ export class GameScene extends Phaser.Scene {
             // Add to player hand
             hand.push(cardData);
             this.recordAnalyticsDraw(this.currentPlayer, "lobby", cardData);
+            this.lobbyDrawsThisTurn++;
 
             // Remove from lobby
             this.lobbyCards.splice(index, 1);

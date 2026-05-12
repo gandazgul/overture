@@ -95,6 +95,24 @@ export function evaluateSeat(grid, card, row, col, layout) {
 }
 
 /**
+ * Expected Value (EV) potential of a card beyond its immediate placement score.
+ * Represents the likelihood of completing its combo in future turns.
+ * @param {CardData} cardData 
+ * @param {string} difficulty 
+ * @returns {number}
+ */
+function getCardPotential(cardData, difficulty) {
+    if (!cardData || difficulty !== AIDifficulty.HARD) return 0;
+    switch (cardData.type) {
+        case "Lovebirds": return 2.5;
+        case "Kid": return 2.5;
+        case "Teacher": return 1.5;
+        case "Friends": return 1.0;
+        default: return 0;
+    }
+}
+
+/**
  * Score every empty seat for a card placement, looking one turn ahead to measure
  * synergistic potential with the remaining hand. Uses Top-K pruning for performance.
  *
@@ -102,9 +120,10 @@ export function evaluateSeat(grid, card, row, col, layout) {
  * @param {CardData} card
  * @param {LayoutMeta} layout
  * @param {CardData[]} lookaheadCards - Other cards currently in hand/lobby to evaluate setup potential
- * @returns {{row: number, col: number, score: number}[]} Sorted descending by score
+ * @param {string} [difficulty=AIDifficulty.MEDIUM] - Used to dynamically scale the pruning factor
+ * @returns {{row: number, col: number, score: number, bestFutureCard?: CardData}[]} Sorted descending by score
  */
-export function scoreAllSeats(grid, card, layout, lookaheadCards = []) {
+export function scoreAllSeats(grid, card, layout, lookaheadCards = [], difficulty = AIDifficulty.MEDIUM) {
     const empty = getEmptySeats(grid, layout);
     const currentScore = scorePlayer(grid, layout).total;
 
@@ -120,8 +139,8 @@ export function scoreAllSeats(grid, card, layout, lookaheadCards = []) {
     // Sort by immediate score descending
     baseResults.sort((a, b) => b.immediateDelta - a.immediateDelta);
 
-    // 2. Lookahead Pruning: Only calculate deep future synergies for the Top 4 immediate moves
-    const TOP_K = 4;
+    // 2. Lookahead Pruning: Only calculate deep future synergies for the Top K immediate moves
+    const TOP_K = difficulty === AIDifficulty.HARD ? 12 : 4;
     const results = [];
 
     for (let i = 0; i < baseResults.length; i++) {
@@ -133,6 +152,7 @@ export function scoreAllSeats(grid, card, layout, lookaheadCards = []) {
             grid[candidate.row][candidate.col] = card; // Apply base placement
             const remainingEmpty = empty.filter((e) => e.row !== candidate.row || e.col !== candidate.col);
             let bestFuture = 0;
+            let bestFutureCard = undefined;
 
             for (const futureCard of lookaheadCards) {
                 for (const fSeat of remainingEmpty) {
@@ -141,8 +161,11 @@ export function scoreAllSeats(grid, card, layout, lookaheadCards = []) {
                     grid[fSeat.row][fSeat.col] = null; // Revert future
 
                     const fDelta = futureScore - (currentScore + candidate.immediateDelta);
-                    if (fDelta > bestFuture) {
-                        bestFuture = fDelta;
+                    const heuristicDelta = fDelta + getCardPotential(futureCard, difficulty);
+                    
+                    if (heuristicDelta > bestFuture) {
+                        bestFuture = heuristicDelta;
+                        bestFutureCard = futureCard;
                     }
                 }
             }
@@ -150,12 +173,14 @@ export function scoreAllSeats(grid, card, layout, lookaheadCards = []) {
 
             // Weight future potential at 80% to prioritize immediate guaranteed points
             lookaheadDelta = bestFuture * 0.8;
+            candidate.bestFutureCard = bestFutureCard;
         }
 
         results.push({
             row: candidate.row,
             col: candidate.col,
-            score: candidate.immediateDelta + lookaheadDelta,
+            score: candidate.immediateDelta + getCardPotential(card, difficulty) + lookaheadDelta,
+            bestFutureCard: candidate.bestFutureCard,
         });
     }
 
@@ -208,21 +233,40 @@ export function pickDrawAction(lobby, deckSize, difficulty, grid, layout, curren
         let bestScore = -Infinity;
         let bestIdx = -1;
 
+        // Baseline: best score we can get with JUST our current hand + expected EV from deck (approx 2.5 VP)
+        let deckBaseScore = 0;
+        if (currentHand.length > 0) {
+            for (let i = 0; i < currentHand.length; i++) {
+                const remaining = currentHand.filter((_, idx) => idx !== i);
+                const s = scoreAllSeats(grid, currentHand[i], layout, remaining, difficulty);
+                if (s.length > 0 && s[0].score > deckBaseScore) {
+                    deckBaseScore = s[0].score;
+                }
+            }
+        }
+
+        const deckThreshold = deckBaseScore + 2.5;
+
         for (let i = 0; i < availableLobby.length; i++) {
             const card = availableLobby[i];
+            const combinedHand = [...currentHand, card];
+            
+            let maxCombinedScore = 0;
+            for (let j = 0; j < combinedHand.length; j++) {
+                const remaining = combinedHand.filter((_, idx) => idx !== j);
+                const s = scoreAllSeats(grid, combinedHand[j], layout, remaining, difficulty);
+                if (s.length > 0 && s[0].score > maxCombinedScore) {
+                    maxCombinedScore = s[0].score;
+                }
+            }
 
-            // Pass the current hand into scoreAllSeats so the AI knows if this lobby card completes a combo!
-            const seats = scoreAllSeats(grid, card, layout, currentHand);
-            const score = seats.length > 0 ? seats[0].score : 0;
-
-            if (score > bestScore) {
-                bestScore = score;
+            if (maxCombinedScore > bestScore) {
+                bestScore = maxCombinedScore;
                 bestIdx = lobbyStartIndex + i;
             }
         }
 
-        // Standard baseline threshold: +2 VP (or forced if deck is empty)
-        if (bestScore > 2 || !hasDeck) {
+        if (bestScore > deckThreshold || !hasDeck) {
             return { source: "lobby", index: bestIdx };
         }
     }
@@ -250,7 +294,7 @@ export function pickSeat(grid, card, layout, difficulty, config = {}) {
         return empty[randomInt(empty.length - 1)];
     }
 
-    const scored = scoreAllSeats(grid, card, layout);
+    const scored = scoreAllSeats(grid, card, layout, [], difficulty);
     return scored.length > 0 ? { row: scored[0].row, col: scored[0].col } : null;
 }
 
@@ -301,22 +345,53 @@ export function pickCardAndSeat(grid, hand, playerCount, layout, difficulty, con
     }
 
     // Exploit (Greedy Tactician with Hand Lookahead)
-    /** @type {{cardData: CardData, row: number, col: number, score: number}[]} */
+    /** @type {{cardData: CardData, row: number, col: number, score: number, discard?: CardData}[]} */
     const candidates = [];
 
-    for (let i = 0; i < hand.length; i++) {
-        const card = hand[i];
-        // The Tactician considers how placing THIS card sets up the OTHER cards in hand
-        const remainingHand = hand.filter((_, idx) => idx !== i);
-        const scoredSeats = scoreAllSeats(grid, card, layout, remainingHand);
+    // Evaluate pairs of (Play, Keep) if we have to discard
+    const mustDiscardCount = Math.max(0, hand.length - 2);
 
-        if (scoredSeats.length > 0) {
-            candidates.push({
-                cardData: card,
-                row: scoredSeats[0].row,
-                col: scoredSeats[0].col,
-                score: scoredSeats[0].score,
-            });
+    if (playerCount === 2 && mustDiscardCount > 0) {
+        for (let playIdx = 0; playIdx < hand.length; playIdx++) {
+            const playCard = hand[playIdx];
+            const remainingHand = hand.filter((_, idx) => idx !== playIdx);
+            
+            // Pass all remaining cards into one scoreAllSeats call.
+            // It will evaluate which of the remaining cards produces the best future score.
+            const scoredSeats = scoreAllSeats(grid, playCard, layout, remainingHand, difficulty);
+            
+            if (scoredSeats.length > 0) {
+                const bestSeat = scoredSeats[0];
+                const keepCard = bestSeat.bestFutureCard || remainingHand[0];
+                
+                // Discard the card that isn't the playCard and isn't the keepCard
+                const discardIdx = hand.findIndex(c => c !== playCard && c !== keepCard);
+                const discardCard = discardIdx >= 0 ? hand[discardIdx] : undefined;
+                
+                candidates.push({
+                    cardData: playCard,
+                    row: bestSeat.row,
+                    col: bestSeat.col,
+                    score: bestSeat.score,
+                    discard: discardCard
+                });
+            }
+        }
+    } else {
+        // Normal lookahead without discarding
+        for (let i = 0; i < hand.length; i++) {
+            const card = hand[i];
+            const remainingHand = hand.filter((_, idx) => idx !== i);
+            const scoredSeats = scoreAllSeats(grid, card, layout, remainingHand, difficulty);
+
+            if (scoredSeats.length > 0) {
+                candidates.push({
+                    cardData: card,
+                    row: scoredSeats[0].row,
+                    col: scoredSeats[0].col,
+                    score: scoredSeats[0].score,
+                });
+            }
         }
     }
 
@@ -324,15 +399,20 @@ export function pickCardAndSeat(grid, hand, playerCount, layout, difficulty, con
 
     candidates.sort((a, b) => b.score - a.score);
     const best = candidates[0];
-    const worst = candidates.at(-1);
 
     /** @type {{play: {cardData: CardData, row: number, col: number}, discard?: {cardData: CardData}}} */
     const result = {
         play: { cardData: best.cardData, row: best.row, col: best.col },
     };
 
-    if (playerCount === 2 && worst && worst.cardData !== best.cardData) {
-        result.discard = { cardData: worst.cardData };
+    if (best.discard) {
+        result.discard = { cardData: best.discard };
+    } else if (playerCount === 2 && mustDiscardCount > 0) {
+        // Fallback just in case
+        const worst = candidates.at(-1);
+        if (worst && worst.cardData !== best.cardData) {
+            result.discard = { cardData: worst.cardData };
+        }
     }
 
     return result;

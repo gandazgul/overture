@@ -84,8 +84,20 @@ try {
     const typeScores = {};
     /** @type {Object.<string, number>} */
     const typeCounts = {};
+    /** @type {Object.<string, number>} */
+    const typeScoresDetailed = {};
+    /** @type {Object.<string, number>} */
+    const typeCountsDetailed = {};
+
     /** @type {Object.<string, number>[]} */
     const lobbyPicksByPlayer = Array.from({ length: config.players }, () => ({}));
+    /** @type {Object.<string, number>[]} */
+    const lobbyPicksDetailedByPlayer = Array.from({ length: config.players }, () => ({}));
+
+    /** @type {Object.<string, number>[]} */
+    const discardsByPlayer = Array.from({ length: config.players }, () => ({}));
+    /** @type {Object.<string, number>[]} */
+    const discardsDetailedByPlayer = Array.from({ length: config.players }, () => ({}));
 
     for (const chunk of allWorkerResults) {
         for (const game of chunk) {
@@ -135,9 +147,29 @@ try {
                     typeScores[type] = (typeScores[type] || 0) + data.vp;
                     typeCounts[type] = (typeCounts[type] || 0) + data.count;
                 }
+                for (const [keyDetailed, data] of Object.entries(p.typeBreakdownDetailed)) {
+                    typeScoresDetailed[keyDetailed] = (typeScoresDetailed[keyDetailed] || 0) + data.vp;
+                    typeCountsDetailed[keyDetailed] = (typeCountsDetailed[keyDetailed] || 0) + data.count;
+                }
+
                 // Lobby Picks
                 for (const [card, count] of Object.entries(p.lobbyPicks)) {
                     lobbyPicksByPlayer[idx][card] = (lobbyPicksByPlayer[idx][card] || 0) + count;
+                }
+                for (const [card, count] of Object.entries(p.lobbyPicksDetailed)) {
+                    lobbyPicksDetailedByPlayer[idx][card] = (lobbyPicksDetailedByPlayer[idx][card] || 0) + count;
+                }
+
+                // Discards
+                if (p.discards) {
+                    for (const [card, count] of Object.entries(p.discards)) {
+                        discardsByPlayer[idx][card] = (discardsByPlayer[idx][card] || 0) + count;
+                    }
+                }
+                if (p.discardsDetailed) {
+                    for (const [card, count] of Object.entries(p.discardsDetailed)) {
+                        discardsDetailedByPlayer[idx][card] = (discardsDetailedByPlayer[idx][card] || 0) + count;
+                    }
                 }
             });
         }
@@ -175,7 +207,18 @@ try {
         }
     }
 
-    console.log(`\n🛍️ Top 3 Lobby Picks by Player:`);
+    console.log(`\n📊 Detailed Type + Trait Averages (VP per placement):`);
+    const sortedDetailedScores = Object.keys(typeCountsDetailed).sort((a, b) => {
+        return (typeScoresDetailed[b] / typeCountsDetailed[b]) - (typeScoresDetailed[a] / typeCountsDetailed[a]);
+    });
+    for (const key of sortedDetailedScores) {
+        if (typeCountsDetailed[key]) {
+            const avg = typeScoresDetailed[key] / typeCountsDetailed[key];
+            console.log(`- ${key.padEnd(25)}: ${avg.toFixed(2)} VP`);
+        }
+    }
+
+    console.log(`\n🛍️ Top 3 Lobby Picks by Player (By Type):`);
     for (let p = 0; p < config.players; p++) {
         const sortedPicks = Object.entries(lobbyPicksByPlayer[p])
             .sort((a, b) => b[1] - a[1])
@@ -184,6 +227,44 @@ try {
         console.log(`Player ${p + 1}:`);
         for (const [card, count] of sortedPicks) {
             console.log(`  - ${card.padEnd(20)}: ${count} times`);
+        }
+    }
+
+    console.log(`\n🛍️ Top 3 Lobby Picks by Player (Detailed):`);
+    for (let p = 0; p < config.players; p++) {
+        const sortedPicks = Object.entries(lobbyPicksDetailedByPlayer[p])
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 3);
+
+        console.log(`Player ${p + 1}:`);
+        for (const [card, count] of sortedPicks) {
+            console.log(`  - ${card.padEnd(25)}: ${count} times`);
+        }
+    }
+
+    if (config.players === 2) {
+        console.log(`\n🗑️ Top 3 Discards by Player (By Type):`);
+        for (let p = 0; p < config.players; p++) {
+            const sortedDiscards = Object.entries(discardsByPlayer[p])
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 3);
+
+            console.log(`Player ${p + 1}:`);
+            for (const [card, count] of sortedDiscards) {
+                console.log(`  - ${card.padEnd(20)}: ${count} times`);
+            }
+        }
+
+        console.log(`\n🗑️ Top 3 Discards by Player (Detailed):`);
+        for (let p = 0; p < config.players; p++) {
+            const sortedDiscards = Object.entries(discardsDetailedByPlayer[p])
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 3);
+
+            console.log(`Player ${p + 1}:`);
+            for (const [card, count] of sortedDiscards) {
+                console.log(`  - ${card.padEnd(25)}: ${count} times`);
+            }
         }
     }
 
@@ -211,7 +292,12 @@ try {
         aggregates: {
             typeScores,
             typeCounts,
+            typeScoresDetailed,
+            typeCountsDetailed,
             lobbyPicksByPlayer,
+            lobbyPicksDetailedByPlayer,
+            discardsByPlayer,
+            discardsDetailedByPlayer,
         },
     };
 

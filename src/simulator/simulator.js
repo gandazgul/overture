@@ -23,6 +23,7 @@ import { pickCardAndSeat, pickDrawAction } from "../ai.js";
  * @property {number} noisyCount
  * @property {number} uniqueTypesCount
  * @property {{lobby: number, deck: number}} draws
+ * @property {Record<string, number>} discards
  */
 
 /**
@@ -55,6 +56,13 @@ export function simulateGame(config) {
 
     /** @type {Record<string, number>[]} */
     const lobbyPicks = Array.from({ length: config.playerCount }, () => ({}));
+    /** @type {Record<string, number>[]} */
+    const lobbyPicksDetailed = Array.from({ length: config.playerCount }, () => ({}));
+
+    /** @type {Record<string, number>[]} */
+    const discards = Array.from({ length: config.playerCount }, () => ({}));
+    /** @type {Record<string, number>[]} */
+    const discardsDetailed = Array.from({ length: config.playerCount }, () => ({}));
 
     /** @type {{lobby: number, deck: number}[]} */
     const draws = Array.from({ length: config.playerCount }, () => ({ lobby: 0, deck: 0 }));
@@ -91,9 +99,9 @@ export function simulateGame(config) {
 
     // ── Core Loop ───────────────────────────────────────────────────────
     let round = 1;
-    while (round <= 12) {
-        // In the game, the first player stays the same.
-        const firstPlayerThisRound = 0;
+    while (round <= 14) {
+        // In the game, the first player stays the same for 2 players, but rotates for 3 or 4 players.
+        const firstPlayerThisRound = config.playerCount > 2 ? (round - 1) % config.playerCount : 0;
         firstPlayerCounts[firstPlayerThisRound]++;
 
         for (let i = 0; i < config.playerCount; i++) {
@@ -102,17 +110,23 @@ export function simulateGame(config) {
             fillLobby();
 
             // 1. Draw Phase
+            let lobbyDrawsThisTurn = 0;
             while (hands[p].length < drawTarget && (deck.length > 0 || lobby.length > 0)) {
-                const action = pickDrawAction(lobby, deck.length, config.aiDifficulty, grids[p], layout, hands[p]);
+                const canDrawLobby = config.playerCount !== 2 || deck.length === 0 || lobbyDrawsThisTurn < 1;
+                const availableLobby = canDrawLobby ? lobby : [];
+
+                const action = pickDrawAction(availableLobby, deck.length, config.aiDifficulty, grids[p], layout, hands[p]);
                 if (!action) break;
 
                 if (action.source === "lobby" && action.index !== undefined) {
+                    lobbyDrawsThisTurn++;
                     draws[p].lobby++;
                     const card = lobby.splice(action.index, 1)[0];
                     hands[p].push(card);
 
-                    const key = card.trait ? `${card.trait} ${card.type}` : card.type;
-                    lobbyPicks[p][key] = (lobbyPicks[p][key] || 0) + 1;
+                    lobbyPicks[p][card.type] = (lobbyPicks[p][card.type] || 0) + 1;
+                    const keyDetailed = card.trait ? `${card.trait} ${card.type}` : `${card.type} (Plain)`;
+                    lobbyPicksDetailed[p][keyDetailed] = (lobbyPicksDetailed[p][keyDetailed] || 0) + 1;
 
                     // Replicates GameScene.js sliding mechanic
                     if (deck.length > 0) {
@@ -136,6 +150,10 @@ export function simulateGame(config) {
                     if (action.discard) {
                         const discardTarget = action.discard.cardData;
                         hands[p] = hands[p].filter((c) => c !== discardTarget);
+                        
+                        discards[p][discardTarget.type] = (discards[p][discardTarget.type] || 0) + 1;
+                        const keyDetailed = discardTarget.trait ? `${discardTarget.trait} ${discardTarget.type}` : `${discardTarget.type} (Plain)`;
+                        discardsDetailed[p][keyDetailed] = (discardsDetailed[p][keyDetailed] || 0) + 1;
                     }
                 }
             }
@@ -156,6 +174,8 @@ export function simulateGame(config) {
 
         /** @type {Record<string, {vp: number, count: number}>} */
         const typeBreakdown = {};
+        /** @type {Record<string, {vp: number, count: number}>} */
+        const typeBreakdownDetailed = {};
 
         let noisyCount = 0;
         const uniqueTypes = new Set();
@@ -170,6 +190,13 @@ export function simulateGame(config) {
                     typeBreakdown[card.type].vp += score.perSeat[r][c];
                     typeBreakdown[card.type].count += 1;
 
+                    const keyDetailed = card.trait ? `${card.trait} ${card.type}` : `${card.type} (Plain)`;
+                    if (!typeBreakdownDetailed[keyDetailed]) {
+                        typeBreakdownDetailed[keyDetailed] = { vp: 0, count: 0 };
+                    }
+                    typeBreakdownDetailed[keyDetailed].vp += score.perSeat[r][c];
+                    typeBreakdownDetailed[keyDetailed].count += 1;
+
                     if (card.trait === Trait.NOISY) noisyCount++;
                     uniqueTypes.add(card.type);
                 }
@@ -179,11 +206,15 @@ export function simulateGame(config) {
         return {
             total: score.total,
             typeBreakdown,
+            typeBreakdownDetailed,
             lobbyPicks: lobbyPicks[p],
+            lobbyPicksDetailed: lobbyPicksDetailed[p],
             firstTurns: firstPlayerCounts[p],
             noisyCount,
             uniqueTypesCount: uniqueTypes.size,
             draws: draws[p],
+            discards: discards[p],
+            discardsDetailed: discardsDetailed[p],
         };
     });
 

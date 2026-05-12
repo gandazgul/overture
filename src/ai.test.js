@@ -144,10 +144,11 @@ Deno.test("pickCardAndSeat — tactician picks better card to play", () => {
     const grid = emptyGrid(GrandEmpressLayout);
     const vip = card(PatronType.VIP);
     const kid = card(PatronType.KID);
-    const result = pickCardAndSeat(grid, [vip, kid], 2, GrandEmpressLayout, AIDifficulty.HARD);
+    const std = card(PatronType.STANDARD);
+    const result = pickCardAndSeat(grid, [vip, kid, std], 2, GrandEmpressLayout, AIDifficulty.HARD);
 
     assert(result !== null);
-    assertEquals(result.play.cardData, vip, "Should play VIP over Kid on an empty board");
+    assertEquals(result.play.cardData, vip, "Should play VIP over Kid/Standard on an empty board");
     assertEquals(result.discard?.cardData, kid, "Should discard Kid");
 });
 

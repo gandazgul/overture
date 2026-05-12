@@ -58,10 +58,15 @@ setupAnalyticsCron();
 Deno.serve({ port: PORT, hostname: HOSTNAME }, async (/** @type {Request} */ req, info) => {
     const startedAtMs = performance.now();
     let route = "unmatched";
+    const isApiRoute = new URL(req.url).pathname.startsWith("/api/");
 
     try {
         const dispatched = await dispatchRoute(req, info);
         route = dispatched.route;
+
+        if (isApiRoute) {
+            dispatched.response.headers.set("Cache-Control", "no-store");
+        }
 
         logAccess({
             req,
@@ -85,6 +90,10 @@ Deno.serve({ port: PORT, hostname: HOSTNAME }, async (/** @type {Request} */ req
         const status = error instanceof HttpError ? error.status : 500;
         const message = error instanceof HttpError ? error.message : "Internal Server Error";
         const response = new Response(message, { status });
+
+        if (isApiRoute) {
+            response.headers.set("Cache-Control", "no-store");
+        }
 
         logAccess({
             req,

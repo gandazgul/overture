@@ -10,13 +10,15 @@ export class DrawReminderBanner extends Phaser.GameObjects.Container {
      * @param {number} x
      * @param {number} y
      * @param {string} msg
+     * @param {number} [bannerWidth]
      */
-    constructor(scene, x, y, msg) {
+    constructor(scene, x, y, msg, bannerWidth) {
         super(scene, x, y);
         this.setDepth(10000);
         this.setScrollFactor(0);
 
-        const rect = scene.add.rectangle(0, 0, s(450), s(80), 0x1a1a1a, 0.92).setOrigin(0.5);
+        const finalWidth = bannerWidth ?? s(450);
+        const rect = scene.add.rectangle(0, 0, finalWidth, s(80), 0x1a1a1a, 0.92).setOrigin(0.5);
         rect.setStrokeStyle(s(4), 0xd4af37, 1);
 
         const text = scene.add.text(0, 0, msg, {

@@ -79,7 +79,6 @@ function isAdjacencyBroken(rowA, rowB, layout) {
 export function getOrthogonalNeighbors(row, col, rows, cols, layout) {
     /** @type {{row: number, col: number}[]} */
     const neighbors = [];
-    const seen = new Set();
 
     /**
      * @param {number} r
@@ -94,9 +93,12 @@ export function getOrthogonalNeighbors(row, col, rows, cols, layout) {
             const dstIsBox = hasSeatLabel(r, c, "box", layout);
             if (srcIsBox !== dstIsBox) return;
         }
-        const key = `${r},${c}`;
-        if (seen.has(key)) return;
-        seen.add(key);
+        
+        // Fast dedup without Set allocation
+        for (let i = 0; i < neighbors.length; i++) {
+            if (neighbors[i].row === r && neighbors[i].col === c) return;
+        }
+        
         neighbors.push({ row: r, col: c });
     };
 
