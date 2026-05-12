@@ -282,7 +282,7 @@ async function handleAnalyticsReport(req) {
     try {
         isAuthorized(req);
     } catch (e) {
-        if (e instanceof HttpError && e.status === 401) {
+        if (e && e.status === 401) {
             return new Response(e.message, {
                 status: 401,
                 headers: { 
