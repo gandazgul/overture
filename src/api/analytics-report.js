@@ -282,10 +282,10 @@ async function handleAnalyticsReport(req) {
     try {
         isAuthorized(req);
     } catch (e) {
-        if (e && e.status === 401) {
+        if (e instanceof HttpError && e.status === 401) {
             return new Response(e.message, {
                 status: 401,
-                headers: { 
+                headers: {
                     "WWW-Authenticate": 'Basic realm="Overture Analytics"',
                     "Cache-Control": "no-store",
                 },
