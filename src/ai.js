@@ -96,7 +96,7 @@ export function evaluateSeat(grid, card, row, col, layout) {
 
 /**
  * Score every empty seat for a card placement, looking one turn ahead to measure
- * synergistic potential with the remaining hand.
+ * synergistic potential with the remaining hand. Uses Top-K pruning for performance.
  *
  * @param {(CardData | null)[][]} grid
  * @param {CardData} card
@@ -106,17 +106,32 @@ export function evaluateSeat(grid, card, row, col, layout) {
  */
 export function scoreAllSeats(grid, card, layout, lookaheadCards = []) {
     const empty = getEmptySeats(grid, layout);
-    const results = [];
     const currentScore = scorePlayer(grid, layout).total;
 
+    // 1. Calculate IMMEDIATE scores for all empty seats
+    const baseResults = [];
     for (const { row, col } of empty) {
-        grid[row][col] = card; // Apply base placement
+        grid[row][col] = card;
         const newScore = scorePlayer(grid, layout).total;
-        const immediateDelta = newScore - currentScore;
+        grid[row][col] = null;
+        baseResults.push({ row, col, immediateDelta: newScore - currentScore });
+    }
+
+    // Sort by immediate score descending
+    baseResults.sort((a, b) => b.immediateDelta - a.immediateDelta);
+
+    // 2. Lookahead Pruning: Only calculate deep future synergies for the Top 4 immediate moves
+    const TOP_K = 4;
+    const results = [];
+
+    for (let i = 0; i < baseResults.length; i++) {
+        const candidate = baseResults[i];
         let lookaheadDelta = 0;
 
-        if (lookaheadCards.length > 0) {
-            const remainingEmpty = empty.filter((e) => e.row !== row || e.col !== col);
+        // Only do the heavy math if we have lookahead cards AND it's a top candidate
+        if (lookaheadCards.length > 0 && i < TOP_K) {
+            grid[candidate.row][candidate.col] = card; // Apply base placement
+            const remainingEmpty = empty.filter((e) => e.row !== candidate.row || e.col !== candidate.col);
             let bestFuture = 0;
 
             for (const futureCard of lookaheadCards) {
@@ -125,20 +140,26 @@ export function scoreAllSeats(grid, card, layout, lookaheadCards = []) {
                     const futureScore = scorePlayer(grid, layout).total;
                     grid[fSeat.row][fSeat.col] = null; // Revert future
 
-                    const fDelta = futureScore - newScore;
+                    const fDelta = futureScore - (currentScore + candidate.immediateDelta);
                     if (fDelta > bestFuture) {
                         bestFuture = fDelta;
                     }
                 }
             }
-            // Weight future potential at 80% to prioritize immediate guaranteed points on ties
+            grid[candidate.row][candidate.col] = null; // Revert base placement
+
+            // Weight future potential at 80% to prioritize immediate guaranteed points
             lookaheadDelta = bestFuture * 0.8;
         }
 
-        grid[row][col] = null; // Revert base placement
-        results.push({ row, col, score: immediateDelta + lookaheadDelta });
+        results.push({
+            row: candidate.row,
+            col: candidate.col,
+            score: candidate.immediateDelta + lookaheadDelta,
+        });
     }
 
+    // Final sort incorporating lookahead bonuses
     results.sort((a, b) => b.score - a.score);
     return results;
 }

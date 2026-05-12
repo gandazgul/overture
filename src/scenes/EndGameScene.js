@@ -167,6 +167,11 @@ export class EndGameScene extends Phaser.Scene {
                 winners = afterTB2;
                 if (winners.length === 1) {
                     tiebreakerReason = "Most unique primary types";
+                } else if (winners.length > 1) {
+                    // Tiebreaker 3: Last player in order
+                    const lastPlayerIdx = Math.max(...winners);
+                    winners = [lastPlayerIdx];
+                    tiebreakerReason = "Last player in order";
                 }
             }
         }

@@ -26,6 +26,7 @@ function parseArgs(args) {
         if (args[i] === "--seed" && args[i + 1]) config.seed = parseInt(args[++i], 10) >>> 0;
         if (args[i] === "--concurrency" && args[i + 1]) config.concurrency = parseInt(args[++i], 10);
     }
+
     return config;
 }
 
@@ -67,7 +68,14 @@ for (let i = 0; i < workersCount; i++) {
 try {
     const allWorkerResults = await Promise.all(workerPromises);
 
+    /** @type {number[]} */
     const wins = Array(config.players).fill(0);
+    /** @type {number[]} */
+    const playerScoresTotal = Array(config.players).fill(0);
+    /** @type {number[]} */
+    const firstTurnsTotal = Array(config.players).fill(0); // Track parity
+    /** @type {{lobby: number, deck: number}[]} */
+    const drawsTotal = Array.from({ length: config.players }, () => ({ lobby: 0, deck: 0 }));
     let ties = 0;
     let totalScore = 0;
 
@@ -85,9 +93,30 @@ try {
             const scores = game.players.map((/** @type {{total: number}} */ p) => p.total);
             const maxScore = Math.max(...scores);
             /** @type {number[]} */
-            const winners = scores.map((/** @type {number} */ s, /** @type {number} */ idx) =>
-                s === maxScore ? idx : -1
-            ).filter((/** @type {number} */ idx) => idx !== -1);
+            let winners = scores.map((/** @type {number} */ s, /** @type {number} */ idx) => s === maxScore ? idx : -1)
+                .filter((/** @type {number} */ idx) => idx !== -1);
+
+            if (winners.length > 1) {
+                // Tiebreaker 1: Most Noisy
+                const maxNoisy = Math.max(...winners.map((/** @type {number} */ idx) => game.players[idx].noisyCount));
+                winners = winners.filter((/** @type {number} */ idx) => game.players[idx].noisyCount === maxNoisy);
+
+                if (winners.length > 1) {
+                    // Tiebreaker 2: Most unique types
+                    const maxUnique = Math.max(
+                        ...winners.map((/** @type {number} */ idx) => game.players[idx].uniqueTypesCount),
+                    );
+                    winners = winners.filter((/** @type {number} */ idx) =>
+                        game.players[idx].uniqueTypesCount === maxUnique
+                    );
+
+                    if (winners.length > 1) {
+                        // Tiebreaker 3: Last player in order wins
+                        const lastPlayerIdx = Math.max(...winners);
+                        winners = [lastPlayerIdx];
+                    }
+                }
+            }
 
             if (winners.length > 1) ties++;
             else wins[winners[0]]++;
@@ -96,6 +125,11 @@ try {
 
             // Aggregate Data
             game.players.forEach((/** @type {any} */ p, /** @type {number} */ idx) => {
+                playerScoresTotal[idx] += p.total;
+                firstTurnsTotal[idx] += p.firstTurns; // Aggregate first turns
+                drawsTotal[idx].lobby += p.draws.lobby;
+                drawsTotal[idx].deck += p.draws.deck;
+
                 // Type Scores
                 for (const [type, data] of Object.entries(p.typeBreakdown)) {
                     typeScores[type] = (typeScores[type] || 0) + data.vp;
@@ -110,14 +144,26 @@ try {
     }
 
     const durationMs = performance.now() - startMs;
-    const avgScore = totalScore / (config.games * config.players);
+    const globalAvgScore = totalScore / (config.games * config.players);
 
     // ── Output ──
     const summary = wins.map((winCount, idx) => ({
         "Player": `Player ${idx + 1}`,
         "Win Rate": `${((winCount / config.games) * 100).toFixed(1)}%`,
-        "Avg Score": (totalScore / config.games / config.players).toFixed(1), // Rough approx for table
+        "Avg Score": (playerScoresTotal[idx] / config.games).toFixed(2),
+        "First Count": firstTurnsTotal[idx].toLocaleString(), // Verify parity
+        "Lobby Draws": drawsTotal[idx].lobby.toLocaleString(),
+        "Deck Draws": drawsTotal[idx].deck.toLocaleString(),
     }));
+
+    summary.push({
+        "Player": "Ties",
+        "Win Rate": `${((ties / config.games) * 100).toFixed(1)}%`,
+        "Avg Score": "—",
+        "First Count": "—",
+        "Lobby Draws": "—",
+        "Deck Draws": "—",
+    });
 
     console.table(summary);
 
@@ -141,8 +187,11 @@ try {
         }
     }
 
+    console.log(`\n📈 Additional Stats:`);
+    console.log(`- Global Avg Score: ${globalAvgScore.toFixed(2)} VP`);
+    console.log(`- Total Ties:       ${ties} (${((ties / config.games) * 100).toFixed(1)}%)`);
     console.log(
-        `\n⏱️  Time Elapsed: ${durationMs.toFixed(2)} ms (${Math.round(config.games / (durationMs / 1000))} games/sec)`,
+        `- Time Elapsed:     ${durationMs.toFixed(2)} ms (${Math.round(config.games / (durationMs / 1000))} games/sec)`,
     );
 
     // ── File Export ──
@@ -155,8 +204,9 @@ try {
         stats: {
             wins,
             ties,
-            avgScore,
+            globalAvgScore,
             durationMs,
+            firstTurnsTotal,
         },
         aggregates: {
             typeScores,

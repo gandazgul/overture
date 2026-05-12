@@ -306,12 +306,6 @@ export class GameScene extends Phaser.Scene {
         if (this.playerCount === 3) {
             this.deck.pop();
         }
-        // For 2 players, discard 2 to align: 56 - 2 dealt - 2 discarded = 52
-        // 52 / 4 cards-per-round = 13 rounds + 1 final round = 14
-        if (this.playerCount === 2) {
-            this.deck.pop();
-            this.deck.pop();
-        }
     }
 
     setupDebug() {
