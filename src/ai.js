@@ -233,40 +233,25 @@ export function pickDrawAction(lobby, deckSize, difficulty, grid, layout, curren
         let bestScore = -Infinity;
         let bestIdx = -1;
 
-        // Baseline: best score we can get with JUST our current hand + expected EV from deck (approx 2.5 VP)
-        let deckBaseScore = 0;
-        if (currentHand.length > 0) {
-            for (let i = 0; i < currentHand.length; i++) {
-                const remaining = currentHand.filter((_, idx) => idx !== i);
-                const s = scoreAllSeats(grid, currentHand[i], layout, remaining, difficulty);
-                if (s.length > 0 && s[0].score > deckBaseScore) {
-                    deckBaseScore = s[0].score;
-                }
-            }
-        }
-
-        const deckThreshold = deckBaseScore + 2.5;
+        // The expected EV of drawing an unknown card from the deck is ~3.0 VP 
+        // (Base ~2.0 VP + Average Potential ~1.0 VP).
+        const deckEV = 3.0;
 
         for (let i = 0; i < availableLobby.length; i++) {
             const card = availableLobby[i];
-            const combinedHand = [...currentHand, card];
-            
-            let maxCombinedScore = 0;
-            for (let j = 0; j < combinedHand.length; j++) {
-                const remaining = combinedHand.filter((_, idx) => idx !== j);
-                const s = scoreAllSeats(grid, combinedHand[j], layout, remaining, difficulty);
-                if (s.length > 0 && s[0].score > maxCombinedScore) {
-                    maxCombinedScore = s[0].score;
-                }
-            }
 
-            if (maxCombinedScore > bestScore) {
-                bestScore = maxCombinedScore;
+            // Evaluate the absolute value of this lobby card, using our current hand as lookahead
+            const seats = scoreAllSeats(grid, card, layout, currentHand, difficulty);
+            const score = seats.length > 0 ? seats[0].score : 0;
+
+            if (score > bestScore) {
+                bestScore = score;
                 bestIdx = lobbyStartIndex + i;
             }
         }
 
-        if (bestScore > deckThreshold || !hasDeck) {
+        // If the best lobby card is better than an average deck card, take it!
+        if (bestScore > deckEV || !hasDeck) {
             return { source: "lobby", index: bestIdx };
         }
     }

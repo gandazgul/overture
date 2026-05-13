@@ -123,11 +123,10 @@ export const PatronInfo = {
             adjacencyPenaltyNoisyTrait: true,
         },
         deck: {
-            // trying to not have super special cards
-            clean: 4,
-            traits: {},
-            // clean: 3,
-            // traits: { [Trait.BESPECTACLED]: 1 },
+            clean: 3,
+            traits: { [Trait.BESPECTACLED]: 1 },
+            // clean: 4,
+            // traits: {},
         },
         assetKey: "patron_vip",
         assetPath: "assets/patron_vip.png",
@@ -194,12 +193,12 @@ export const PatronInfo = {
             aisleBonus: 2,
         },
         deck: {
-            // Trying to have less special cards.
-            clean: 5,
+            clean: 2,
+            // clean: 5, // remove short and spectacled critics for easier early playtesting
             traits: {
                 [Trait.TALL]: 1,
-                // [Trait.SHORT]: 2,
-                // [Trait.BESPECTACLED]: 1,
+                [Trait.SHORT]: 2,
+                [Trait.BESPECTACLED]: 1,
             },
         },
         assetKey: "patron_critic",
