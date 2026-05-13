@@ -193,7 +193,7 @@ export const PatronInfo = {
             aisleBonus: 2,
         },
         deck: {
-            clean: 2,
+            clean: 3,
             // clean: 5, // remove short and spectacled critics for easier early playtesting
             traits: {
                 [Trait.TALL]: 1,
