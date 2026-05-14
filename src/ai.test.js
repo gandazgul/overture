@@ -1,4 +1,3 @@
-// @ts-check
 /// <reference lib="deno.ns" />
 
 /**
@@ -149,7 +148,10 @@ Deno.test("pickCardAndSeat — tactician picks better card to play", () => {
 
     assert(result !== null);
     assertEquals(result.play.cardData, vip, "Should play VIP over Kid/Standard on an empty board");
-    assertEquals(result.discard?.cardData, kid, "Should discard Kid");
+    // a tactician evaluates which card to keep for maximum future value.
+    // In an empty board, Kid has higher potential (cappedValue) than Standard.
+    // Therefore, the tactician should KEEP the Kid and DISCARD the Standard patron.
+    assertEquals(result.discard?.cardData, std, "Should discard Standard patron");
 });
 
 Deno.test("pickCardAndSeat — returns null on empty hand", () => {

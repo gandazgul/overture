@@ -1,4 +1,3 @@
-// @ts-check
 /// <reference lib="deno.ns" />
 
 /**

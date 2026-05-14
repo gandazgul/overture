@@ -852,6 +852,7 @@ export class GameScene extends Phaser.Scene {
             const canDrawLobby = this.playerCount !== 2 || tempDeckCount === 0 || tempLobbyDrawsThisTurn < 1;
             const availableLobby = canDrawLobby ? tempLobby : [];
 
+            const opponentGrids = this.placedPatrons.filter((_, idx) => idx !== this.currentPlayer);
             const action = pickDrawAction(
                 availableLobby,
                 tempDeckCount,
@@ -859,6 +860,8 @@ export class GameScene extends Phaser.Scene {
                 grid,
                 this.layout,
                 tempHand,
+                {},
+                opponentGrids,
             );
 
             if (!action) {

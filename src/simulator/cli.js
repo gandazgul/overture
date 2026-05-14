@@ -122,11 +122,11 @@ try {
                         game.players[idx].uniqueTypesCount === maxUnique
                     );
 
-                    if (winners.length > 1) {
-                        // Tiebreaker 3: Last player in order wins
-                        const lastPlayerIdx = Math.max(...winners);
-                        winners = [lastPlayerIdx];
-                    }
+                    // if (winners.length > 1) {
+                    //     // Tiebreaker 3: Last player in order wins
+                    //     const lastPlayerIdx = Math.max(...winners);
+                    //     winners = [lastPlayerIdx];
+                    // }
                 }
             }
 

@@ -1,10 +1,15 @@
 // src/simulator/simulator.js
-import { createDeck, Layouts, Trait } from "../types.js";
+import { createDeck, Layouts, PatronType, Trait } from "../types.js";
 import { scorePlayer } from "../scoring.js";
-import { pickCardAndSeat, pickDrawAction } from "../ai.js";
+import { randomInt } from "../utils.js";
+import { pickBestCardFromPool, pickCardAndSeat, pickDrawAction } from "../ai.js";
 
 /** @typedef {import('../types.js').CardData} CardData */
 /** @typedef {import('../types.js').LayoutMeta} LayoutMeta */
+
+// Toggle the special draft phase. Set to false to skip drafting and deal
+// starting hands purely from the shuffled deck.
+const DRAFT_ENABLED = false;
 
 /**
  * @typedef {Object} SimulatorConfig
@@ -19,11 +24,14 @@ import { pickCardAndSeat, pickDrawAction } from "../ai.js";
  * @property {number} total
  * @property {Record<string, {vp: number, count: number}>} typeBreakdown
  * @property {Record<string, number>} lobbyPicks
+ * @property {Record<string, number>} lobbyPicksDetailed
+ * @property {Record<string, number>} draftPicks
  * @property {number} firstTurns
  * @property {number} noisyCount
  * @property {number} uniqueTypesCount
  * @property {{lobby: number, deck: number}} draws
  * @property {Record<string, number>} discards
+ * @property {Record<string, number>} discardsDetailed
  */
 
 /**
@@ -60,6 +68,9 @@ export function simulateGame(config) {
     const lobbyPicksDetailed = Array.from({ length: config.playerCount }, () => ({}));
 
     /** @type {Record<string, number>[]} */
+    const draftPicks = Array.from({ length: config.playerCount }, () => ({}));
+
+    /** @type {Record<string, number>[]} */
     const discards = Array.from({ length: config.playerCount }, () => ({}));
     /** @type {Record<string, number>[]} */
     const discardsDetailed = Array.from({ length: config.playerCount }, () => ({}));
@@ -79,14 +90,61 @@ export function simulateGame(config) {
 
     // ── Setup ───────────────────────────────────────────────────────────
 
-    // 1. Deal starting hand, 1 card per player blind from deck
+    // 0. Special Draft Phase — extract candidates from deck, pick N, reshuffle rest
+    if (DRAFT_ENABLED) {
+        const candidateDefs = [
+            { type: PatronType.CRITIC, trait: Trait.BESPECTACLED },
+            { type: PatronType.TEACHER, trait: Trait.SHORT },
+            { type: PatronType.LOVEBIRDS, trait: Trait.TALL },
+            { type: PatronType.KID, trait: null },
+        ];
+
+        /** @type {{type: string, trait: string | null, card: CardData}[]} */
+        const candidates = [];
+        for (const def of candidateDefs) {
+            const idx = deck.findIndex(
+                (card) => card.type === def.type && card.trait === def.trait,
+            );
+            if (idx >= 0) {
+                candidates.push({ ...def, card: deck.splice(idx, 1)[0] });
+            }
+        }
+
+        const poolSize = config.playerCount;
+        const toRemove = candidates.length - poolSize; // 0 for 4P, 1 for 3P, 2 for 2P
+        for (let i = 0; i < toRemove; i++) {
+            const dropIdx = randomInt(candidates.length - 1);
+            deck.push(candidates.splice(dropIdx, 1)[0].card); // return to deck
+        }
+
+        // Reshuffle deck (now contains unselected candidates)
+        for (let i = deck.length - 1; i > 0; i--) {
+            const j = randomInt(i);
+            [deck[i], deck[j]] = [deck[j], deck[i]];
+        }
+
+        // Draft picks — reverse order (last player picks first)
+        const draftPool = candidates.map((c) => c.card);
+        for (let playerIndex = config.playerCount - 1; playerIndex >= 0; playerIndex--) {
+            if (draftPool.length === 0) break;
+            const card = pickBestCardFromPool(draftPool, config.aiDifficulty);
+            if (!card) break;
+            hands[playerIndex].push(card);
+
+            // Track in draftPicks analytics
+            const cardKey = card.trait ? `${card.trait} ${card.type}` : `${card.type} (Plain)`;
+            draftPicks[playerIndex][cardKey] = (draftPicks[playerIndex][cardKey] || 0) + 1;
+        }
+    }
+
+    // 1. Deal starting hand — draw remaining cards to reach target
     const drawTarget = config.playerCount === 2 ? 3 : 2;
     for (let p = 0; p < config.playerCount; p++) {
-        hands[p] = [];
-
-        const c = deck.pop();
-
-        if (c) hands[p].push(c);
+        const cardsToDraw = drawTarget - hands[p].length;
+        for (let d = 0; d < cardsToDraw; d++) {
+            const c = deck.pop();
+            if (c) hands[p].push(c);
+        }
     }
 
     // For 3 players, ghost "4th player" was also dealt and discards
@@ -99,7 +157,7 @@ export function simulateGame(config) {
 
     // ── Core Loop ───────────────────────────────────────────────────────
     let round = 1;
-    while (round <= 14) {
+    while (round <= 12) {
         // In the game, the first player stays the same for 2 players, but rotates for 3 or 4 players.
         const firstPlayerThisRound = config.playerCount > 2 ? (round - 1) % config.playerCount : 0;
         firstPlayerCounts[firstPlayerThisRound]++;
@@ -115,7 +173,17 @@ export function simulateGame(config) {
                 const canDrawLobby = config.playerCount !== 2 || deck.length === 0 || lobbyDrawsThisTurn < 1;
                 const availableLobby = canDrawLobby ? lobby : [];
 
-                const action = pickDrawAction(availableLobby, deck.length, config.aiDifficulty, grids[p], layout, hands[p]);
+                const opponentGrids = grids.filter((_, idx) => idx !== p);
+                const action = pickDrawAction(
+                    availableLobby,
+                    deck.length,
+                    config.aiDifficulty,
+                    grids[p],
+                    layout,
+                    hands[p],
+                    {},
+                    opponentGrids,
+                );
                 if (!action) break;
 
                 if (action.source === "lobby" && action.index !== undefined) {
@@ -150,9 +218,11 @@ export function simulateGame(config) {
                     if (action.discard) {
                         const discardTarget = action.discard.cardData;
                         hands[p] = hands[p].filter((c) => c !== discardTarget);
-                        
+
                         discards[p][discardTarget.type] = (discards[p][discardTarget.type] || 0) + 1;
-                        const keyDetailed = discardTarget.trait ? `${discardTarget.trait} ${discardTarget.type}` : `${discardTarget.type} (Plain)`;
+                        const keyDetailed = discardTarget.trait
+                            ? `${discardTarget.trait} ${discardTarget.type}`
+                            : `${discardTarget.type} (Plain)`;
                         discardsDetailed[p][keyDetailed] = (discardsDetailed[p][keyDetailed] || 0) + 1;
                     }
                 }
@@ -209,6 +279,7 @@ export function simulateGame(config) {
             typeBreakdownDetailed,
             lobbyPicks: lobbyPicks[p],
             lobbyPicksDetailed: lobbyPicksDetailed[p],
+            draftPicks: draftPicks[p],
             firstTurns: firstPlayerCounts[p],
             noisyCount,
             uniqueTypesCount: uniqueTypes.size,
