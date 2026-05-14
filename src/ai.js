@@ -419,7 +419,8 @@ function pickDrawActionHard(
     };
 
     // 3. Compare options on (myGain - marginal opp gain)
-    const oppCostOnDeck = marginalOppCost(lobby.slice(lobbyStartIndex));
+    const OPP_COST_WEIGHT = 1.0;
+    const oppCostOnDeck = OPP_COST_WEIGHT * marginalOppCost(lobby.slice(lobbyStartIndex));
 
     let bestNet = hasDeck ? deckEV - oppCostOnDeck : -Infinity;
     let bestSource = /** @type {'lobby' | 'deck'} */ ("deck");
@@ -433,7 +434,7 @@ function pickDrawActionHard(
 
             const myAbsoluteIdx = lobbyStartIndex + i;
             const oppPool = lobby.filter((_, idx) => idx !== myAbsoluteIdx);
-            const oppCost = marginalOppCost(oppPool);
+            const oppCost = OPP_COST_WEIGHT * marginalOppCost(oppPool);
 
             const net = myGain - oppCost;
             if (net > bestNet) {
@@ -496,7 +497,7 @@ export function pickDrawAction(
         return { source: "deck" };
     }
 
-    // HARD AI: deck-composition-aware EV + opponent opportunity cost
+    // HARD AI: deck-composition-aware EV + marginal opponent opportunity cost
     if (difficulty === AIDifficulty.HARD) {
         return pickDrawActionHard(
             lobby,
