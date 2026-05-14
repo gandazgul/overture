@@ -10,7 +10,7 @@
         "build": "deno run -A scripts/generate-rules-page.js && deno run -A npm:vite@5 build",
         "preview": "deno run -A npm:vite@5 preview",
         "serve": "deno run -A --env-file src/server.js",
-        "check": "deno check --doc **/*.js",
+        "check": "deno check --doc --check-js **/*.js",
         "lint": "deno lint src/",
         "test": "deno test src/",
         "format": "deno fmt",

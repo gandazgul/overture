@@ -1,4 +1,3 @@
-// @ts-check
 import Phaser from "phaser";
 import { s } from "../config.js";
 

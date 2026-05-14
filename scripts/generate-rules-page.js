@@ -1,5 +1,3 @@
-// @ts-check
-
 import { marked } from "npm:marked@13";
 
 const SOURCE_MD = "public/RULE_BOOK.md";

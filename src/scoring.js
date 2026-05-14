@@ -1,5 +1,3 @@
-// @ts-check
-
 /**
  * ========================================================================
  * SCORING ENGINE — Pure functions, no Phaser dependency
@@ -93,12 +91,12 @@ export function getOrthogonalNeighbors(row, col, rows, cols, layout) {
             const dstIsBox = hasSeatLabel(r, c, "box", layout);
             if (srcIsBox !== dstIsBox) return;
         }
-        
+
         // Fast dedup without Set allocation
         for (let i = 0; i < neighbors.length; i++) {
             if (neighbors[i].row === r && neighbors[i].col === c) return;
         }
-        
+
         neighbors.push({ row: r, col: c });
     };
 

@@ -1,4 +1,3 @@
-// @ts-check
 import Phaser from "phaser";
 import { AIDifficulty } from "../ai.js";
 import { px, s } from "../config.js";

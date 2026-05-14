@@ -1,4 +1,3 @@
-// @ts-check
 import Phaser from "phaser";
 import { loadSettings } from "../settings.js";
 import { px, s } from "../config.js";

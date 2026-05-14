@@ -1,11 +1,10 @@
-// @ts-check
 import { px, s } from "../config.js";
 
 /**
  * Create and render the Overture logo with consistent sizing.
  * Falls back to styled text if the logo texture is unavailable.
  *
- * @param {Phaser.Scene} scene
+ * @param {import('phaser').Scene} scene
  * @param {object} options
  * @param {number} options.width - Logo width in design pixels (pre-DPR scaling)
  * @param {number} [options.depth]

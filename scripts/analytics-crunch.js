@@ -1,5 +1,4 @@
 #!/usr/bin/env -S deno run -A
-// @ts-check
 /// <reference lib="deno.ns" />
 
 import { dirname } from "jsr:@std/path";

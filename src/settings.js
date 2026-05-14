@@ -1,5 +1,3 @@
-// @ts-check
-
 /**
  * ========================================================================
  * SETTINGS — Phaser Registry + localStorage persistence

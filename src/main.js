@@ -1,4 +1,3 @@
-// @ts-check
 import Phaser from "phaser";
 import { BootScene } from "./scenes/BootScene.js";
 import { TitleScene } from "./scenes/TitleScene.js";

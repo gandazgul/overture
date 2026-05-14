@@ -1,5 +1,3 @@
-// @ts-check
-
 import { randomInt } from "./utils.js";
 
 // ── Primary Patron Types ───────────────────────────────────────────
@@ -113,12 +111,12 @@ export const PatronInfo = {
     },
     [PatronType.VIP]: {
         color: 0xffc107,
-        scoringHint: "Base 3VP\n+2VP in the front seats (Thick red edge)\n⚠ −2VP per adjacent Kid or Noisy",
+        scoringHint: "Base 3VP\n+3VP in the front seats (Thick red edge)\n⚠ −3VP per adjacent Kid or Noisy",
         scoring: {
             base: 3,
-            rowBonusValue: 2,
+            rowBonusValue: 3,
             rowBonusRows: [0, 1],
-            adjacencyPenaltyPer: -2,
+            adjacencyPenaltyPer: -3,
             adjacencyPenaltyTypes: [PatronType.KID],
             adjacencyPenaltyNoisyTrait: true,
         },
@@ -154,7 +152,7 @@ export const PatronInfo = {
         scoringHint: "Base 1VP\n+3VP when capped (row/column) e.g. T-K-T",
         scoring: {
             base: 1,
-            cappedValue: 4,
+            cappedValue: 3,
         },
         deck: {
             clean: 5,
@@ -187,10 +185,10 @@ export const PatronInfo = {
     },
     [PatronType.CRITIC]: {
         color: 0x9c27b0,
-        scoringHint: "Base 3VP\n+2VP in an aisle seat (gold border)",
+        scoringHint: "Base 3VP\n+3VP in an aisle seat (gold border)",
         scoring: {
             base: 3,
-            aisleBonus: 2,
+            aisleBonus: 3,
         },
         deck: {
             clean: 3,

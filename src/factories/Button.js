@@ -1,11 +1,10 @@
-// @ts-check
 import { px, s } from "../config.js";
 
 /**
  * Create a styled button with the ui_button_frame background (or rectangle
  * fallback). Hover changes text to gold. No zoom animation.
  *
- * @param {Phaser.Scene} scene
+ * @param {import('phaser').Scene} scene
  * @param {number} x - Center X
  * @param {number} y - Center Y
  * @param {string} label
@@ -15,7 +14,7 @@ import { px, s } from "../config.js";
  * @param {string} [options.fontColor="#ffffff"] - Default text color
  * @param {string} [options.hoverColor="#f5c518"] - Hover text color
  * @param {number} [options.bgColor=0x4a2c7a] - Fallback rectangle color
- * @returns {{ container: Phaser.GameObjects.Container, hitArea: Phaser.GameObjects.Rectangle }}
+ * @returns {{ container: import('phaser').GameObjects.Container, hitArea: import('phaser').GameObjects.Rectangle }}
  */
 export function createButton(scene, x, y, label, options = {}) {
     const {

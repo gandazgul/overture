@@ -1,4 +1,3 @@
-// @ts-check
 import Phaser from "phaser";
 import { pickCardAndSeat, pickDrawAction } from "../ai.js";
 import { px, s } from "../config.js";
@@ -148,6 +147,8 @@ export class GameScene extends Phaser.Scene {
 
         /** @type {boolean} */
         this.isDrawAnimating = false;
+
+        this.lobbyDrawsThisTurn = 0;
 
         /**
          * Runtime analytics state for the current game.
@@ -1888,7 +1889,8 @@ export class GameScene extends Phaser.Scene {
             });
 
             const slotZeroLocked = i === 0 && this.deck.length > 0;
-            const lobbyLimitReached = this.playerCount === 2 && this.deck.length > 0 && (this.lobbyDrawsThisTurn || 0) >= 1;
+            const lobbyLimitReached = this.playerCount === 2 && this.deck.length > 0 &&
+                (this.lobbyDrawsThisTurn || 0) >= 1;
 
             if (slotZeroLocked || lobbyLimitReached) {
                 this.renderLockedLobbyBarrier(slot.x, slot.y);

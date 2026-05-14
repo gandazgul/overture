@@ -1,4 +1,3 @@
-// @ts-check
 import Phaser from "phaser";
 import { TraitColors } from "../types.js";
 import { s } from "../config.js";

@@ -1,5 +1,4 @@
 #!/usr/bin/env -S deno run -A
-// @ts-check
 
 import { chromium } from "npm:playwright";
 import { existsSync } from "node:fs";

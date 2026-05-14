@@ -1,5 +1,3 @@
-// @ts-check
-
 /**
  * ========================================================================
  * DPR-aware scaling for HiDPI / Retina displays

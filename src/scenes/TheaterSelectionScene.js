@@ -1,4 +1,3 @@
-// @ts-check
 import Phaser from "phaser";
 import { px, s } from "../config.js";
 import { LayoutOrder, Layouts } from "../types.js";

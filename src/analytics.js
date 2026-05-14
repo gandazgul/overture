@@ -1,5 +1,3 @@
-// @ts-check
-
 /**
  * @typedef {{ type?: string, trait?: string | null }} AnalyticsCardLike
  */
