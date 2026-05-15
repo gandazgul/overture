@@ -93,9 +93,9 @@ Deno.test("scoreSeatBreakdown - Critic aisle bonus appears as applied when no No
     const aisleBonus = breakdown.modifiers.find((m) => m.label === "Aisle bonus");
 
     assertEquals(breakdown.base, 3);
-    assertEquals(breakdown.total, 6);
+    assertEquals(breakdown.total, 5);
     assertEquals(aisleBonus?.applied, true);
-    assertEquals(aisleBonus?.value, 3);
+    assertEquals(aisleBonus?.value, 2);
 });
 
 Deno.test("scoreSeatBreakdown - Critic aisle bonus is marked nullified by Noisy neighbor", () => {
@@ -123,11 +123,11 @@ Deno.test("Standard patron scores 3 VP anywhere", () => {
 
 // ── Primary Type: VIP ───────────────────────────────────────────────
 
-Deno.test("VIP in row 0 alone scores 6 VP (3 base + 3 row bonus)", () => {
+Deno.test("VIP in row 0 alone scores 5 VP (3 base + 2 row bonus)", () => {
     const grid = emptyGrid();
     place(grid, 0, 2, PatronType.VIP);
     const result = scorePlayer(grid, DefaultLayout);
-    assertEquals(result.perSeat[0][2], 6);
+    assertEquals(result.perSeat[0][2], 5);
 });
 
 Deno.test("VIP in back row scores 3 VP (base only)", () => {
@@ -137,39 +137,39 @@ Deno.test("VIP in back row scores 3 VP (base only)", () => {
     assertEquals(result.perSeat[3][2], 3);
 });
 
-Deno.test("VIP adjacent to Kid gets -3 penalty", () => {
+Deno.test("VIP adjacent to Kid gets -2 penalty", () => {
     const grid = emptyGrid();
     place(grid, 0, 2, PatronType.VIP);
     place(grid, 0, 3, PatronType.KID);
     const result = scorePlayer(grid, DefaultLayout);
-    assertEquals(result.perSeat[0][2], 3); // 6 - 3
+    assertEquals(result.perSeat[0][2], 3); // 5 - 2
 });
 
-Deno.test("VIP adjacent to two Kids gets -6 penalty", () => {
+Deno.test("VIP adjacent to two Kids gets -4 penalty", () => {
     const grid = emptyGrid();
     place(grid, 0, 2, PatronType.VIP);
     place(grid, 0, 1, PatronType.KID);
     place(grid, 0, 3, PatronType.KID);
     const result = scorePlayer(grid, DefaultLayout);
-    assertEquals(result.perSeat[0][2], 0); // 6 - 6
+    assertEquals(result.perSeat[0][2], 1); // 5 - 4
 });
 
-Deno.test("VIP adjacent to Noisy-trait patron gets -3 penalty", () => {
+Deno.test("VIP adjacent to Noisy-trait patron gets -2 penalty (plus -1 generic)", () => {
     const grid = emptyGrid();
     place(grid, 0, 2, PatronType.VIP);
     place(grid, 0, 3, PatronType.STANDARD, Trait.NOISY);
     const result = scorePlayer(grid, DefaultLayout);
-    // VIP: 6 base+row - 3 adjacencyPenalty (Noisy trait) - 1 (Noisy cross-type) = 2
+    // VIP: 5 base+row - 2 VIP-Noisy adjacency - 1 (generic Noisy) = 2
     assertEquals(result.perSeat[0][2], 2);
 });
 
 // ── Primary Type: Critic ────────────────────────────────────────────
 
-Deno.test("Critic on aisle seat scores 6 VP (2 × 3)", () => {
+Deno.test("Critic on aisle seat scores 5 VP (3 base + 2 aisle)", () => {
     const grid = emptyGrid();
     place(grid, 1, 0, PatronType.CRITIC);
     const result = scorePlayer(grid, DefaultLayout);
-    assertEquals(result.perSeat[1][0], 6);
+    assertEquals(result.perSeat[1][0], 5);
 });
 
 Deno.test("Critic on non-aisle seat scores 3 VP", () => {
@@ -283,15 +283,15 @@ Deno.test("Uncapped Kid scores 1 VP", () => {
     assertEquals(result.perSeat[1][2], 1);
 });
 
-Deno.test("Capped Kids score 3 VP each, Teachers get +1 per Kid they cap", () => {
+Deno.test("Capped Kids score 4 VP each, Teachers get +1 per Kid they cap", () => {
     const grid = emptyGrid();
     place(grid, 1, 0, PatronType.TEACHER);
     place(grid, 1, 1, PatronType.KID);
     place(grid, 1, 2, PatronType.KID);
     place(grid, 1, 3, PatronType.TEACHER);
     const result = scorePlayer(grid, DefaultLayout);
-    assertEquals(result.perSeat[1][1], 3); // capped Kid
-    assertEquals(result.perSeat[1][2], 3); // capped Kid
+    assertEquals(result.perSeat[1][1], 4); // capped Kid
+    assertEquals(result.perSeat[1][2], 4); // capped Kid
     assertEquals(result.perSeat[1][0], 5); // Teacher: 3 base + 2 capped Kids
     assertEquals(result.perSeat[1][3], 5); // Teacher: 3 base + 2 capped Kids
 });
@@ -304,8 +304,8 @@ Deno.test("Vertical Teacher-Kid chain caps Kids and scores endpoint Teachers", (
     place(grid, 3, 2, PatronType.TEACHER);
 
     const result = scorePlayer(grid, DefaultLayout);
-    assertEquals(result.perSeat[1][2], 3);
-    assertEquals(result.perSeat[2][2], 3);
+    assertEquals(result.perSeat[1][2], 4);
+    assertEquals(result.perSeat[2][2], 4);
     assertEquals(result.perSeat[0][2], 5); // caps two Kids vertically
     assertEquals(result.perSeat[3][2], 5); // caps two Kids vertically
 });
@@ -337,9 +337,9 @@ Deno.test("Cross capping: all endpoint Teachers get their own capper bonus", () 
 
     const result = scorePlayer(grid, DefaultLayout);
 
-    // Both kids are capped and score 3
-    assertEquals(result.perSeat[1][1], 3);
-    assertEquals(result.perSeat[1][2], 3);
+    // Both kids are capped and score 4
+    assertEquals(result.perSeat[1][1], 4);
+    assertEquals(result.perSeat[1][2], 4);
 
     // Horizontal endpoint teachers cap both kids => +2
     assertEquals(result.perSeat[1][0], 5);
@@ -416,8 +416,8 @@ Deno.test("Bespectacled VIP in front row stacks both bonuses", () => {
     const grid = emptyGrid();
     place(grid, 0, 2, PatronType.VIP, Trait.BESPECTACLED);
     const result = scorePlayer(grid, DefaultLayout);
-    // VIP: 3 base + 3 row bonus + 2 bespectacled trait = 8
-    assertEquals(result.perSeat[0][2], 8);
+    // VIP: 3 base + 2 row bonus + 2 bespectacled trait = 7
+    assertEquals(result.perSeat[0][2], 7);
 });
 
 Deno.test("Bespectacled Teacher scores row bonus + capping bonus", () => {
@@ -494,8 +494,8 @@ Deno.test("Short Critic on front-row aisle with empty front = max score", () => 
     const grid = emptyGrid();
     place(grid, 0, 0, PatronType.CRITIC, Trait.SHORT);
     const result = scorePlayer(grid, DefaultLayout);
-    // Critic: 3 base + 3 aisle = 6, then +2 short empty front = 8
-    assertEquals(result.perSeat[0][0], 8);
+    // Critic: 3 base + 2 aisle = 5, then +2 short empty front = 7
+    assertEquals(result.perSeat[0][0], 7);
 });
 
 // ── Trait: Noisy ────────────────────────────────────────────────────
@@ -679,11 +679,11 @@ Deno.test("Blackbox: 5 rows × 4 cols, center aisles at cols 1-2", () => {
     assertEquals(isAisleSeat(1, 3, BlackboxLayout), false);
 });
 
-Deno.test("Blackbox: Critic in center aisle scores +3 bonus", () => {
+Deno.test("Blackbox: Critic in center aisle scores +2 bonus", () => {
     const grid = emptyGrid(BlackboxLayout);
     place(grid, 2, 1, PatronType.CRITIC); // aisle seat
     const result = scorePlayer(grid, BlackboxLayout);
-    assertEquals(result.perSeat[2][1], 6); // 3 + 3
+    assertEquals(result.perSeat[2][1], 5); // 3 + 2
 });
 
 Deno.test("Blackbox: Critic on edge (col 0) scores base only", () => {
@@ -744,17 +744,17 @@ Deno.test("Opera House: Critic in Royal Box scores aisle bonus + royal approval"
     const grid = emptyGrid(OperaHouseLayout);
     place(grid, 0, 0, PatronType.CRITIC);
     const result = scorePlayer(grid, OperaHouseLayout);
-    // Critic: 3 + 3 aisle = 6, then +3 royal approval (highest scorer) = 9
-    assertEquals(result.perSeat[0][0], 9);
+    // Critic: 3 + 2 aisle = 5, then +3 royal approval (highest scorer) = 8
+    assertEquals(result.perSeat[0][0], 8);
 });
 
 Deno.test("Opera House: Bespectacled VIP in Royal Box scores huge", () => {
     const grid = emptyGrid(OperaHouseLayout);
     place(grid, 0, 0, PatronType.VIP, Trait.BESPECTACLED);
     const result = scorePlayer(grid, OperaHouseLayout);
-    // VIP: 3 base + 3 row bonus = 6, Bespectacled: +2 = 8
-    // Royal approval: +3 (highest scorer) = 11
-    assertEquals(result.perSeat[0][0], 11);
+    // VIP: 3 base + 2 row bonus = 5, Bespectacled: +2 = 7
+    // Royal approval: +3 (highest scorer) = 10
+    assertEquals(result.perSeat[0][0], 10);
 });
 
 Deno.test("Opera House: royal approval goes to front-most on tie", () => {
@@ -808,8 +808,8 @@ Deno.test("Opera House: VIP in Royal Box NOT penalized by adjacent Kid", () => {
     place(grid, 0, 1, PatronType.KID); // adjacent in grid, but isolated by box
     place(grid, 1, 0, PatronType.KID); // below box, also isolated
     const result = scorePlayer(grid, OperaHouseLayout);
-    // VIP: 3 base + 3 front row = 6, NO Kid penalty (isolated), +3 royal approval = 9
-    assertEquals(result.perSeat[0][0], 9);
+    // VIP: 3 base + 2 front row = 5, NO Kid penalty (isolated), +3 royal approval = 8
+    assertEquals(result.perSeat[0][0], 8);
 });
 
 Deno.test("Opera House: Noisy in (0,1) does NOT affect patron in Royal Box", () => {
@@ -854,11 +854,11 @@ Deno.test("Promenade: aisles alternate per row", () => {
     assertEquals(isAisleSeat(3, 0, PromenadeLayout), false);
 });
 
-Deno.test("Promenade: Critic in row 1 col 2 (aisle) scores +3 bonus", () => {
+Deno.test("Promenade: Critic in row 1 col 2 (aisle) scores +2 bonus", () => {
     const grid = emptyGrid(PromenadeLayout);
     place(grid, 1, 2, PatronType.CRITIC);
     const result = scorePlayer(grid, PromenadeLayout);
-    assertEquals(result.perSeat[1][2], 6); // 3 + 3
+    assertEquals(result.perSeat[1][2], 5); // 3 + 2
 });
 
 Deno.test("Promenade: Critic in row 1 col 0 (not aisle) scores base", () => {
@@ -876,9 +876,9 @@ Deno.test("Promenade: wandering critics — 3+ critics in aisles gives all criti
     place(grid, 3, 1, PatronType.CRITIC); // NOT aisle (row 3, col 1)
     const result = scorePlayer(grid, PromenadeLayout);
     // 3 critics in aisles → all 4 critics get +1 VP
-    assertEquals(result.perSeat[0][0], 7); // 3+3 aisle + 1 wandering = 7
-    assertEquals(result.perSeat[1][2], 7); // 3+3 aisle + 1 wandering = 7
-    assertEquals(result.perSeat[2][4], 7); // 3+3 aisle + 1 wandering = 7
+    assertEquals(result.perSeat[0][0], 6); // 3+2 aisle + 1 wandering = 6
+    assertEquals(result.perSeat[1][2], 6); // 3+2 aisle + 1 wandering = 6
+    assertEquals(result.perSeat[2][4], 6); // 3+2 aisle + 1 wandering = 6
     assertEquals(result.perSeat[3][1], 4); // 3 base (no aisle) + 1 wandering = 4
 });
 
@@ -889,8 +889,8 @@ Deno.test("Promenade: wandering critics — fewer than 3 in aisles gives no bonu
     place(grid, 3, 1, PatronType.CRITIC); // NOT aisle
     const result = scorePlayer(grid, PromenadeLayout);
     // Only 2 critics in aisles → no wandering bonus
-    assertEquals(result.perSeat[0][0], 6); // 3+3 aisle only
-    assertEquals(result.perSeat[1][2], 6);
+    assertEquals(result.perSeat[0][0], 5); // 3+2 aisle only
+    assertEquals(result.perSeat[1][2], 5);
     assertEquals(result.perSeat[3][1], 3); // base only
 });
 
@@ -976,7 +976,7 @@ Deno.test("Amphitheater: VIP adjacency penalty applies to staggered behind Kid",
     place(grid, 1, 2, PatronType.VIP); // row 1 is not front in Amphitheater
     place(grid, 2, 3, PatronType.KID); // staggered behind-right adjacency
     const result = scorePlayer(grid, AmphitheaterLayout);
-    assertEquals(result.perSeat[1][2], 0); // 3 base -3 adjacent Kid
+    assertEquals(result.perSeat[1][2], 1); // 3 base - 2 adjacent Kid
 });
 
 Deno.test("Amphitheater: Short behind staggered-front Tall gets Tall-in-front penalty", () => {
@@ -1109,8 +1109,8 @@ Deno.test("Dinner Playhouse: Kid capped by Teacher at same table", () => {
     grid[0][0] = card(PatronType.KID); // seat (0,0)
     grid[0][1] = card(PatronType.TEACHER); // seat (0,1) — same table
     const result = scorePlayer(grid, DinnerPlayhouseLayout);
-    // Kid should be capped (3 VP)
-    assertEquals(result.perSeat[0][0], 3);
+    // Kid should be capped (4 VP)
+    assertEquals(result.perSeat[0][0], 4);
 });
 
 Deno.test("Dinner Playhouse: Kid NOT capped without Teacher at same table", () => {
@@ -1132,9 +1132,9 @@ Deno.test("Dinner Playhouse: Teacher scores +1 per capped Kid at same table", ()
     const result = scorePlayer(grid, DinnerPlayhouseLayout);
     // Teacher: 3 base + 2 (two table Kids) = 5 VP
     assertEquals(result.perSeat[0][0], 5);
-    // Both Kids capped: 3 VP each
-    assertEquals(result.perSeat[0][1], 3);
-    assertEquals(result.perSeat[1][0], 3);
+    // Both Kids capped: 4 VP each
+    assertEquals(result.perSeat[0][1], 4);
+    assertEquals(result.perSeat[1][0], 4);
 });
 
 Deno.test("Dinner Playhouse: one Teacher caps all Kids at the same table (TKKK)", () => {
@@ -1149,14 +1149,15 @@ Deno.test("Dinner Playhouse: one Teacher caps all Kids at the same table (TKKK)"
     // Teacher: 3 base + 3 Kids at table = 6
     assertEquals(result.perSeat[0][0], 6);
 
-    // All 3 Kids capped (3 VP each)
-    assertEquals(result.perSeat[0][1], 3);
-    assertEquals(result.perSeat[1][0], 3);
-    assertEquals(result.perSeat[1][1], 3);
+    // All 3 Kids capped (4 VP each)
+    assertEquals(result.perSeat[0][1], 4);
+    assertEquals(result.perSeat[1][0], 4);
+    assertEquals(result.perSeat[1][1], 4);
 
     // Table-level house bonus (+3) is separate from seat scores
     assertEquals(result.houseBonus, 3);
-    assertEquals(result.total, 18);
+    // Teacher 6 + 3 Kids × 4 + house 3 = 21
+    assertEquals(result.total, 21);
 });
 
 // ══════════════════════════════════════════════════════════════════
@@ -1232,7 +1233,7 @@ Deno.test("Ziegfeld Runway: VIP scores on labeled front seats only", () => {
     place(grid, 1, 1, PatronType.VIP); // front
     place(grid, 2, 1, PatronType.VIP); // non-front
     const result = scorePlayer(grid, ZiegfeldRunwayLayout);
-    assertEquals(result.perSeat[1][1], 6);
+    assertEquals(result.perSeat[1][1], 5); // 3 base + 2 front
     assertEquals(result.perSeat[2][1], 3);
 });
 
@@ -1315,11 +1316,11 @@ Deno.test("Rotunda: no house rule reports house bonus as null", () => {
     assertEquals(result.houseBonus, null);
 });
 
-Deno.test("Rotunda: VIP in inner ring gets +3 front bonus", () => {
+Deno.test("Rotunda: VIP in inner ring gets +2 front bonus", () => {
     const grid = emptyGrid(RotundaLayout);
     place(grid, 1, 1, PatronType.VIP); // inner ring = front
     const result = scorePlayer(grid, RotundaLayout);
-    assertEquals(result.perSeat[1][1], 6); // 3 base + 3 front
+    assertEquals(result.perSeat[1][1], 5); // 3 base + 2 front
 });
 
 Deno.test("Rotunda: VIP in outer ring gets base only", () => {
@@ -1329,11 +1330,11 @@ Deno.test("Rotunda: VIP in outer ring gets base only", () => {
     assertEquals(result.perSeat[2][0], 3); // 3 base, no front bonus
 });
 
-Deno.test("Rotunda: Critic in outer ring scores ×3", () => {
+Deno.test("Rotunda: Critic in outer ring scores aisle bonus", () => {
     const grid = emptyGrid(RotundaLayout);
     place(grid, 2, 0, PatronType.CRITIC); // outer ring = aisle
     const result = scorePlayer(grid, RotundaLayout);
-    assertEquals(result.perSeat[2][0], 6); // 2 × 3
+    assertEquals(result.perSeat[2][0], 5); // 3 base + 2 aisle
 });
 
 Deno.test("Rotunda: Critic in inner ring scores base only", () => {
@@ -1472,5 +1473,5 @@ Deno.test("Critic: aisle seat without Noisy neighbor gets full bonus", () => {
     place(grid, 1, 0, PatronType.CRITIC); // aisle seat
     place(grid, 1, 1, PatronType.STANDARD); // non-Noisy neighbor
     const result = scorePlayer(grid, DefaultLayout);
-    assertEquals(result.perSeat[1][0], 6); // 3 + 3 aisle
+    assertEquals(result.perSeat[1][0], 5); // 3 + 2 aisle
 });

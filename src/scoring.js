@@ -541,13 +541,15 @@ function buildSeatScoreBreakdown(grid, row, col, layout, cappingData, lovebirdsP
 
         case PatronType.CRITIC: {
             if (isAisleSeat(row, col, layout) && scoring.aisleBonus) {
-                const neighbors = getOrthogonalNeighbors(row, col, rows, cols, layout);
                 let hasNoisyNeighbor = false;
-                for (const n of neighbors) {
-                    const neighbor = grid[n.row][n.col];
-                    if (neighbor && neighbor.trait === Trait.NOISY) {
-                        hasNoisyNeighbor = true;
-                        break;
+                if (scoring.aisleBonusNullifiedByNoisy) {
+                    const neighbors = getOrthogonalNeighbors(row, col, rows, cols, layout);
+                    for (const n of neighbors) {
+                        const neighbor = grid[n.row][n.col];
+                        if (neighbor && neighbor.trait === Trait.NOISY) {
+                            hasNoisyNeighbor = true;
+                            break;
+                        }
                     }
                 }
                 pushModifier(

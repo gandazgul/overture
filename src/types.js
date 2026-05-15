@@ -49,9 +49,10 @@ Object.freeze(Trait);
  * @property {number} [rowBonusValue] - Extra VP per qualifying row
  * @property {number[]} [rowBonusRows] - Row indices that grant the bonus (0 = front)
  * @property {number} [aisleBonus] - Extra VP if seated in an aisle seat (additive)
+ * @property {boolean} [aisleBonusNullifiedByNoisy] - If true, the aisle bonus is nullified when any orthogonally adjacent patron has the Noisy trait (the generic Noisy −1 still applies on top)
  * @property {number} [adjacencyPenaltyPer] - VP penalty per adjacent patron of a triggering type
  * @property {string[]} [adjacencyPenaltyTypes] - Patron types that trigger the adjacency penalty
- * @property {boolean} [adjacencyPenaltyNoisyTrait] - Also penalized by adjacent Noisy-trait patrons
+ * @property {boolean} [adjacencyPenaltyNoisyTrait] - Also penalized by adjacent Noisy-trait patrons (stacks with the generic Noisy −1)
  * @property {number} [cappedValue] - VP when this patron is "capped" (Kid-specific)
  * @property {number} [perCappedKidBonus] - VP bonus per capped Kid this Teacher directly caps (Teacher-specific)
  * @property {number} [adjacentMatchBonus] - VP if orthogonally adjacent to same type (Lovebirds)
@@ -111,12 +112,12 @@ export const PatronInfo = {
     },
     [PatronType.VIP]: {
         color: 0xffc107,
-        scoringHint: "Base 3VP\n+3VP in the front seats (Thick red edge)\n⚠ −3VP per adjacent Kid or Noisy",
+        scoringHint: "Base 3VP\n+2VP in the front seats (Thick red edge)\n⚠ −2VP per adjacent Kid or Noisy",
         scoring: {
             base: 3,
-            rowBonusValue: 3,
+            rowBonusValue: 2,
             rowBonusRows: [0, 1],
-            adjacencyPenaltyPer: -3,
+            adjacencyPenaltyPer: -2,
             adjacencyPenaltyTypes: [PatronType.KID],
             adjacencyPenaltyNoisyTrait: true,
         },
@@ -149,10 +150,10 @@ export const PatronInfo = {
     },
     [PatronType.KID]: {
         color: 0x4caf50,
-        scoringHint: "Base 1VP\n+3VP when capped (row/column) e.g. T-K-T",
+        scoringHint: "Base 1VP\n+4VP when capped (row/column) e.g. T-K-T",
         scoring: {
             base: 1,
-            cappedValue: 3,
+            cappedValue: 4,
         },
         deck: {
             clean: 5,
@@ -185,10 +186,11 @@ export const PatronInfo = {
     },
     [PatronType.CRITIC]: {
         color: 0x9c27b0,
-        scoringHint: "Base 3VP\n+3VP in an aisle seat (gold border)",
+        scoringHint: "Base 3VP\n+2VP in an aisle seat (gold border)\n⚠ Aisle bonus nullified by adjacent Noisy",
         scoring: {
             base: 3,
-            aisleBonus: 3,
+            aisleBonus: 2,
+            aisleBonusNullifiedByNoisy: true,
         },
         deck: {
             clean: 3,

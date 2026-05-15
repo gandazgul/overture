@@ -69,10 +69,10 @@ Deno.test("evaluateSeat — Standard always gives +3 VP", () => {
     assertEquals(delta, 3);
 });
 
-Deno.test("evaluateSeat — VIP in front row gives +6 VP", () => {
+Deno.test("evaluateSeat — VIP in front row gives +5 VP", () => {
     const grid = emptyGrid(GrandEmpressLayout);
     const delta = evaluateSeat(grid, card(PatronType.VIP), 0, 2, GrandEmpressLayout);
-    assertEquals(delta, 6);
+    assertEquals(delta, 5);
 });
 
 // ══════════════════════════════════════════════════════════════════════
@@ -84,7 +84,7 @@ Deno.test("scoreAllSeats — returns sorted results naturally finding game rules
     const results = scoreAllSeats(grid, card(PatronType.CRITIC), GrandEmpressLayout);
 
     assert(results.length > 0);
-    assertEquals(results[0].score, 6);
+    assertEquals(results[0].score, 5);
     const isAisle = results[0].col === 0 || results[0].col === 4;
     assert(isAisle, "Highest scored seat for Critic should naturally be an aisle seat");
 });

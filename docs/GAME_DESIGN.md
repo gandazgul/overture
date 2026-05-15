@@ -302,7 +302,7 @@ Row 3: [A][ ][ ][ ][A]
 theater gets +3 VP. Tiebreaker: front-most, then left-most.
 
 **Strategic feel:** The Royal Boxes are the most contested seats—a Bespectacled
-VIP in a Box scores 3+3+2+3 = 11 VP. "Royal Approval" also incentivizes building
+VIP in a Box scores 3+2+2+3 = 10 VP. "Royal Approval" also incentivizes building
 one mega-patron _anywhere_. Do you put your best card in the Box, or does the
 Box itself make the card your best?
 
@@ -393,7 +393,7 @@ Row 2: [A][ ][ ][ ][A]    20 seats, 8 aisle seats
 Row 3: [ ][ ][A][ ][ ]
 ```
 
-**House Rule: "Wandering Critics"** - Critics score their +3 aisle bonus in any aisle
+**House Rule: "Wandering Critics"** - Critics score their +2 aisle bonus in any aisle
 seat (as normal), but aisle seats change every row. +1 VP per Critic if you have
 3+ Critics in aisle seats.
 
@@ -472,7 +472,7 @@ Understudy scores as whatever primary type would earn the most VP in its current
 seat. (It does NOT gain a trait.)
 
 **Why it's interesting:** Every Understudy placement is a puzzle. An aisle seat
-makes it a Critic (6 VP). A front-row seat away from Kids makes it a VIP (6 VP).
+makes it a Critic (5 VP). A front-row seat away from Kids makes it a VIP (5 VP).
 Next to another Lovebirds in the back row makes it Lovebirds (6 VP). But it
 resolves at _end-game_, so the best seat depends on what you place around it
 later. Rewards long-term planning and flexible positioning.

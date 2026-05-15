@@ -75,7 +75,7 @@ The Lobby is a shared market of 3 face-up cards.
 
 In a 2-player game the draw-and-discard rhythm changes:
 
-1. **Draw 2** cards instead of 1, when possible. **At most one** of those draws may come from the Lobby — the second card must come from the Deck.
+1. **Draw 2** cards instead of 1, when possible. **At most one** of those draws may come from the Lobby — the other card must come from the Deck. You can choose where to draw from first.
 2. **Place** one card into your theater.
 3. **Discard** one of the remaining cards (it's removed from the game), if you still have extra cards.
 
@@ -123,11 +123,11 @@ The backbone of your theater. Drop them wherever you have a hole. They won't imp
 <img src="./assets/patron_vip.png" alt="VIP" width="80" align="left" style="margin-right:16px" />
 
 **3 VP** base.<br>
-**+3 VP** if seated in a **front row** (first 2 rows).<br>
-**−3 VP** per adjacent **Kid**.<br>
-**−3 VP** per adjacent **Noisy** patron.
+**+2 VP** if seated in a **front row** (first 2 rows).<br>
+**−2 VP** per adjacent **Kid**.<br>
+**−2 VP** per adjacent **Noisy** patron.
 
-The rarest cards in the deck (only 4). Front-row VIPs score 6 VP — but keep them far from children and loud guests. A VIP next to a Noisy Kid can plummet to 0 VP.
+The rarest cards in the deck (only 4). Front-row VIPs score 5 VP — but keep them far from children and loud guests. A VIP next to a Noisy Kid can plummet to 0 VP.
 
 <br clear="all" />
 
@@ -152,7 +152,7 @@ Pairs only! Two adjacent Lovebirds = 4 VP each. Three in a row? The first two pa
 <img src="./assets/patron_kid.png" alt="Kid" width="80" align="left" style="margin-right:16px" />
 
 **1 VP** uncapped.<br>
-**3 VP** when **capped** by Teachers.
+**4 VP** when **capped** by Teachers.
 
 A Kid is capped when a contiguous horizontal group of Kids has a **Teacher on both ends** (e.g., Teacher–Kid–Kid–Teacher). Uncapped Kids are nearly worthless. Cap them for big points!
 
@@ -178,10 +178,10 @@ Teachers are useful solo (3 VP), but shine when capping Kids. A Teacher flanking
 <img src="./assets/patron_critic.png" alt="Critic" width="80" align="left" style="margin-right:16px" />
 
 **3 VP** base.<br>
-**+3 VP** if seated in an **aisle seat** (gold-bordered).<br>
-⚠ Bonus **nullified** if any adjacent patron has the **Noisy** trait.
+**+2 VP** if seated in an **aisle seat** (gold-bordered).<br>
+⚠ Bonus **nullified** if any adjacent patron has the **Noisy** trait — and the Noisy adjacency penalty still applies on top.
 
-Critics in the aisle score 6 VP — one of the easiest high-value placements. But a single Noisy neighbor kills the bonus entirely, dropping them to 3 VP.
+Critics in the aisle score 5 VP — one of the easiest high-value placements. But a single Noisy neighbor kills the bonus entirely _and_ deals −1 VP from Noisy adjacency, dropping them to 2 VP.
 
 <br clear="all" />
 
@@ -237,7 +237,7 @@ Short patrons love unobstructed views — place them in the front row or behind 
 
 **+2 VP** unless seated in the **back row**.
 
-Simple and strong. Front three rows = bonus VP. Back row = no bonus. A Bespectacled VIP in the front row scores 3 + 3 + 2 = **8 VP** — the highest-value single card possible in the base game.
+Simple and strong. Front three rows = bonus VP. Back row = no bonus. A Bespectacled VIP in the front row scores 3 + 2 + 2 = **7 VP** — one of the highest-value single cards possible in the base game.
 
 <br clear="all" />
 
@@ -249,7 +249,7 @@ Simple and strong. Front three rows = bonus VP. Back row = no bonus. A Bespectac
 
 Each **orthogonally adjacent** patron (any type) gets **−1 VP**.
 
-Noisy hurts everyone nearby — and also specifically **nullifies Critic aisle bonuses** and triggers **VIP adjacency penalties (−3 VP)**. Isolate them at edges or corners to minimize splash damage.
+Noisy hurts everyone nearby — and also specifically **nullifies Critic aisle bonuses** and triggers **VIP adjacency penalties (−2 VP)**. Isolate them at edges or corners to minimize splash damage.
 
 <br clear="all" />
 
@@ -261,9 +261,9 @@ Every card with a trait has **two identities** working together. Here are key co
 
 | Combo                    | Strategy                                                                           |
 | ------------------------ | ---------------------------------------------------------------------------------- |
-| **Bespectacled VIP**     | Front-row dream: 3 + 3 + 2 = **8 VP**. Only 1 exists in the deck!                  |
+| **Bespectacled VIP**     | Front-row dream: 3 + 2 + 2 = **7 VP**. Only 1 exists in the deck!                  |
 | **Tall Lovebirds**       | Back row is safe (no one behind) AND gives the +2 pair bonus.                      |
-| **Short Critic**         | Front-row aisle corner: 3 + 3 + 2 = **8 VP**. No one in front, aisle bonus active. |
+| **Short Critic**         | Front-row aisle corner: 3 + 2 + 2 = **7 VP**. No one in front, aisle bonus active. |
 | **Noisy Lovebirds**      | Pair them in the back row for 6 VP each, but beware neighbor damage.               |
 | **Tall Kid**             | Worth only 1 VP uncapped AND blocks whoever sits behind. Rough card.               |
 | **Noisy Kid**            | 1 VP and hurts neighbors — plus nullifies adjacent Critic aisle bonuses.           |
@@ -309,11 +309,11 @@ The selected theater's house rule bonus is applied (see [Theaters](#theaters)).
 | Type          | Base | Best Case | How                            |
 | ------------- | :--: | :-------: | ------------------------------ |
 | **Patron**    |  3   |     3     | Always 3 VP                    |
-| **VIP**       |  3   |    6+     | Front row, no Kids or Noisy    |
+| **VIP**       |  3   |    5+     | Front row, no Kids or Noisy    |
 | **Lovebirds** |  1   |     6     | Paired in back row             |
-| **Kid**       |  1   |     3     | Capped by Teachers             |
+| **Kid**       |  1   |     4     | Capped by Teachers             |
 | **Teacher**   |  3   |    5+     | Adjacent to 2+ capped Kids     |
-| **Critic**    |  3   |     6     | Aisle seat, no Noisy neighbors |
+| **Critic**    |  3   |     5     | Aisle seat, no Noisy neighbors |
 | **Friends**   |  3   |     7     | 4 adjacent Friends (rare)      |
 
 > **Traits add:** Bespectacled +2 (not back row) · Short +2 (no one in front) · Tall −2 (to patron behind) · Noisy −1 (to each neighbor)
@@ -358,7 +358,7 @@ Narrow and deep (5 rows). Aisle seats are center-only, making Critic placement u
 
 **House Rule: "Royal Approval"** — Your single highest-scoring patron gets **+3 VP**. Tiebreaker: front-most, then left-most.
 
-Royal Boxes are isolated — they're not adjacent to any regular seats. A Bespectacled VIP in a Box: 3 + 3 + 2 + 3 = **11 VP**. Build one mega-patron and let Royal Approval crown them.
+Royal Boxes are isolated — they're not adjacent to any regular seats. A Bespectacled VIP in a Box: 3 + 2 + 2 + 3 = **10 VP**. Build one mega-patron and let Royal Approval crown them.
 
 ---
 
