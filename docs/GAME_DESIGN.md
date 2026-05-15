@@ -139,11 +139,11 @@ optional trait adds a modifier on top.
 | Type          | Base VP | Core Mechanic                                                     |
 | ------------- | ------- | ----------------------------------------------------------------- |
 | **Patron**    | 3       | Reliable points anywhere. No special conditions.                  |
-| **VIP**       | 3       | +3 VP in front 2 rows. −3 per adjacent Kid or Noisy-trait patron. |
+| **VIP**       | 3       | +2 VP in front 2 rows. −2 per adjacent Kid or Noisy-trait patron. |
 | **Lovebirds** | 1       | +3 VP if horizontally paired. +2 VP in back row. Pairs only.      |
-| **Kid**       | 1       | 1 VP uncapped; 3 VP when capped.                                  |
+| **Kid**       | 1       | 1 VP uncapped; 4 VP when capped.                                  |
 | **Teacher**   | 3       | +1 VP per capped Kid in their chain.                              |
-| **Critic**    | 3       | +3 VP in aisle seat. Noisy neighbors nullify the bonus.           |
+| **Critic**    | 3       | +2 VP in aisle seat. Noisy neighbors nullify the bonus.           |
 | **Friends**   | 3       | +1 VP per orthogonally adjacent Friend.                           |
 
 ### Secondary Traits (4)
@@ -204,91 +204,17 @@ optional trait adds a modifier on top.
 
 ## Scoring Reference
 
-Scoring is computed in two phases, then cross-type modifiers are applied.
+Scoring is computed in phases, then cross-type modifiers are applied.
 
-### Primary Type Scoring
-
-#### Patron
-
-- **3 VP** flat. No conditions.
-
-#### VIP
-
-- **3 VP** base.
-- **+3 VP** if seated in **row 0 or 1** (front 2 rows).
-- **-3 VP** for each orthogonally adjacent **Kid**.
-- **-3 VP** for each orthogonally adjacent patron with the **Noisy** trait.
-
-#### Lovebirds
-
-- **1 VP** base.
-- **+3 VP** if **horizontally paired** — adjacent to another Lovebirds in the
-  same row (left or right). Only **strict pairs** count: the first two adjacent
-  Lovebirds in a row form a pair; a third adjacent Lovebird is unpaired. Four
-  adjacent Lovebirds form two pairs.
-- **+2 VP** bonus if in the **back row** _and_ paired.
-
-#### Kid
-
-- **1 VP** if uncapped.
-- **3 VP** if **capped** — the Kid belongs to a contiguous row-or-column group of
-  Kids that has a **Teacher** at both ends of that line.
-
-#### Teacher
-
-- **3 VP** base.
-- **+1 VP** per capped Kid this Teacher directly caps (Teachers merely adjacent to a capped Kid do not get this bonus).
-
-#### Critic
-
-- **3 VP** base.
-- **+3 VP** if seated in an **aisle seat** (columns 0 or 4 on the default
-  layout), **unless** any orthogonally adjacent patron has the **Noisy** trait.
-  A Noisy neighbor nullifies the aisle bonus entirely.
-
-#### Friends
-
-- **3 VP** base.
-- **+1 VP** per orthogonally adjacent **Friends**. Counts all four directions
-  (left, right, front, back). A Friends in a 2×2 block gets +2 VP (5 total).
-  Maximum possible: +4 VP with 4 adjacent Friends (7 total, very rare).
-
-### Trait Scoring
-
-Traits modify the card's VP _on top of_ primary type scoring.
-
-#### Tall
-
-- The patron seated **directly behind** (one row back, same column) receives
-  **-2 VP**.
-- The Tall patron itself has no self-modifier.
-
-#### Short
-
-- **+2 VP** if the seat directly in front is **empty** (or the patron is in row
-  0).
-- **-3 VP** if the seat directly in front contains a **Tall-trait** patron.
-- _(If a non-Short patron is behind a Tall patron, the standard Tall
-  behind-penalty of -2 VP applies instead.)_
-
-#### Bespectacled
-
-- **+2 VP** unless seated in the **back row**.
-
-#### Noisy
-
-- Each **orthogonally adjacent patron** (any type) receives **-1 VP**.
-- This affects _all_ patron types-not only Patron.
-
-### Cross-Type Modifiers
-
-These apply to **any** patron regardless of their own type:
-
-1. **Tall-behind penalty:** If the seat directly in front contains a Tall-trait
+1. Primary Type Scoring
+2. Trait Scoring
+3. Cross-Type Modifiers (These apply to **any** patron regardless of their own type:)
+   a. **Tall-behind penalty:** If the seat directly in front contains a Tall-trait
    patron and this patron is _not_ Short (Short has its own penalty), this
    patron receives **-2 VP**.
-2. **Noisy adjacency penalty:** For each orthogonally adjacent Noisy-trait
+   b. **Noisy adjacency penalty:** For each orthogonally adjacent Noisy-trait
    patron, this patron receives **-1 VP**.
+4. House rule if any
 
 ---
 
@@ -296,19 +222,19 @@ These apply to **any** patron regardless of their own type:
 
 The trait system creates cards with layered strategic identities:
 
-| Combo                    | Why It's Interesting                                                                                                             |
-| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
-| **Bespectacled VIP**     | Front-row double bonus. The rarest prize card in the deck—only 1 exists. Dream placement: front row, away from Kids. 3+3+2=8 VP. |
-| **Tall Kid**             | Blocks the patron behind _and_ is a liability if uncapped. A high-friction card to optimize in your own grid.                    |
-| **Noisy Lovebirds**      | Big points in the back row when paired, but hurts all neighbors. Place carefully at the edge.                                    |
-| **Bespectacled Teacher** | Front-row trait bonus while also needing to cap Kids. Creates tension between optimal row and duty.                              |
-| **Short Critic**         | Dream placement: front-row corner aisle seat. +2 (Short empty front) on top of 3+3 (Critic aisle) = 8 VP from one card.          |
-| **Noisy Kid**            | Worth 1 VP uncapped _and_ hurts neighbors. A powerful self-puzzle card; Noisy also nullifies any adjacent Critic's aisle bonus.  |
-| **Tall Lovebirds**       | Wants the back row for +2 bonus but blocks whoever sits behind. In the back row, no one is behind—safe spot.                     |
-| **Short Kid**            | Front-row bonus if uncapped feels wasted; capping in the front row means Teachers compete with VIPs for premium seats.           |
-| **Tall Friends**         | Blocks the patron behind, but great in the back row where there's no one behind and the Friends cluster grows safely.            |
-| **Short Friends**        | +2 VP if no one is in front. Place at the front edge of a Friends cluster for the Short bonus on top of group VP.                |
-| **Bespectacled Friends** | +2 VP unless in the back row. Encourages Friends clusters in the front/middle rows rather than the back.                         |
+| Combo                    | Why It's Interesting                                                                                                                   |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
+| **Bespectacled VIP**     | Front-row double bonus. Only 1 exists. Dream placement: front row, away from Kids. 3+2+2=7 VP.                                         |
+| **Short Critic**         | Dream placement: front-row corner aisle seat. +2 (Short empty front) on top of 3+2 (Critic aisle) = 7 VP from one card. Only 1 exists. |
+| **Tall Kid**             | Blocks the patron behind _and_ is a liability if uncapped. A high-friction card to optimize in your own grid.                          |
+| **Noisy Lovebirds**      | Big points in the back row when paired, but hurts all neighbors. Place carefully at the edge.                                          |
+| **Bespectacled Teacher** | Front-row trait bonus while also needing to cap Kids. Creates tension between optimal row and duty.                                    |
+| **Noisy Kid**            | Worth 1 VP uncapped _and_ hurts neighbors. A powerful self-puzzle card; Noisy also nullifies any adjacent Critic's aisle bonus.        |
+| **Tall Lovebirds**       | Wants the back row for +2 bonus but blocks whoever sits behind. In the back row, no one is behind—safe spot.                           |
+| **Short Kid**            | Front-row bonus if uncapped feels wasted; capping in the front row means Teachers compete with VIPs for premium seats.                 |
+| **Tall Friends**         | Blocks the patron behind, but great in the back row where there's no one behind and the Friends cluster grows safely.                  |
+| **Short Friends**        | +2 VP if no one is in front. Place at the front edge of a Friends cluster for the Short bonus on top of group VP.                      |
+| **Bespectacled Friends** | +2 VP unless in the back row. Encourages Friends clusters in the front/middle rows rather than the back.                               |
 
 ---
 
@@ -619,7 +545,7 @@ left.
 
 ### The Matinee
 
-**Rule:** **Intermission.** After round 7 (half the deck is drawn), pause and
+**Rule:** **Intermission.** After round 6 (half the deck is drawn), pause and
 score rows 0 and 1 only. Those points are banked. At end-game, score the full
 theater (including rows 0-1 again). Front-row patrons effectively score _twice_.
 
@@ -627,7 +553,7 @@ theater (including rows 0-1 again). Front-row patrons effectively score _twice_.
 
 **Why it's interesting:** Massively inflates front-row value. VIPs and
 Bespectacled patrons become even more premium. But if you rush to fill the front
-rows by round 7, you might place suboptimal cards just for the double-score. Do
+rows by round 6, you might place suboptimal cards just for the double-score. Do
 you stack the front for intermission points or build the back row for a stronger
 end-game?
 
@@ -652,7 +578,7 @@ creates a direct contradiction-fill tables or leave breathing room?
 ### The Mystery
 
 **Rule:** At setup, shuffle the 10 Demand cards and deal 3 face-down. Reveal one
-after round 4, one after round 8, and one after round 12. Demands are end-game
+after round 3, one after round 6, and one after round 9. Demands are end-game
 bonus VP conditions visible to all players once revealed.
 
 **Extra cards:** 10 **Demand cards** in the Season Deck:
@@ -670,9 +596,9 @@ bonus VP conditions visible to all players once revealed.
 | _"Lovebirds' Nest"_     | +4 VP if you have 3+ Lovebirds in the back row.                    |
 | _"Teacher's Pet"_       | +3 VP if all Kids in your theater are capped.                      |
 
-**Why it's interesting:** The staged reveal forces adaptation. You build for 4
+**Why it's interesting:** The staged reveal forces adaptation. You build for 3
 rounds blind, then a demand reveals that might reward or punish what you've
-already built. By round 8 you have two demands to juggle. The third comes too
+already built. By round 6 you have two demands to juggle. The third comes too
 late to react to fully-it's a gamble. Demands also interact with the Lobby: when
 "Critic's Choice" is revealed, suddenly every Critic in the Lobby becomes hotly
 contested.

@@ -28,18 +28,18 @@ deno task dev
    1. **Draw** a new card from the lobby (known) or deck (blind).
    1. **Select** — Click a card from your hand (bottom of screen)
    1. **Place** — Click an empty seat in the theater grid to place that patron
-1. **Score** — The game ends when the deck runs out (56 cards, 14 turns)
+1. **Score** — The game ends after 12 turns.
 
 ### Primary Patrons
 
 | Type          | Strategy                                                                       |
 | ------------- | ------------------------------------------------------------------------------ |
 | **Patron**    | Worth 3 VP anywhere.                                                           |
-| **VIP**       | 3 VP base; +3 VP in front rows. Adjacent Kids or Noisy nullify the bonus.      |
+| **VIP**       | 3 VP base; +2 VP in front rows. Adjacent Kids or Noisy nullify the bonus.      |
 | **Lovebirds** | 1 VP alone; +3 if horizontally paired. +2 VP in back row.                      |
-| **Kid**       | 1 VP uncapped; 3 VP when capped by Teachers, on both sides of a row or column! |
+| **Kid**       | 1 VP uncapped; 4 VP when capped by Teachers, on both sides of a row or column! |
 | **Teacher**   | 3 VP base; +1 VP per capped Kid this Teacher caps.                             |
-| **Critic**    | 3 VP base; +3 VP in an aisle seat. Noisy neighbors nullify the bonus.          |
+| **Critic**    | 3 VP base; +2 VP in an aisle seat. Noisy neighbors nullify the bonus.          |
 | **Friend**    | 3 VP base; +1 VP per adjacent Friend.                                          |
 
 ### Traits
@@ -59,11 +59,12 @@ Traits can be applied to any patron type, adding unique bonuses or penalties.
 
 - **Full Deck** — 56 cards with 7 patron types and 4 secondary traits
 - **Lobby System** — Draw from a public pool of known patrons or the blind deck
-- **Card Hand** — Draw 3 cards per turn with visual selection and speech-bubble tooltips
-- **Turn System** — 2-player pass-and-play with hand passing screen
+- **Card Hand** — Hand of 2 cards per turn with visual selection and speech-bubble tooltips
+- **Hot seat support** — Pass-and-play with hand passing screen
 - **Card Placement** — Click a seat to place the selected patron with animated feedback
 - **Scoring Engine** — VIP front-row bonuses, Teacher/Kid capping, Lovebird pairing, Critic aisle multipliers, adjacency debuffs, and all trait interactions
 - **Victory Points Display** — Running score during gameplay, toggleable in settings
+- **Opponent view** — See what the other users are up to by cliking the names in the score panel
 
 ### AI Opponents
 
@@ -74,10 +75,10 @@ Traits can be applied to any patron type, adding unique bonuses or penalties.
 ### Theaters
 
 - **8 Unique Theaters** — Each with its own layout, background art, and house rule:
-  - **The Grand Empress** — Classic 5×6 grid
-  - **The Blackbox** — Compact 4×4 intimate space
+  - **The Grand Empress** — 5×4 grid - no special scoring
+  - **The Blackbox** — Compact 4×4 intimate space, with middle aile
   - **The Opera House** — Features isolated Royal Box seats with crown tags
-  - **The Promenade** — Wide 7×4 layout with center aisle
+  - **The Promenade** — 5x4 grid but the aisles are staggered inside
   - **The Amphitheater** — Expanding rows (3→4→5→6), narrow front to wide back
   - **The Dinner Playhouse** — Table-style seating with gaps between groups
   - **The Ziegfeld Runway** — T-shaped stage extension splits the theater into left/right houses
@@ -92,6 +93,8 @@ Traits can be applied to any patron type, adding unique bonuses or penalties.
 - **Theater Backgrounds** — Hand-crafted AI-generated art for each venue
 - **Art Deco Seat Tags** — Crown tags for Royal Boxes, gold borders for aisle seats, visible walkway strips between sections
 - **House Rule Reminder** — Active house rule stays visible in the HUD all game
+
+Note: Yes the art is AI-generated but a lot of thought went into the cohesive theme, style, abiance and look and feel of the patrons and the theaters. If I ever get to print this game I will 100% get an artist to redo all of it from scratch.
 
 ### Scenes & UI
 
@@ -250,7 +253,7 @@ deno task analytics:crunch
 
 ## Acknowledgements
 
-Made with [Pi coding agent](https://shittycodingagent.ai/) with the help of many different LLMs. Gemini was my main brainstorming partner for game design, theaters and plays and refinement in general.
+Made with [Pi coding agent](https://pi.dev/) with the help of many different LLMs. Gemini was my main brainstorming partner for game design, theaters and plays and refinement in general.
 This is not AI Slop™ I have worked very hard for many months to refine the design, test it on spreadsheets and finally I decided I could take on the huge task of making a game.
 It would not be possible without the help of the LLMs, but I want to be clear that this is a labor of love and I am proud of it.
 

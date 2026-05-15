@@ -26,7 +26,7 @@
 
 ## Overview
 
-You are a 1920s theater usher. Each player has their own theater grid — a seating chart where you'll place patron cards over 14 rounds. Your goal: **seat patrons strategically to earn the most victory points (VP)**.
+You are a 1920s theater usher. Each player has their own theater grid — a seating chart where you'll place patron cards over 12 rounds. Your goal: **seat patrons strategically to earn the most victory points (VP)**.
 
 Different patron types score points in different ways — VIPs want front-row seats, Critics crave the aisle, and Lovebirds need to sit together. On top of that, patrons can have secondary traits like Tall or Noisy that affect their neighbors.
 
@@ -39,8 +39,8 @@ The player with the **highest total VP** when the deck runs out wins.
 1. **Choose Players** — 2–4 players. Each can be human or AI (Easy, Medium, or Hard).
 2. **Select a Theater** — All players share the same theater layout. Pick one or randomize it.
 3. **Deal Hands** — Each player is dealt 3 cards from the shuffled 56-card patron deck.
-4. **Play 14 Rounds** — Players take turns placing one card per round.
-5. **Score** — After round 14, tally VP for every patron in your theater. Highest score wins!
+4. **Play 12 Rounds** — Players take turns placing one card per round.
+5. **Score** — After round 12, tally VP for every patron in your theater. Highest score wins!
 
 <p align="center">
   <img src="./assets/rules/theater-grand-empress.png" alt="The Grand Empress — game in progress" width="700" />
@@ -75,7 +75,7 @@ The Lobby is a shared market of 3 face-up cards.
 
 In a 2-player game the draw-and-discard rhythm changes:
 
-1. **Draw 2** cards (via the Lobby or Deck) instead of 1, when possible.
+1. **Draw 2** cards instead of 1, when possible. **At most one** of those draws may come from the Lobby — the second card must come from the Deck.
 2. **Place** one card into your theater.
 3. **Discard** one of the remaining cards (it's removed from the game), if you still have extra cards.
 
@@ -453,7 +453,7 @@ Everything changes in the round. VIPs are strong everywhere (10 front-row seats!
 
 ## End of Game
 
-1. The game ends after **round 14** (all hands played, 56 cards dealt across all players).
+1. The game ends after **round 12** (all hands played, 56 cards dealt across all players).
 2. Each player's theater is scored as follows:
    - For each patron type calculate base VP and bonuses per seat.
      - Apply trait bonuses and penalties when adding each seat.
