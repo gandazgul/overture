@@ -61,7 +61,7 @@ export class GameScene extends Phaser.Scene {
         this.round = 1;
 
         /** @type {number} */
-        this.totalRounds = 14;
+        this.totalRounds = 12;
 
         /**
          * Per-player theater grids. placedPatrons[playerIdx][row][col]
