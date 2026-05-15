@@ -43,6 +43,41 @@ const baseChunk = Math.floor(config.games / workersCount);
 let remainder = config.games % workersCount;
 const workerPromises = [];
 
+/** @type {Record<number, number>} */
+const completedCounts = {};
+const totalGamesInProgress = config.games;
+
+/**
+ * Write a string to stderr without a trailing newline.
+ * @param {string} text
+ */
+function stderrWrite(text) {
+    Deno.stderr.writeSync(new TextEncoder().encode(text));
+}
+
+/**
+ * Clear the progress bar line from the terminal.
+ */
+function clearProgressBar() {
+    stderrWrite("\r" + " ".repeat(70) + "\r");
+}
+
+/**
+ * Render a single-line progress bar on stderr (no trailing newline, uses \r for in-place update).
+ * @param {number} completed Total games completed across all workers.
+ * @param {number} total Total games to simulate.
+ */
+function renderProgressBar(completed, total) {
+    const pct = Math.min(100, (completed / total) * 100);
+    const barWidth = 40;
+    const filled = Math.round((pct / 100) * barWidth);
+    const empty = barWidth - filled;
+    const bar = "█".repeat(filled) + "░".repeat(empty);
+    stderrWrite(
+        `\r[${bar}] ${completed.toLocaleString()} / ${total.toLocaleString()} games (${pct.toFixed(0)}%)`,
+    );
+}
+
 for (let i = 0; i < workersCount; i++) {
     const gamesForWorker = baseChunk + (remainder > 0 ? 1 : 0);
     remainder--;
@@ -52,7 +87,16 @@ for (let i = 0; i < workersCount; i++) {
     const worker = new Worker(workerUrl, { type: "module" });
 
     const promise = new Promise((resolve, reject) => {
-        worker.onmessage = (e) => resolve(e.data.results);
+        worker.onmessage = (e) => {
+            const data = e.data;
+            if (data.type === "progress") {
+                completedCounts[data.workerId] = data.completed;
+                const totalDone = Object.values(completedCounts).reduce((a, b) => a + b, 0);
+                renderProgressBar(totalDone, totalGamesInProgress);
+            } else if (data.type === "done") {
+                resolve(data.results);
+            }
+        };
         worker.onerror = (err) => reject(err);
         worker.postMessage({
             games: gamesForWorker,
@@ -197,6 +241,7 @@ try {
         "Deck Draws": "—",
     });
 
+    clearProgressBar();
     console.table(summary);
 
     console.log(`\n📊 Patron Type Averages (VP per placement):`);
@@ -271,8 +316,27 @@ try {
     console.log(`\n📈 Additional Stats:`);
     console.log(`- Global Avg Score: ${globalAvgScore.toFixed(2)} VP`);
     console.log(`- Total Ties:       ${ties} (${((ties / config.games) * 100).toFixed(1)}%)`);
+    /**
+     * Format a duration in milliseconds into a human-friendly string.
+     * @param {number} ms
+     * @returns {string}
+     */
+    const fmtDuration = (ms) => {
+        const totalSeconds = ms / 1000;
+        if (totalSeconds < 60) {
+            return `${totalSeconds.toFixed(1)}s`;
+        }
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = Math.floor(totalSeconds % 60);
+        if (minutes < 60) {
+            return `${minutes}m ${seconds}s`;
+        }
+        const hours = Math.floor(minutes / 60);
+        const remainMin = minutes % 60;
+        return `${hours}h ${remainMin}m ${seconds}s`;
+    };
     console.log(
-        `- Time Elapsed:     ${durationMs.toFixed(2)} ms (${Math.round(config.games / (durationMs / 1000))} games/sec)`,
+        `- Time Elapsed:     ${fmtDuration(durationMs)} (${Math.round(config.games / (durationMs / 1000))} games/sec)`,
     );
 
     // ── File Export ──
