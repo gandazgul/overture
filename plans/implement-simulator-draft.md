@@ -3,13 +3,12 @@ classification: "FEATURE"
 complexity: "MEDIUM"
 summary: "Implement a pre-game 'draft' phase in the simulator. This involves creating a specific pool of 4 special cards (Bespectacled Critic, Short Teacher, Tall Lovebirds, Plain Kid), distributing them to players in reverse order (last player first). This happens before the standard card draw and game loop."
 affectedPaths:
-    - "src/simulator/simulator.js"
+  - "src/simulator/simulator.js"
 createdAt: "Mon May 11 2026 20:00:00 GMT-0400 (Eastern Daylight Time)"
 updatedAt: "2026-05-13T03:58:25.220Z"
-status: "in_review"
+status: "completed"
 origin: "internal"
 ---
-
 ## Goal
 
 Implement a "Special Draft" phase at the start of the simulation. This allows the AI to pick from a predefined set of high-value cards before the main game loop begins.
