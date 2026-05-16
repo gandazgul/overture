@@ -1475,3 +1475,123 @@ Deno.test("Critic: aisle seat without Noisy neighbor gets full bonus", () => {
     const result = scorePlayer(grid, DefaultLayout);
     assertEquals(result.perSeat[1][0], 5); // 3 + 2 aisle
 });
+
+// ── scoreSeatDelta differential tests ───────────────────────────────────────
+//
+// Property: for any layout with houseRule == null, any grid g, any empty
+// seat (r,c), and any card X,
+//   scoreSeatDelta(g, layout, r, c, X) ===
+//       scorePlayer(g+X@rc).total - scorePlayer(g).total
+//
+// We randomize grids and placements across all house-rule-free layouts.
+
+import { scoreSeatDelta } from "./scoring.js";
+import { GrandEmpressLayout, Layouts, PatronDeckSpec } from "./types.js";
+
+/**
+ * Deterministic PRNG (mulberry32) so test failures are reproducible.
+ * @param {number} seed
+ */
+function makeRng(seed) {
+    let s = seed >>> 0;
+    return () => {
+        s = (s + 0x6D2B79F5) >>> 0;
+        let t = s;
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+}
+
+/** Build all (type, trait) card variants from the deck spec, as fresh CardData. */
+function allCardVariants() {
+    /** @type {CardData[]} */
+    const out = [];
+    for (const [type, trait] of PatronDeckSpec) {
+        /** @type {CardData} */
+        const card = { type, label: trait ? `${trait} ${type}` : type };
+        if (trait) card.trait = trait;
+        out.push(card);
+    }
+    return out;
+}
+
+/**
+ * Populate a grid with random cards in a fraction of valid seats.
+ * @param {import('./types.js').LayoutMeta} layout
+ * @param {() => number} rng
+ * @param {number} fillFrac
+ * @param {CardData[]} variants
+ */
+function randomGrid(layout, rng, fillFrac, variants) {
+    const grid = emptyGrid(layout);
+    for (let r = 0; r < layout.rows; r++) {
+        for (let c = 0; c < layout.cols; c++) {
+            if (layout.seatMask && !layout.seatMask[r][c]) continue;
+            if (rng() < fillFrac) {
+                grid[r][c] = variants[Math.floor(rng() * variants.length)];
+            }
+        }
+    }
+    return grid;
+}
+
+/**
+ * Run the differential property over a layout with no house rule.
+ * @param {import('./types.js').LayoutMeta} layout
+ * @param {number} cases
+ * @param {number} seed
+ */
+function runDeltaProperty(layout, cases, seed) {
+    const rng = makeRng(seed);
+    const variants = allCardVariants();
+    for (let i = 0; i < cases; i++) {
+        const fill = 0.2 + rng() * 0.6;
+        const grid = randomGrid(layout, rng, fill, variants);
+
+        // Pick a random empty seat
+        /** @type {{row: number, col: number}[]} */
+        const empties = [];
+        for (let r = 0; r < layout.rows; r++) {
+            for (let c = 0; c < layout.cols; c++) {
+                if (layout.seatMask && !layout.seatMask[r][c]) continue;
+                if (!grid[r][c]) empties.push({ row: r, col: c });
+            }
+        }
+        if (empties.length === 0) continue;
+        const { row, col } = empties[Math.floor(rng() * empties.length)];
+        const card = variants[Math.floor(rng() * variants.length)];
+
+        const baseTotal = scorePlayer(grid, layout).total;
+        const delta = scoreSeatDelta(grid, layout, row, col, card);
+        grid[row][col] = card;
+        const newTotal = scorePlayer(grid, layout).total;
+        grid[row][col] = null;
+
+        const expected = newTotal - baseTotal;
+        if (delta !== expected) {
+            // Build a helpful failure dump
+            const dump = grid.map((row) =>
+                row.map((c) => c ? (c.trait ? `${c.trait[0]}${c.type[0]}` : c.type[0]) : ".").join(" ")
+            ).join("\n");
+            throw new Error(
+                `delta mismatch on ${layout.id || "?"}: expected ${expected}, got ${delta}\n` +
+                    `placing ${card.trait || ""} ${card.type} at (${row},${col})\n${dump}`,
+            );
+        }
+    }
+}
+
+Deno.test("scoreSeatDelta matches scorePlayer delta — Grand Empress (500 random cases)", () => {
+    runDeltaProperty(GrandEmpressLayout, 500, 0xCAFEBABE);
+});
+
+Deno.test("scoreSeatDelta matches scorePlayer delta — all house-rule-free layouts (200 each)", () => {
+    let count = 0;
+    for (const layout of Object.values(Layouts)) {
+        if (layout.houseRule) continue;
+        runDeltaProperty(layout, 200, 0x12345678 ^ count);
+        count++;
+    }
+    if (count === 0) throw new Error("expected at least one house-rule-free layout");
+});

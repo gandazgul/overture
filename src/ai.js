@@ -13,7 +13,7 @@
  * ========================================================================
  */
 
-import { scorePlayer, seatExists } from "./scoring.js";
+import { scorePlayer, scoreSeatDelta, seatExists } from "./scoring.js";
 import { PatronDeckSpec } from "./types.js";
 import { random, randomInt } from "./utils.js";
 
@@ -123,24 +123,39 @@ function getCardPotential(cardData, difficulty) {
  * @param {(CardData | null)[][]} grid
  * @param {CardData} card
  * @param {LayoutMeta} layout
- * @param {CardData[]} lookaheadCards - Other cards currently in hand/lobby to evaluate setup potential
+ * @param {CardData[]} lookaheadCards - Cards currently in hand/lobby to evaluate setup
+ *     potential. May include `card` itself; the inner loop skips it by identity, so
+ *     callers can pass the full hand without allocating a "rest of hand" array.
  * @param {string} [difficulty=AIDifficulty.MEDIUM] - Used to dynamically scale the pruning factor
  * @returns {{row: number, col: number, score: number, bestFutureCard?: CardData}[]} Sorted descending by score
  */
 export function scoreAllSeats(grid, card, layout, lookaheadCards = [], difficulty = AIDifficulty.MEDIUM) {
     const empty = getEmptySeats(grid, layout);
-    const currentScore = scorePlayer(grid, layout).total;
+
+    // Delta scoring is correct only for layouts without a house rule (the
+    // simulator always uses Grand Empress, which qualifies). For layouts with a
+    // house rule, fall back to the full scorePlayer baseline + diff approach.
+    const useDelta = !layout.houseRule;
+    const currentScore = useDelta ? 0 : scorePlayer(grid, layout).total;
 
     // 1. Calculate IMMEDIATE scores for all empty seats
     const baseResults = [];
-    for (const { row, col } of empty) {
-        grid[row][col] = card;
-        const newScore = scorePlayer(grid, layout).total;
-        grid[row][col] = null;
+    for (let e = 0; e < empty.length; e++) {
+        const { row, col } = empty[e];
+        let immediateDelta;
+        if (useDelta) {
+            immediateDelta = scoreSeatDelta(grid, layout, row, col, card);
+        } else {
+            grid[row][col] = card;
+            const newScore = scorePlayer(grid, layout).total;
+            grid[row][col] = null;
+            immediateDelta = newScore - currentScore;
+        }
         baseResults.push({
             row,
             col,
-            immediateDelta: newScore - currentScore,
+            emptyIdx: e,
+            immediateDelta,
             /** @type {CardData | undefined} */
             bestFutureCard: undefined,
         });
@@ -160,17 +175,26 @@ export function scoreAllSeats(grid, card, layout, lookaheadCards = [], difficult
         // Only do the heavy math if we have lookahead cards AND it's a top candidate
         if (lookaheadCards.length > 0 && i < TOP_K) {
             grid[candidate.row][candidate.col] = card; // Apply base placement
-            const remainingEmpty = empty.filter((e) => e.row !== candidate.row || e.col !== candidate.col);
             let bestFuture = 0;
             let bestFutureCard = undefined;
 
-            for (const futureCard of lookaheadCards) {
-                for (const fSeat of remainingEmpty) {
-                    grid[fSeat.row][fSeat.col] = futureCard; // Apply future placement
-                    const futureScore = scorePlayer(grid, layout).total;
-                    grid[fSeat.row][fSeat.col] = null; // Revert future
-
-                    const fDelta = futureScore - (currentScore + candidate.immediateDelta);
+            for (let f = 0; f < lookaheadCards.length; f++) {
+                const futureCard = lookaheadCards[f];
+                if (futureCard === card) continue; // skip the just-placed card
+                for (let s = 0; s < empty.length; s++) {
+                    if (s === candidate.emptyIdx) continue; // skip the seat we just filled
+                    const fSeat = empty[s];
+                    let fDelta;
+                    if (useDelta) {
+                        // Delta on top of the (grid + base placement) state — exactly
+                        // scorePlayer(grid+card+futureCard) - scorePlayer(grid+card).
+                        fDelta = scoreSeatDelta(grid, layout, fSeat.row, fSeat.col, futureCard);
+                    } else {
+                        grid[fSeat.row][fSeat.col] = futureCard;
+                        const futureScore = scorePlayer(grid, layout).total;
+                        grid[fSeat.row][fSeat.col] = null;
+                        fDelta = futureScore - (currentScore + candidate.immediateDelta);
+                    }
                     const heuristicDelta = fDelta + getCardPotential(futureCard, difficulty);
 
                     if (heuristicDelta > bestFuture) {
@@ -272,6 +296,24 @@ function countVisibleCards(grid, opponentGrids, lobby, hand) {
 }
 
 /**
+ * Singleton synthetic CardData per (type, trait) — used only as a query
+ * stand-in for "what could the deck yield." These objects never enter a
+ * hand or grid, so identity collisions don't matter here.
+ * @type {{ key: string, card: CardData, max: number }[]}
+ */
+const REMAINING_TEMPLATES = (() => {
+    /** @type {{ key: string, card: CardData, max: number }[]} */
+    const entries = [];
+    for (const [type, trait, count] of PatronDeckSpec) {
+        /** @type {CardData} */
+        const card = { type, label: trait ? `${trait} ${type}` : type };
+        if (trait) card.trait = trait;
+        entries.push({ key: `${type}|${trait || ""}`, card, max: count });
+    }
+    return entries;
+})();
+
+/**
  * Build the pool of cards that could still come from the deck.
  * Overestimates by including opponents' hands + discards (hidden), but those are
  * unobservable so this is the best public-info estimate.
@@ -282,16 +324,9 @@ function countVisibleCards(grid, opponentGrids, lobby, hand) {
 function buildRemainingPool(seen) {
     /** @type {Array<{card: CardData, count: number}>} */
     const out = [];
-    for (const [type, trait, count] of PatronDeckSpec) {
-        const key = `${type}|${trait || ""}`;
-        const used = seen.get(key) || 0;
-        const remaining = count - used;
-        if (remaining > 0) {
-            /** @type {CardData} */
-            const card = { type, label: trait ? `${trait} ${type}` : type };
-            if (trait) card.trait = trait;
-            out.push({ card, count: remaining });
-        }
+    for (const t of REMAINING_TEMPLATES) {
+        const remaining = t.max - (seen.get(t.key) || 0);
+        if (remaining > 0) out.push({ card: t.card, count: remaining });
     }
     return out;
 }
@@ -309,8 +344,9 @@ function buildRemainingPool(seen) {
 function bestPlayWithHand(grid, hand, layout, difficulty) {
     let best = 0;
     for (let i = 0; i < hand.length; i++) {
-        const others = hand.filter((_, idx) => idx !== i);
-        const s = scoreAllSeats(grid, hand[i], layout, others, difficulty);
+        // scoreAllSeats skips hand[i] in its lookahead by identity, so passing
+        // the full hand avoids allocating a "rest of hand" array per iteration.
+        const s = scoreAllSeats(grid, hand[i], layout, hand, difficulty);
         if (s.length > 0 && s[0].score > best) best = s[0].score;
     }
     return best;
@@ -388,39 +424,70 @@ function pickDrawActionHard(
     // 2. Opportunity cost: opponent's MARGINAL gain from getting cards we leave.
     //    Marginal = max(0, opp_best_lobby - opp_deckEV). If opp would prefer deck anyway,
     //    they don't actually pick the lobby card and our action doesn't cost us anything.
+    //
+    //    Both per-opp `oppDeckEV` AND per-(opp, lobbyIdx) score are INVARIANT across our
+    //    choice of action — they don't depend on which lobby card we pick. So we precompute
+    //    them once, then derive `marginalOppCost(skipIdx)` as a pool-exclusion max in O(L).
+    const oppCount = opponentGrids.length;
+    /** @type {number[]} */
+    const oppDeckEVs = new Array(oppCount);
+    /** @type {number[][]} */
+    const lobbyScoresByOpp = new Array(oppCount);
+
+    for (let o = 0; o < oppCount; o++) {
+        const og = opponentGrids[o];
+
+        // Opp deck EV on their grid (no hand context — public info only)
+        const seen = countVisibleCards(og, [grid], lobby, []);
+        const remaining = buildRemainingPool(seen);
+        let sum = 0;
+        let weight = 0;
+        for (const { card, count } of remaining) {
+            const s = scoreAllSeats(og, card, layout, [], diff);
+            sum += (s.length > 0 ? s[0].score : 0) * count;
+            weight += count;
+        }
+        oppDeckEVs[o] = weight > 0 ? sum / weight : 0;
+
+        // Per-lobby-card best score on this opp's grid
+        /** @type {number[]} */
+        const scores = new Array(lobby.length);
+        for (let l = 0; l < lobby.length; l++) {
+            const s = scoreAllSeats(og, lobby[l], layout, [], diff);
+            scores[l] = s.length > 0 ? s[0].score : 0;
+        }
+        lobbyScoresByOpp[o] = scores;
+    }
+
     /**
-     * @param {CardData[]} pool
+     * Marginal opponent cost when we leave behind `lobby[start..]` minus
+     * (optionally) one excluded index. Pure arithmetic — no scoring.
+     *
+     * @param {number} start - First lobby index in the pool (inclusive)
+     * @param {number} skipIdx - Lobby index to exclude (or -1 for none)
      * @returns {number}
      */
-    const marginalOppCost = (pool) => {
-        if (opponentGrids.length === 0 || pool.length === 0) return 0;
+    const marginalOppCost = (start, skipIdx) => {
+        if (oppCount === 0 || start >= lobby.length) return 0;
+        // If the only candidate seat would also be excluded, pool is empty.
+        if (skipIdx >= start && lobby.length - start - 1 <= 0) return 0;
+
         let total = 0;
-        for (const og of opponentGrids) {
-            // Opp's best play of any card in pool (no opp hand context — public info only)
+        for (let o = 0; o < oppCount; o++) {
+            const scores = lobbyScoresByOpp[o];
             let oppLobbyBest = 0;
-            for (const c of pool) {
-                const s = scoreAllSeats(og, c, layout, [], diff);
-                if (s.length > 0 && s[0].score > oppLobbyBest) oppLobbyBest = s[0].score;
+            for (let l = start; l < lobby.length; l++) {
+                if (l === skipIdx) continue;
+                if (scores[l] > oppLobbyBest) oppLobbyBest = scores[l];
             }
-            // Opp's deck EV on their grid (no hand context)
-            const seen = countVisibleCards(og, [grid], lobby, []);
-            const remaining = buildRemainingPool(seen);
-            let sum = 0;
-            let weight = 0;
-            for (const { card, count } of remaining) {
-                const s = scoreAllSeats(og, card, layout, [], diff);
-                sum += (s.length > 0 ? s[0].score : 0) * count;
-                weight += count;
-            }
-            const oppDeckEV = weight > 0 ? sum / weight : 0;
-            total += Math.max(0, oppLobbyBest - oppDeckEV);
+            total += Math.max(0, oppLobbyBest - oppDeckEVs[o]);
         }
-        return total / opponentGrids.length;
+        return total / oppCount;
     };
 
     // 3. Compare options on (myGain - marginal opp gain)
     const OPP_COST_WEIGHT = 1.0;
-    const oppCostOnDeck = OPP_COST_WEIGHT * marginalOppCost(lobby.slice(lobbyStartIndex));
+    const oppCostOnDeck = OPP_COST_WEIGHT * marginalOppCost(lobbyStartIndex, -1);
 
     let bestNet = hasDeck ? deckEV - oppCostOnDeck : -Infinity;
     let bestSource = /** @type {'lobby' | 'deck'} */ ("deck");
@@ -433,8 +500,9 @@ function pickDrawActionHard(
             const myGain = bestPlayWithHand(grid, combined, layout, diff);
 
             const myAbsoluteIdx = lobbyStartIndex + i;
-            const oppPool = lobby.filter((_, idx) => idx !== myAbsoluteIdx);
-            const oppCost = OPP_COST_WEIGHT * marginalOppCost(oppPool);
+            // Pool = entire lobby except the card we picked (opp could still take the
+            // frozen slot 0 if it had value — keep `start = 0`, not `lobbyStartIndex`).
+            const oppCost = OPP_COST_WEIGHT * marginalOppCost(0, myAbsoluteIdx);
 
             const net = myGain - oppCost;
             if (net > bestNet) {
@@ -522,8 +590,7 @@ export function pickDrawAction(
         let deckBaseScore = 0;
         if (currentHand.length > 0) {
             for (let i = 0; i < currentHand.length; i++) {
-                const remaining = currentHand.filter((_, idx) => idx !== i);
-                const s = scoreAllSeats(grid, currentHand[i], layout, remaining, difficulty);
+                const s = scoreAllSeats(grid, currentHand[i], layout, currentHand, difficulty);
                 if (s.length > 0 && s[0].score > deckBaseScore) {
                     deckBaseScore = s[0].score;
                 }
@@ -539,8 +606,7 @@ export function pickDrawAction(
             // Best move available if we add this lobby card to our hand
             let maxCombinedScore = 0;
             for (let j = 0; j < combinedHand.length; j++) {
-                const remaining = combinedHand.filter((_, idx) => idx !== j);
-                const s = scoreAllSeats(grid, combinedHand[j], layout, remaining, difficulty);
+                const s = scoreAllSeats(grid, combinedHand[j], layout, combinedHand, difficulty);
                 if (s.length > 0 && s[0].score > maxCombinedScore) {
                     maxCombinedScore = s[0].score;
                 }
@@ -640,16 +706,17 @@ export function pickCardAndSeat(grid, hand, playerCount, layout, difficulty, con
     if (playerCount === 2 && mustDiscardCount > 0) {
         for (let playIdx = 0; playIdx < hand.length; playIdx++) {
             const playCard = hand[playIdx];
-            const remainingHand = hand.filter((_, idx) => idx !== playIdx);
-
-            const scoredSeats = scoreAllSeats(grid, playCard, layout, remainingHand, difficulty);
+            const scoredSeats = scoreAllSeats(grid, playCard, layout, hand, difficulty);
 
             if (scoredSeats.length > 0) {
                 const bestSeat = scoredSeats[0];
 
                 // To decide what to discard, we identify the "Keep" card.
                 // The keepCard is the one with the highest synergistic potential (bestFutureCard).
-                const keepCard = bestSeat.bestFutureCard || remainingHand[0];
+                // Fallback: first hand card other than playCard (preserving previous semantics
+                // of `remainingHand[0]` from `hand.filter((_, idx) => idx !== playIdx)`).
+                const fallbackKeep = hand[playIdx === 0 ? 1 : 0];
+                const keepCard = bestSeat.bestFutureCard || fallbackKeep;
 
                 // Discard the card that is not the playCard and not the keepCard.
                 // In a 3-card hand (VIP, Kid, Std) where VIP is played and Std is kept, Kid is discarded.
@@ -669,8 +736,7 @@ export function pickCardAndSeat(grid, hand, playerCount, layout, difficulty, con
         // Normal lookahead without discarding
         for (let i = 0; i < hand.length; i++) {
             const card = hand[i];
-            const remainingHand = hand.filter((_, idx) => idx !== i);
-            const scoredSeats = scoreAllSeats(grid, card, layout, remainingHand, difficulty);
+            const scoredSeats = scoreAllSeats(grid, card, layout, hand, difficulty);
 
             if (scoredSeats.length > 0) {
                 candidates.push({

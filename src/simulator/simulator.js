@@ -167,13 +167,15 @@ export function simulateGame(config) {
 
             fillLobby();
 
-            // 1. Draw Phase
+            // 1. Draw Phase. opponentGrids is invariant across this turn's draws
+            // (grids only mutate in the Play Phase below), so hoist it out of the loop.
+            const opponentGrids = grids.filter((_, idx) => idx !== p);
+
             let lobbyDrawsThisTurn = 0;
             while (hands[p].length < drawTarget && (deck.length > 0 || lobby.length > 0)) {
                 const canDrawLobby = config.playerCount !== 2 || deck.length === 0 || lobbyDrawsThisTurn < 1;
                 const availableLobby = canDrawLobby ? lobby : [];
 
-                const opponentGrids = grids.filter((_, idx) => idx !== p);
                 const action = pickDrawAction(
                     availableLobby,
                     deck.length,
@@ -213,11 +215,15 @@ export function simulateGame(config) {
                 const action = pickCardAndSeat(grids[p], hands[p], config.playerCount, layout, config.aiDifficulty);
                 if (action) {
                     grids[p][action.play.row][action.play.col] = action.play.cardData;
-                    hands[p] = hands[p].filter((c) => c !== action.play.cardData);
+                    // Identity-based removal (deck cards are unique object references):
+                    // findIndex+splice avoids the per-call array allocation of `.filter`.
+                    const playIdx = hands[p].indexOf(action.play.cardData);
+                    if (playIdx >= 0) hands[p].splice(playIdx, 1);
 
                     if (action.discard) {
                         const discardTarget = action.discard.cardData;
-                        hands[p] = hands[p].filter((c) => c !== discardTarget);
+                        const discardIdx = hands[p].indexOf(discardTarget);
+                        if (discardIdx >= 0) hands[p].splice(discardIdx, 1);
 
                         discards[p][discardTarget.type] = (discards[p][discardTarget.type] || 0) + 1;
                         const keyDetailed = discardTarget.trait

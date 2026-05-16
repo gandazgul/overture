@@ -50,15 +50,13 @@ Object.freeze(Trait);
  * @property {number[]} [rowBonusRows] - Row indices that grant the bonus (0 = front)
  * @property {number} [aisleBonus] - Extra VP if seated in an aisle seat (additive)
  * @property {boolean} [aisleBonusNullifiedByNoisy] - If true, the aisle bonus is nullified when any orthogonally adjacent patron has the Noisy trait (the generic Noisy −1 still applies on top)
- * @property {number} [adjacencyPenaltyPer] - VP penalty per adjacent patron of a triggering type
- * @property {string[]} [adjacencyPenaltyTypes] - Patron types that trigger the adjacency penalty
- * @property {boolean} [adjacencyPenaltyNoisyTrait] - Also penalized by adjacent Noisy-trait patrons (stacks with the generic Noisy −1)
+ * @property {Record<string, number>} [adjacentTypeScore] - VP delta applied per orthogonally adjacent patron of the keyed primary type (e.g. `{ [PatronType.KID]: -2 }` for VIP)
+ * @property {Record<string, number>} [adjacentTraitScore] - VP delta applied per orthogonally adjacent patron carrying the keyed trait (e.g. `{ [Trait.NOISY]: -2 }` for VIP). Stacks with the generic Noisy −1.
  * @property {number} [cappedValue] - VP when this patron is "capped" (Kid-specific)
  * @property {number} [perCappedKidBonus] - VP bonus per capped Kid this Teacher directly caps (Teacher-specific)
  * @property {number} [adjacentMatchBonus] - VP if orthogonally adjacent to same type (Lovebirds)
  * @property {number} [backRowBonus] - Extra VP if in the designated back row (additive)
  * @property {number[]} [backRows] - Row indices that count as "back" for multiplier
- * @property {number} [perNeighborMatchBonus] - VP bonus per orthogonally adjacent patron of the same type (Friends)
  */
 
 /**
@@ -117,9 +115,8 @@ export const PatronInfo = {
             base: 3,
             rowBonusValue: 2,
             rowBonusRows: [0, 1],
-            adjacencyPenaltyPer: -2,
-            adjacencyPenaltyTypes: [PatronType.KID],
-            adjacencyPenaltyNoisyTrait: true,
+            adjacentTypeScore: { [PatronType.KID]: -2 },
+            adjacentTraitScore: { [Trait.NOISY]: -2 },
         },
         deck: {
             clean: 3,
@@ -209,7 +206,7 @@ export const PatronInfo = {
         scoringHint: "Base 3VP\n+1VP per adjacent Friend",
         scoring: {
             base: 3,
-            perNeighborMatchBonus: 1,
+            adjacentTypeScore: { [PatronType.FRIENDS]: 1 },
         },
         deck: {
             clean: 5,
@@ -795,27 +792,41 @@ export const DefaultLayout = GrandEmpressLayout;
 // ── Deck Builder ───────────────────────────────────────────────────
 
 /**
+ * Master pool of all card objects. Built once at module load.
+ * Each deck slot is its own object so identity-based filters
+ * (e.g. `hand.filter(c => c !== target)`) still remove exactly one.
+ * Cards are treated as read-only by convention; safe to share refs across games.
+ * @type {CardData[]}
+ */
+const MASTER_DECK = (() => {
+    /** @type {CardData[]} */
+    const cards = [];
+    for (const [type, trait, count] of PatronDeckSpec) {
+        const label = trait ? `${trait} ${type}` : type;
+        for (let i = 0; i < count; i++) {
+            /** @type {CardData} */
+            const card = { type, label };
+            if (trait) card.trait = trait;
+            cards.push(card);
+        }
+    }
+    return cards;
+})();
+
+/**
  * Creates the full 56-card deck.
  * 35 clean cards + 21 cards with traits.
  *
  * Trait breakdown: 7 Tall, 7 Short, 6 Bespectacled, 4 Noisy.
  *
+ * Returns a freshly shuffled array of references into MASTER_DECK — no
+ * per-card object allocation. Each slot is still a unique object, so
+ * identity-based hand/grid operations work as before.
+ *
  * @returns {CardData[]}
  */
 export function createDeck() {
-    /** @type {CardData[]} */
-    const deck = [];
-
-    for (const [type, trait, count] of PatronDeckSpec) {
-        const label = trait ? `${trait} ${type}` : type;
-
-        for (let i = 0; i < count; i++) {
-            /** @type {CardData} */
-            const card = { type, label };
-            if (trait) card.trait = trait;
-            deck.push(card);
-        }
-    }
+    const deck = MASTER_DECK.slice();
 
     // Fisher-Yates shuffle
     for (let i = deck.length - 1; i > 0; i--) {

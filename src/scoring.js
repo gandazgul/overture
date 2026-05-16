@@ -75,6 +75,22 @@ function isAdjacencyBroken(rowA, rowB, layout) {
  * @returns {{row: number, col: number}[]}
  */
 export function getOrthogonalNeighbors(row, col, rows, cols, layout) {
+    if (layout) return getNeighborTable(layout).all[row][col];
+    return computeOrthogonalNeighbors(row, col, rows, cols, undefined);
+}
+
+/**
+ * Direct computation — preserved as a fallback for the layout-less code path
+ * used by tests. The hot path goes through the cache.
+ *
+ * @param {number} row
+ * @param {number} col
+ * @param {number} rows
+ * @param {number} cols
+ * @param {LayoutMeta} [layout]
+ * @returns {{row: number, col: number}[]}
+ */
+function computeOrthogonalNeighbors(row, col, rows, cols, layout) {
     /** @type {{row: number, col: number}[]} */
     const neighbors = [];
 
@@ -135,6 +151,54 @@ export function getOrthogonalNeighbors(row, col, rows, cols, layout) {
     return neighbors;
 }
 
+// Per-layout neighbor cache. Neighbors are purely a function of (row, col, layout),
+// and layouts are frozen at module load, so we precompute once per layout and
+// return shared (read-only) arrays from then on.
+const NEIGHBOR_CACHE = new WeakMap();
+
+/**
+ * Build (or fetch) the precomputed neighbor tables for a layout.
+ * Returns { all, front, back }, each indexed as [row][col].
+ *
+ * @param {LayoutMeta} layout
+ */
+function getNeighborTable(layout) {
+    let table = NEIGHBOR_CACHE.get(layout);
+    if (table) return table;
+
+    /** @type {{row: number, col: number}[][][]} */
+    const all = [];
+    /** @type {{row: number, col: number}[][][]} */
+    const front = [];
+    /** @type {{row: number, col: number}[][][]} */
+    const back = [];
+
+    for (let r = 0; r < layout.rows; r++) {
+        all[r] = [];
+        front[r] = [];
+        back[r] = [];
+        for (let c = 0; c < layout.cols; c++) {
+            const ns = computeOrthogonalNeighbors(r, c, layout.rows, layout.cols, layout);
+            all[r][c] = ns;
+            /** @type {{row: number, col: number}[]} */
+            const f = [];
+            /** @type {{row: number, col: number}[]} */
+            const b = [];
+            for (let i = 0; i < ns.length; i++) {
+                const n = ns[i];
+                if (n.row === r - 1) f.push(n);
+                else if (n.row === r + 1) b.push(n);
+            }
+            front[r][c] = f;
+            back[r][c] = b;
+        }
+    }
+
+    table = { all, front, back };
+    NEIGHBOR_CACHE.set(layout, table);
+    return table;
+}
+
 /**
  * Get adjacent neighbors in the row directly in front (row - 1),
  * using the same adjacency model as getOrthogonalNeighbors().
@@ -147,7 +211,8 @@ export function getOrthogonalNeighbors(row, col, rows, cols, layout) {
  * @returns {{row: number, col: number}[]}
  */
 export function getFrontRowNeighbors(row, col, rows, cols, layout) {
-    return getOrthogonalNeighbors(row, col, rows, cols, layout).filter(
+    if (layout) return getNeighborTable(layout).front[row][col];
+    return computeOrthogonalNeighbors(row, col, rows, cols, undefined).filter(
         (n) => n.row === row - 1,
     );
 }
@@ -164,7 +229,8 @@ export function getFrontRowNeighbors(row, col, rows, cols, layout) {
  * @returns {{row: number, col: number}[]}
  */
 export function getBackRowNeighbors(row, col, rows, cols, layout) {
-    return getOrthogonalNeighbors(row, col, rows, cols, layout).filter(
+    if (layout) return getNeighborTable(layout).back[row][col];
+    return computeOrthogonalNeighbors(row, col, rows, cols, undefined).filter(
         (n) => n.row === row + 1,
     );
 }
@@ -486,24 +552,6 @@ function buildSeatScoreBreakdown(grid, row, col, layout, cappingData, lovebirdsP
             if (hasSeatLabel(row, col, "front", layout) && scoring.rowBonusValue) {
                 pushModifier("Front row bonus", scoring.rowBonusValue);
             }
-            if (scoring.adjacencyPenaltyTypes && scoring.adjacencyPenaltyPer) {
-                const neighbors = getOrthogonalNeighbors(row, col, rows, cols, layout);
-                for (const n of neighbors) {
-                    const neighbor = grid[n.row][n.col];
-                    if (neighbor && scoring.adjacencyPenaltyTypes.includes(neighbor.type)) {
-                        pushModifier("Adjacent Kid penalty", scoring.adjacencyPenaltyPer);
-                    }
-                }
-            }
-            if (scoring.adjacencyPenaltyNoisyTrait && scoring.adjacencyPenaltyPer) {
-                const neighbors = getOrthogonalNeighbors(row, col, rows, cols, layout);
-                for (const n of neighbors) {
-                    const neighbor = grid[n.row][n.col];
-                    if (neighbor && neighbor.trait === Trait.NOISY) {
-                        pushModifier("Adjacent Noisy penalty", scoring.adjacencyPenaltyPer);
-                    }
-                }
-            }
             break;
         }
 
@@ -562,17 +610,27 @@ function buildSeatScoreBreakdown(grid, row, col, layout, cappingData, lovebirdsP
             break;
         }
 
-        case PatronType.FRIENDS: {
-            if (scoring.perNeighborMatchBonus) {
-                const neighbors = getOrthogonalNeighbors(row, col, rows, cols, layout);
-                for (const n of neighbors) {
-                    const neighbor = grid[n.row][n.col];
-                    if (neighbor && neighbor.type === PatronType.FRIENDS) {
-                        pushModifier("Adjacent Friend bonus", scoring.perNeighborMatchBonus);
-                    }
+        case PatronType.FRIENDS:
+            break;
+    }
+
+    if (scoring.adjacentTypeScore || scoring.adjacentTraitScore) {
+        const neighbors = getOrthogonalNeighbors(row, col, rows, cols, layout);
+        for (const n of neighbors) {
+            const neighbor = grid[n.row][n.col];
+            if (!neighbor) continue;
+
+            const typeDelta = scoring.adjacentTypeScore?.[neighbor.type];
+            if (typeDelta !== undefined) {
+                pushModifier(`Adjacent ${neighbor.type}`, typeDelta);
+            }
+
+            if (neighbor.trait) {
+                const traitDelta = scoring.adjacentTraitScore?.[neighbor.trait];
+                if (traitDelta !== undefined) {
+                    pushModifier(`Adjacent ${neighbor.trait}`, traitDelta);
                 }
             }
-            break;
         }
     }
 
@@ -823,4 +881,458 @@ export function scorePlayer(grid, layout = DefaultLayout) {
     }
 
     return { total, perSeat, houseBonus };
+}
+
+// ── Delta scoring ───────────────────────────────────────────────────────────
+//
+// scoreSeatDelta lets callers compute "VP change from placing card X at empty
+// seat (r,c)" without rebuilding the full cappingData / lovebirdsPairs tables
+// for the whole grid. The AI's hot path (scoreAllSeats) calls this once per
+// candidate seat instead of doing a full scorePlayer pass per candidate.
+//
+// Correctness contract: for grids where layout.houseRule is null,
+//     scoreSeatDelta(g, layout, r, c, card)
+//       === scorePlayer(g + card@(r,c)).total - scorePlayer(g).total
+// Verified by differential tests against scorePlayer in scoring.test.js.
+//
+// For layouts WITH a house rule, callers must handle the house-rule delta
+// themselves — scoreSeatDelta only covers per-seat scoring.
+
+// Per-layout table-index cache so scoreSeatDelta can find the table containing
+// (r,c) in O(1) instead of scanning all tableGroups.
+/** @type {WeakMap<LayoutMeta, Map<number, {row: number, col: number}[]>>} */
+const TABLE_INDEX_CACHE = new WeakMap();
+
+/**
+ * @param {LayoutMeta} layout
+ * @returns {Map<number, {row: number, col: number}[]> | null}
+ */
+function getTableIndex(layout) {
+    if (!layout.tableGroups) return null;
+    let idx = TABLE_INDEX_CACHE.get(layout);
+    if (idx) return idx;
+    idx = new Map();
+    for (const table of layout.tableGroups) {
+        for (const p of table) idx.set(p.row * layout.cols + p.col, table);
+    }
+    TABLE_INDEX_CACHE.set(layout, idx);
+    return idx;
+}
+
+/**
+ * Is the Kid at (r, c) currently capped? Considers horizontal chain, vertical
+ * chain (with adjacencyBreaks/seatMask), and table-based capping (Dinner Playhouse).
+ *
+ * @param {(CardData | null)[][]} grid
+ * @param {number} r
+ * @param {number} c
+ * @param {LayoutMeta} layout
+ * @returns {boolean}
+ */
+function isKidCappedAt(grid, r, c, layout) {
+    const tableIdx = getTableIndex(layout);
+    if (tableIdx) {
+        const table = tableIdx.get(r * layout.cols + c);
+        if (!table) return false;
+        for (const p of table) {
+            if (grid[p.row]?.[p.col]?.type === PatronType.TEACHER) return true;
+        }
+        return false;
+    }
+
+    const { rows, cols } = layout;
+
+    // Horizontal chain containing (r, c)
+    let leftK = c;
+    while (leftK > 0 && grid[r][leftK - 1]?.type === PatronType.KID) leftK--;
+    let rightK = c;
+    while (rightK < cols - 1 && grid[r][rightK + 1]?.type === PatronType.KID) rightK++;
+    const hL = leftK - 1;
+    const hR = rightK + 1;
+    if (
+        hL >= 0 && grid[r][hL]?.type === PatronType.TEACHER &&
+        hR < cols && grid[r][hR]?.type === PatronType.TEACHER
+    ) return true;
+
+    // Vertical chain containing (r, c)
+    let topK = r;
+    while (topK > 0) {
+        const nr = topK - 1;
+        if (grid[nr]?.[c]?.type !== PatronType.KID) break;
+        if (!seatExists(nr, c, layout)) break;
+        if (isAdjacencyBroken(nr, topK, layout)) break;
+        topK = nr;
+    }
+    let botK = r;
+    while (botK < rows - 1) {
+        const nr = botK + 1;
+        if (grid[nr]?.[c]?.type !== PatronType.KID) break;
+        if (!seatExists(nr, c, layout)) break;
+        if (isAdjacencyBroken(botK, nr, layout)) break;
+        botK = nr;
+    }
+    const vT = topK - 1;
+    const vB = botK + 1;
+    const vCapTop = vT >= 0 && seatExists(vT, c, layout) &&
+        !isAdjacencyBroken(vT, topK, layout) &&
+        grid[vT]?.[c]?.type === PatronType.TEACHER;
+    const vCapBot = vB < rows && seatExists(vB, c, layout) &&
+        !isAdjacencyBroken(botK, vB, layout) &&
+        grid[vB]?.[c]?.type === PatronType.TEACHER;
+    return vCapTop && vCapBot;
+}
+
+/**
+ * Count Kids capped *by* the Teacher at (r, c). Mirrors the original
+ * buildKidCappingData linking — both flanking Teachers get credit for each
+ * Kid in the chain.
+ *
+ * @param {(CardData | null)[][]} grid
+ * @param {number} r
+ * @param {number} c
+ * @param {LayoutMeta} layout
+ * @returns {number}
+ */
+function countKidsCappedByTeacher(grid, r, c, layout) {
+    const tableIdx = getTableIndex(layout);
+    if (tableIdx) {
+        const table = tableIdx.get(r * layout.cols + c);
+        if (!table) return 0;
+        let cnt = 0;
+        for (const p of table) {
+            if (grid[p.row]?.[p.col]?.type === PatronType.KID) cnt++;
+        }
+        return cnt;
+    }
+
+    const { rows, cols } = layout;
+    let count = 0;
+
+    // Left horizontal: Kids at (r, c-1)..(r, leftK) bracketed by a Teacher at (r, leftK-1)
+    if (c > 0 && grid[r][c - 1]?.type === PatronType.KID) {
+        let i = c - 1;
+        while (i > 0 && grid[r][i - 1]?.type === PatronType.KID) i--;
+        if (i - 1 >= 0 && grid[r][i - 1]?.type === PatronType.TEACHER) count += c - i;
+    }
+
+    // Right horizontal
+    if (c < cols - 1 && grid[r][c + 1]?.type === PatronType.KID) {
+        let i = c + 1;
+        while (i < cols - 1 && grid[r][i + 1]?.type === PatronType.KID) i++;
+        if (i + 1 < cols && grid[r][i + 1]?.type === PatronType.TEACHER) count += i - c;
+    }
+
+    // Top vertical
+    if (
+        r > 0 && seatExists(r - 1, c, layout) && !isAdjacencyBroken(r - 1, r, layout) &&
+        grid[r - 1]?.[c]?.type === PatronType.KID
+    ) {
+        let i = r - 1;
+        while (i > 0) {
+            const next = i - 1;
+            if (!seatExists(next, c, layout)) break;
+            if (isAdjacencyBroken(next, i, layout)) break;
+            if (grid[next]?.[c]?.type !== PatronType.KID) break;
+            i = next;
+        }
+        const fl = i - 1;
+        if (
+            fl >= 0 && seatExists(fl, c, layout) && !isAdjacencyBroken(fl, i, layout) &&
+            grid[fl]?.[c]?.type === PatronType.TEACHER
+        ) count += r - i;
+    }
+
+    // Bottom vertical
+    if (
+        r < rows - 1 && seatExists(r + 1, c, layout) && !isAdjacencyBroken(r, r + 1, layout) &&
+        grid[r + 1]?.[c]?.type === PatronType.KID
+    ) {
+        let i = r + 1;
+        while (i < rows - 1) {
+            const next = i + 1;
+            if (!seatExists(next, c, layout)) break;
+            if (isAdjacencyBroken(i, next, layout)) break;
+            if (grid[next]?.[c]?.type !== PatronType.KID) break;
+            i = next;
+        }
+        const fl = i + 1;
+        if (
+            fl < rows && seatExists(fl, c, layout) && !isAdjacencyBroken(i, fl, layout) &&
+            grid[fl]?.[c]?.type === PatronType.TEACHER
+        ) count += i - r;
+    }
+
+    return count;
+}
+
+/**
+ * Is the Lovebirds at (r, c) currently part of a horizontal pair? Mirrors the
+ * greedy left-to-right pairing in buildLovebirdsPairMap.
+ *
+ * @param {(CardData | null)[][]} grid
+ * @param {number} r
+ * @param {number} c
+ * @param {LayoutMeta} layout
+ * @returns {boolean}
+ */
+function isLovebirdsPaired(grid, r, c, layout) {
+    if (grid[r][c]?.type !== PatronType.LOVEBIRDS) return false;
+    const cols = layout.cols;
+    let i = 0;
+    while (i < cols - 1) {
+        if (layout.seatMask && !layout.seatMask[r][i]) { i++; continue; }
+        if (grid[r][i]?.type === PatronType.LOVEBIRDS) {
+            const next = i + 1;
+            if (layout.seatMask && !layout.seatMask[r][next]) { i++; continue; }
+            const srcIsBox = hasSeatLabel(r, i, "box", layout);
+            const dstIsBox = hasSeatLabel(r, next, "box", layout);
+            if (srcIsBox !== dstIsBox) { i++; continue; }
+            if (grid[r][next]?.type === PatronType.LOVEBIRDS) {
+                if (i === c || next === c) return true;
+                if (next > c) return false; // greedy passed c; (r,c) wasn't paired
+                i = next + 1;
+                continue;
+            }
+        }
+        i++;
+    }
+    return false;
+}
+
+/**
+ * Score a single seat using on-demand capping/lovebirds checks. Equivalent to
+ * scoreSeat but doesn't require precomputed cappingData / lovebirdsPairs.
+ *
+ * @param {(CardData | null)[][]} grid
+ * @param {number} r
+ * @param {number} c
+ * @param {LayoutMeta} layout
+ * @returns {number}
+ */
+function scoreSeatLocal(grid, r, c, layout) {
+    const card = grid[r][c];
+    if (!card) return 0;
+    const scoring = PatronScoring[card.type];
+    if (!scoring) return 0;
+
+    const { rows, cols } = layout;
+    let vp = scoring.base;
+
+    switch (card.type) {
+        case PatronType.VIP:
+            if (hasSeatLabel(r, c, "front", layout) && scoring.rowBonusValue) {
+                vp += scoring.rowBonusValue;
+            }
+            break;
+        case PatronType.LOVEBIRDS: {
+            if (isLovebirdsPaired(grid, r, c, layout)) {
+                if (scoring.adjacentMatchBonus) vp += scoring.adjacentMatchBonus;
+                if (hasSeatLabel(r, c, "back", layout) && scoring.backRowBonus) {
+                    vp += scoring.backRowBonus;
+                }
+            }
+            break;
+        }
+        case PatronType.KID:
+            if (isKidCappedAt(grid, r, c, layout) && scoring.cappedValue !== undefined) {
+                vp += scoring.cappedValue - scoring.base;
+            }
+            break;
+        case PatronType.TEACHER:
+            if (scoring.perCappedKidBonus) {
+                const cnt = countKidsCappedByTeacher(grid, r, c, layout);
+                if (cnt > 0) vp += scoring.perCappedKidBonus * cnt;
+            }
+            break;
+        case PatronType.CRITIC: {
+            if (isAisleSeat(r, c, layout) && scoring.aisleBonus) {
+                let hasNoisyNeighbor = false;
+                if (scoring.aisleBonusNullifiedByNoisy) {
+                    const neighbors = getOrthogonalNeighbors(r, c, rows, cols, layout);
+                    for (let n = 0; n < neighbors.length; n++) {
+                        const nb = neighbors[n];
+                        if (grid[nb.row][nb.col]?.trait === Trait.NOISY) {
+                            hasNoisyNeighbor = true;
+                            break;
+                        }
+                    }
+                }
+                if (!hasNoisyNeighbor) vp += scoring.aisleBonus;
+            }
+            break;
+        }
+    }
+
+    // Generic adjacency (e.g. VIP -2 per adjacent Kid, Friends +1 per adjacent Friend)
+    if (scoring.adjacentTypeScore || scoring.adjacentTraitScore) {
+        const neighbors = getOrthogonalNeighbors(r, c, rows, cols, layout);
+        for (let n = 0; n < neighbors.length; n++) {
+            const nb = neighbors[n];
+            const neighbor = grid[nb.row][nb.col];
+            if (!neighbor) continue;
+            const tD = scoring.adjacentTypeScore?.[neighbor.type];
+            if (tD !== undefined) vp += tD;
+            if (neighbor.trait) {
+                const trD = scoring.adjacentTraitScore?.[neighbor.trait];
+                if (trD !== undefined) vp += trD;
+            }
+        }
+    }
+
+    // Trait-based scoring
+    if (card.trait) {
+        const traitScoring = TraitScoring[card.trait];
+        if (traitScoring) {
+            if (
+                card.trait === Trait.BESPECTACLED &&
+                !hasSeatLabel(r, c, "back", layout) &&
+                traitScoring.rowBonusValue
+            ) {
+                vp += traitScoring.rowBonusValue;
+            }
+            if (card.trait === Trait.SHORT) {
+                const front = getFrontRowNeighbors(r, c, rows, cols, layout);
+                let hasFront = false;
+                let tallInFront = false;
+                for (let n = 0; n < front.length; n++) {
+                    const fc = grid[front[n].row]?.[front[n].col];
+                    if (fc) {
+                        hasFront = true;
+                        if (fc.trait === Trait.TALL) tallInFront = true;
+                    }
+                }
+                if (!hasFront) vp += traitScoring.emptyFrontBonus ?? 0;
+                else if (tallInFront) vp += traitScoring.tallInFrontPenalty ?? 0;
+            }
+        }
+    }
+
+    // Tall-ahead penalty for non-Short cards
+    if (card.trait !== Trait.SHORT) {
+        const front = getFrontRowNeighbors(r, c, rows, cols, layout);
+        for (let n = 0; n < front.length; n++) {
+            if (grid[front[n].row]?.[front[n].col]?.trait === Trait.TALL) {
+                vp += TraitScoring[Trait.TALL].behindPenalty ?? 0;
+            }
+        }
+    }
+
+    // Adjacent Noisy penalty (applies to all cards)
+    const noisyN = getOrthogonalNeighbors(r, c, rows, cols, layout);
+    for (let n = 0; n < noisyN.length; n++) {
+        if (grid[noisyN[n].row][noisyN[n].col]?.trait === Trait.NOISY) {
+            vp += TraitScoring[Trait.NOISY].adjacentPenalty ?? 0;
+        }
+    }
+
+    return vp;
+}
+
+/**
+ * VP change from placing `card` at empty seat (r, c) on the current grid.
+ *
+ * For layouts WITHOUT a house rule, this equals
+ *     scorePlayer(grid+card@(r,c)).total - scorePlayer(grid).total
+ *
+ * Layouts WITH a house rule must compute the house-rule delta separately —
+ * scoreSeatDelta only covers per-seat scoring changes.
+ *
+ * The function temporarily mutates grid[r][c] but restores it before returning,
+ * so it's safe to call from inside an existing grid-mutation loop.
+ *
+ * @param {(CardData | null)[][]} grid
+ * @param {LayoutMeta} layout
+ * @param {number} r
+ * @param {number} c
+ * @param {CardData} card
+ * @returns {number}
+ */
+export function scoreSeatDelta(grid, layout, r, c, card) {
+    const { rows, cols } = layout;
+
+    // Build affected-seat keys (row*cols + col) — Set to dedupe.
+    /** @type {Set<number>} */
+    const affected = new Set();
+    affected.add(r * cols + c);
+
+    const neighbors = getOrthogonalNeighbors(r, c, rows, cols, layout);
+    for (let i = 0; i < neighbors.length; i++) {
+        const nb = neighbors[i];
+        affected.add(nb.row * cols + nb.col);
+    }
+
+    // Cross-cell capping changes only occur when the placed card is a Kid or
+    // Teacher. For any other placement (Standard, VIP, Friends, Critic,
+    // Lovebirds), an empty cell and a non-Kid/non-Teacher cell are equivalent
+    // for the capping algorithm (both terminate Kid runs), so capping is
+    // identical pre- and post-placement.
+    if (card.type === PatronType.KID || card.type === PatronType.TEACHER) {
+        // Kids/Teachers in row r (horizontal capping may flip)
+        for (let cc = 0; cc < cols; cc++) {
+            if (cc === c) continue;
+            const t = grid[r][cc]?.type;
+            if (t === PatronType.KID || t === PatronType.TEACHER) {
+                affected.add(r * cols + cc);
+            }
+        }
+
+        // Kids/Teachers in column c (vertical capping may flip)
+        for (let rr = 0; rr < rows; rr++) {
+            if (rr === r) continue;
+            const t = grid[rr][c]?.type;
+            if (t === PatronType.KID || t === PatronType.TEACHER) {
+                affected.add(rr * cols + c);
+            }
+        }
+
+        // Table-based capping (Dinner Playhouse)
+        const tableIdx = getTableIndex(layout);
+        if (tableIdx) {
+            const table = tableIdx.get(r * cols + c);
+            if (table) {
+                for (let i = 0; i < table.length; i++) {
+                    const p = table[i];
+                    const t = grid[p.row][p.col]?.type;
+                    if (t === PatronType.KID || t === PatronType.TEACHER) {
+                        affected.add(p.row * cols + p.col);
+                    }
+                }
+            }
+        }
+    }
+
+    // Lovebirds in row r — only matter if placement is also Lovebirds, since
+    // the greedy pairing skips non-Lovebirds cells entirely.
+    if (card.type === PatronType.LOVEBIRDS) {
+        for (let cc = 0; cc < cols; cc++) {
+            if (cc === c) continue;
+            if (grid[r][cc]?.type === PatronType.LOVEBIRDS) {
+                affected.add(r * cols + cc);
+            }
+        }
+    }
+
+    // OLD sum
+    let oldSum = 0;
+    for (const key of affected) {
+        const rr = (key / cols) | 0;
+        const cc = key - rr * cols;
+        oldSum += scoreSeatLocal(grid, rr, cc, layout);
+    }
+
+    // Place card
+    grid[r][c] = card;
+
+    // NEW sum
+    let newSum = 0;
+    for (const key of affected) {
+        const rr = (key / cols) | 0;
+        const cc = key - rr * cols;
+        newSum += scoreSeatLocal(grid, rr, cc, layout);
+    }
+
+    // Restore
+    grid[r][c] = null;
+
+    return newSum - oldSum;
 }
