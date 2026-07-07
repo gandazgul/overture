@@ -8,10 +8,10 @@ import { pickCardAndSeat, pickDrawAction } from "../ai.js";
 
 export const SIMULATOR_EXPERIMENT = Object.freeze({
     id: "fixed-2p-opening-cards",
-    description: "2P balance experiment: Player 1 starts with plain Patron; Player 2 starts with plain Teacher.",
+    description: "2P balance experiment: fixed starting cards",
     fixedStartingCards: [
         { player: 1, type: PatronType.STANDARD, trait: null },
-        { player: 2, type: PatronType.TEACHER, trait: null },
+        { player: 2, type: PatronType.FRIENDS, trait: null },
     ],
 });
 
@@ -121,13 +121,16 @@ export function simulateGame(config) {
     // ── Setup ───────────────────────────────────────────────────────────
 
     if (config.playerCount === 2) {
-        // Hardcoded 2P balance experiment: give later player a modest combo seed
-        // while Player 1 receives a stable baseline card. Cards are removed from
-        // the shuffled deck so the remaining deck composition is accurate.
-        startingCards[0] = takeExactCard(deck, PatronType.STANDARD, null);
-        startingCards[1] = takeExactCard(deck, PatronType.TEACHER, null);
-        hands[0].push(startingCards[0]);
-        hands[1].push(startingCards[1]);
+        // Hardcoded 2P balance experiment. Cards are removed from the shuffled
+        // deck so the remaining deck composition is accurate. Keep
+        // SIMULATOR_EXPERIMENT.fixedStartingCards as the single source of truth
+        // so editing the experiment metadata changes the actual simulation.
+        for (const def of SIMULATOR_EXPERIMENT.fixedStartingCards) {
+            const playerIndex = def.player - 1;
+            const card = takeExactCard(deck, def.type, def.trait);
+            startingCards[playerIndex] = card;
+            hands[playerIndex].push(card);
+        }
     } else {
         // 3P/4P are not part of this fixed-start experiment. Keep live GameScene
         // setup semantics: each player receives one random starting card.

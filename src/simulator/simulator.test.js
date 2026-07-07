@@ -5,7 +5,7 @@ import { AIDifficulty } from "../ai.js";
 import { PatronType } from "../types.js";
 import { setGlobalSeed } from "../utils.js";
 import { addGameToAggregate, createAggregate, mergeAggregate } from "./aggregate.js";
-import { simulateGame, takeExactCard } from "./simulator.js";
+import { simulateGame, SIMULATOR_EXPERIMENT, takeExactCard } from "./simulator.js";
 
 /** @typedef {import('../types.js').CardData} CardData */
 /** @typedef {import('./aggregate.js').PlayerSimulationResult} PlayerSimulationResult */
@@ -72,10 +72,11 @@ Deno.test("simulateGame gives fixed 2P starting cards and then runs normal first
         aiDifficulty: AIDifficulty.HARD,
     });
 
-    assertEquals(result.startingCards[0]?.type, PatronType.STANDARD);
-    assertEquals(result.startingCards[0]?.trait ?? null, null);
-    assertEquals(result.startingCards[1]?.type, PatronType.TEACHER);
-    assertEquals(result.startingCards[1]?.trait ?? null, null);
+    for (const def of SIMULATOR_EXPERIMENT.fixedStartingCards) {
+        const startingCard = result.startingCards[def.player - 1];
+        assertEquals(startingCard?.type, def.type);
+        assertEquals(startingCard?.trait ?? null, def.trait);
+    }
     assertEquals(result.players[0].startingCard, result.startingCards[0]);
     assertEquals(result.players[1].startingCard, result.startingCards[1]);
     assert(!("draftPicks" in result.players[0]));
@@ -104,16 +105,16 @@ Deno.test("simulateGame keeps 3P setup to one random starting card per player", 
 
 Deno.test("mergeAggregate matches aggregating the same games directly", () => {
     const patron = card(PatronType.STANDARD, null);
-    const teacher = card(PatronType.TEACHER, null);
+    const lovebirds = card(PatronType.LOVEBIRDS, null);
     /** @type {SimulationGameResult} */
     const gameOne = {
-        players: [playerResult(10, patron), playerResult(8, teacher)],
-        startingCards: [patron, teacher],
+        players: [playerResult(10, patron), playerResult(8, lovebirds)],
+        startingCards: [patron, lovebirds],
     };
     /** @type {SimulationGameResult} */
     const gameTwo = {
-        players: [playerResult(7, patron), playerResult(12, teacher)],
-        startingCards: [patron, teacher],
+        players: [playerResult(7, patron), playerResult(12, lovebirds)],
+        startingCards: [patron, lovebirds],
     };
 
     const direct = createAggregate(2);
