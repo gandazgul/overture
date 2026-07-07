@@ -14,7 +14,7 @@
  */
 
 import { scorePlayer, scoreSeatDelta, seatExists } from "./scoring.js";
-import { PatronDeckSpec } from "./types.js";
+import { hasSeatLabel, PatronDeckSpec, PatronType, Trait } from "./types.js";
 import { random, randomInt } from "./utils.js";
 
 /** @typedef {import('./types.js').CardData} CardData */
@@ -103,17 +103,76 @@ export function evaluateSeat(grid, card, row, col, layout) {
 function getCardPotential(cardData, difficulty) {
     if (!cardData || difficulty !== AIDifficulty.HARD) return 0;
     switch (cardData.type) {
-        case "Lovebirds":
+        case PatronType.LOVEBIRDS:
             return 2.5;
-        case "Kid":
+        case PatronType.KID:
             return 2.5;
-        case "Teacher":
+        case PatronType.TEACHER:
             return 1.5;
-        case "Friends":
+        case PatronType.FRIENDS:
             return 1.0;
         default:
             return 0;
     }
+}
+
+/**
+ * @param {CardData} card
+ * @param {number} row
+ * @param {number} col
+ * @param {LayoutMeta} layout
+ * @returns {boolean}
+ */
+function seatMatchesCardPreference(card, row, col, layout) {
+    return (card.type === PatronType.VIP && hasSeatLabel(row, col, "front", layout)) ||
+        (card.type === PatronType.CRITIC && hasSeatLabel(row, col, "aisle", layout)) ||
+        (card.type === PatronType.LOVEBIRDS && hasSeatLabel(row, col, "back", layout)) ||
+        (card.trait === Trait.SHORT && hasSeatLabel(row, col, "front", layout));
+}
+
+/**
+ * Small tie-breaker for cards whose strategic seats matter before their full
+ * combo is complete. Keep this intentionally below 1 VP so real scoring wins.
+ *
+ * @param {CardData} card
+ * @param {number} row
+ * @param {number} col
+ * @param {LayoutMeta} layout
+ * @param {string} difficulty
+ * @returns {number}
+ */
+function getSeatPreferenceBonus(card, row, col, layout, difficulty) {
+    if (difficulty === AIDifficulty.EASY) return 0;
+    let bonus = 0;
+    if (card.type === PatronType.LOVEBIRDS && hasSeatLabel(row, col, "back", layout)) {
+        bonus += 0.25;
+    }
+    if (card.trait === Trait.SHORT && hasSeatLabel(row, col, "front", layout)) {
+        bonus += 0.1;
+    }
+    return bonus;
+}
+
+/**
+ * @param {{row: number, col: number}[]} sortedSeats
+ * @param {number} topK
+ * @param {CardData} card
+ * @param {LayoutMeta} layout
+ * @returns {Set<number>}
+ */
+function getLookaheadCandidateIndexes(sortedSeats, topK, card, layout) {
+    /** @type {Set<number>} */
+    const indexes = new Set();
+    for (let i = 0; i < sortedSeats.length && i < topK; i++) {
+        indexes.add(i);
+    }
+    for (let i = 0; i < sortedSeats.length; i++) {
+        const seat = sortedSeats[i];
+        if (seatMatchesCardPreference(card, seat.row, seat.col, layout)) {
+            indexes.add(i);
+        }
+    }
+    return indexes;
 }
 
 /**
@@ -164,16 +223,21 @@ export function scoreAllSeats(grid, card, layout, lookaheadCards = [], difficult
     // Sort by immediate score descending
     baseResults.sort((a, b) => b.immediateDelta - a.immediateDelta);
 
-    // 2. Lookahead Pruning: Only calculate deep future synergies for the Top K immediate moves
+    // 2. Lookahead Pruning: calculate deep future synergies for the Top K
+    // immediate moves plus all strategic seats matching this card's category
+    // (VIP front, Critic aisle, Lovebirds back, Short front). This keeps the
+    // search bounded while preventing grid-order ties from pruning the seats a
+    // card actually wants.
     const TOP_K = difficulty === AIDifficulty.HARD ? 12 : 4;
+    const lookaheadCandidateIndexes = getLookaheadCandidateIndexes(baseResults, TOP_K, card, layout);
     const results = [];
 
     for (let i = 0; i < baseResults.length; i++) {
         const candidate = baseResults[i];
         let lookaheadDelta = 0;
 
-        // Only do the heavy math if we have lookahead cards AND it's a top candidate
-        if (lookaheadCards.length > 0 && i < TOP_K) {
+        // Only do the heavy math if we have lookahead cards AND it's a selected candidate.
+        if (lookaheadCards.length > 0 && lookaheadCandidateIndexes.has(i)) {
             grid[candidate.row][candidate.col] = card; // Apply base placement
             let bestFuture = 0;
             let bestFutureCard = undefined;
@@ -213,7 +277,8 @@ export function scoreAllSeats(grid, card, layout, lookaheadCards = [], difficult
         results.push({
             row: candidate.row,
             col: candidate.col,
-            score: candidate.immediateDelta + getCardPotential(card, difficulty) + lookaheadDelta,
+            score: candidate.immediateDelta + getCardPotential(card, difficulty) + lookaheadDelta +
+                getSeatPreferenceBonus(card, candidate.row, candidate.col, layout, difficulty),
             bestFutureCard: candidate.bestFutureCard,
         });
     }

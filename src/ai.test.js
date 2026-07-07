@@ -15,7 +15,7 @@ import {
     pickSeat,
     scoreAllSeats,
 } from "./ai.js";
-import { GrandEmpressLayout, PatronType } from "./types.js";
+import { GrandEmpressLayout, hasSeatLabel, PatronType, Trait } from "./types.js";
 
 /** @typedef {import('./types.js').CardData} CardData */
 /** @typedef {import('./types.js').LayoutMeta} LayoutMeta */
@@ -105,6 +105,56 @@ Deno.test("scoreAllSeats — Lookahead values hand setups (Kid + Teacher)", () =
     assert(
         bestWithLookahead > bestNoLookahead,
         "Lookahead should value the setup higher due to future capping potential",
+    );
+});
+
+Deno.test("scoreAllSeats — Lovebirds prefer back-row setup seats", () => {
+    const grid = emptyGrid(GrandEmpressLayout);
+    const lovebirds = card(PatronType.LOVEBIRDS);
+
+    const results = scoreAllSeats(grid, lovebirds, GrandEmpressLayout, [], AIDifficulty.HARD);
+
+    assert(
+        hasSeatLabel(results[0].row, results[0].col, "back", GrandEmpressLayout),
+        "Unpaired Lovebirds should prefer back-row setup seats",
+    );
+});
+
+Deno.test("scoreAllSeats — Lovebirds lookahead considers back-row pair seats outside top immediate grid order", () => {
+    const grid = emptyGrid(GrandEmpressLayout);
+    const firstLovebirds = card(PatronType.LOVEBIRDS);
+    const secondLovebirds = card(PatronType.LOVEBIRDS);
+
+    const results = scoreAllSeats(
+        grid,
+        firstLovebirds,
+        GrandEmpressLayout,
+        [firstLovebirds, secondLovebirds],
+        AIDifficulty.HARD,
+    );
+
+    assert(
+        hasSeatLabel(results[0].row, results[0].col, "back", GrandEmpressLayout),
+        "Lovebirds with another Lovebirds in hand should evaluate back-row pair setup seats",
+    );
+});
+
+Deno.test("scoreAllSeats — Short trait keeps front seats in the preferred category", () => {
+    const grid = emptyGrid(GrandEmpressLayout);
+    const shortPatron = card(PatronType.STANDARD, Trait.SHORT);
+    const futurePatron = card(PatronType.STANDARD);
+
+    const results = scoreAllSeats(
+        grid,
+        shortPatron,
+        GrandEmpressLayout,
+        [shortPatron, futurePatron],
+        AIDifficulty.HARD,
+    );
+
+    assert(
+        hasSeatLabel(results[0].row, results[0].col, "front", GrandEmpressLayout),
+        "Short patrons should prefer front seats when available",
     );
 });
 
