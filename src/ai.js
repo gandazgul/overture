@@ -223,51 +223,6 @@ export function scoreAllSeats(grid, card, layout, lookaheadCards = [], difficult
     return results;
 }
 
-// ── Draft Phase ──────────────────────────────────────────────────────
-
-/**
- * Pick the best card from a draft pool using scoreAllSeats evaluation.
- * Evaluates each card against an empty grid and picks the highest scorer.
- * Uses epsilon-based exploration for non-hard difficulties.
- *
- * @param {CardData[]} pool - The draft pool (must be non-empty)
- * @param {string} difficulty - AIDifficulty value
- * @returns {CardData | null} The selected card (removed from pool)
- */
-export function pickBestCardFromPool(pool, difficulty) {
-    if (pool.length === 0) return null;
-    if (pool.length === 1) return pool[0];
-
-    const epsilon = getEpsilon(difficulty);
-
-    // Explore (Random)
-    if (random() < epsilon) {
-        const idx = randomInt(pool.length - 1);
-        return pool.splice(idx, 1)[0];
-    }
-
-    // Exploit (Greedy — score each card on empty grid)
-    let bestScore = -Infinity;
-    let bestCard = pool[0];
-
-    // Stub layout + grid matching 1×1 dimensions (no adjacency bonuses possible)
-    const stubLayout = /** @type {LayoutMeta} */ ({ rows: 1, cols: 1, seatMask: [[true]] });
-    const stubGrid = [[null]];
-
-    for (const card of pool) {
-        const seats = scoreAllSeats(stubGrid, card, stubLayout, [], difficulty);
-        const score = seats.length > 0 ? seats[0].score : 0;
-        if (score > bestScore) {
-            bestScore = score;
-            bestCard = card;
-        }
-    }
-
-    const idx = pool.indexOf(bestCard);
-    if (idx >= 0) pool.splice(idx, 1);
-    return bestCard;
-}
-
 // ── Drawing Logic ──────────────────────────────────────────────────────────
 
 /**
@@ -350,30 +305,6 @@ function bestPlayWithHand(grid, hand, layout, difficulty) {
         if (s.length > 0 && s[0].score > best) best = s[0].score;
     }
     return best;
-}
-
-/**
- * Approximate opponent gain from a pool of cards they could pick (on their grid).
- * Returns the average over opponentGrids of their best-of-pool placement score.
- *
- * @param {(CardData | null)[][][]} opponentGrids
- * @param {CardData[]} pool
- * @param {LayoutMeta} layout
- * @param {string} difficulty
- * @returns {number}
- */
-function opponentBestFromPool(opponentGrids, pool, layout, difficulty) {
-    if (opponentGrids.length === 0 || pool.length === 0) return 0;
-    let total = 0;
-    for (const og of opponentGrids) {
-        let best = 0;
-        for (const c of pool) {
-            const s = scoreAllSeats(og, c, layout, [], difficulty);
-            if (s.length > 0 && s[0].score > best) best = s[0].score;
-        }
-        total += best;
-    }
-    return total / opponentGrids.length;
 }
 
 /**
