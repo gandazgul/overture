@@ -1,13 +1,25 @@
 #!/usr/bin/env -S deno run -A
 
-/** @typedef {import('../types.js').CardData} CardData */
-
 import { ensureParentDir } from "../utils.js";
 import { PatronTypeOrder } from "../types.js";
+import { calculateGlobalAverageScore, createAggregate, mergeAggregate } from "./aggregate.js";
+import { SIMULATOR_EXPERIMENT } from "./simulator.js";
+
+/** @typedef {import('./aggregate.js').SimulationAggregate} SimulationAggregate */
+
+/**
+ * @typedef {Object} CliConfig
+ * @property {number} games
+ * @property {string} layout
+ * @property {number} players
+ * @property {number} seed
+ * @property {number} concurrency
+ * @property {string} output
+ */
 
 /**
  * @param {string[]} args
- * @returns {{ games: number, layout: string, players: number, seed: number, concurrency: number, output: string }}
+ * @returns {CliConfig}
  */
 function parseArgs(args) {
     const config = {
@@ -33,14 +45,18 @@ function parseArgs(args) {
 const config = parseArgs(Deno.args);
 
 console.log("=========================================");
-console.log(`🚀 Overture Balance Simulator`);
+console.log("🚀 Overture Balance Simulator");
 console.log("=========================================");
+if (config.players === 2) {
+    console.log(`Experiment: ${SIMULATOR_EXPERIMENT.description}`);
+}
 
 const startMs = performance.now();
 
 const workersCount = Math.min(config.concurrency, config.games);
 const baseChunk = Math.floor(config.games / workersCount);
 let remainder = config.games % workersCount;
+/** @type {Promise<SimulationAggregate>[]} */
 const workerPromises = [];
 
 /** @type {Record<number, number>} */
@@ -88,13 +104,14 @@ for (let i = 0; i < workersCount; i++) {
 
     const promise = new Promise((resolve, reject) => {
         worker.onmessage = (e) => {
-            const data = e.data;
-            if (data.type === "progress") {
+            const data = /** @type {{ type: string, workerId?: number, completed?: number, aggregate?: SimulationAggregate }} */
+                (e.data);
+            if (data.type === "progress" && data.workerId !== undefined && data.completed !== undefined) {
                 completedCounts[data.workerId] = data.completed;
                 const totalDone = Object.values(completedCounts).reduce((a, b) => a + b, 0);
                 renderProgressBar(totalDone, totalGamesInProgress);
-            } else if (data.type === "done") {
-                resolve(data.results);
+            } else if (data.type === "done" && data.aggregate) {
+                resolve(data.aggregate);
             }
         };
         worker.onerror = (err) => reject(err);
@@ -109,132 +126,50 @@ for (let i = 0; i < workersCount; i++) {
     workerPromises.push(promise);
 }
 
+/**
+ * Format a duration in milliseconds into a human-friendly string.
+ * @param {number} ms
+ * @returns {string}
+ */
+function fmtDuration(ms) {
+    const totalSeconds = ms / 1000;
+    if (totalSeconds < 60) {
+        return `${totalSeconds.toFixed(1)}s`;
+    }
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = Math.floor(totalSeconds % 60);
+    if (minutes < 60) {
+        return `${minutes}m ${seconds}s`;
+    }
+    const hours = Math.floor(minutes / 60);
+    const remainMin = minutes % 60;
+    return `${hours}h ${remainMin}m ${seconds}s`;
+}
+
 try {
-    const allWorkerResults = await Promise.all(workerPromises);
-
-    /** @type {number[]} */
-    const wins = Array(config.players).fill(0);
-    /** @type {number[]} */
-    const playerScoresTotal = Array(config.players).fill(0);
-    /** @type {number[]} */
-    const firstTurnsTotal = Array(config.players).fill(0); // Track parity
-    /** @type {{lobby: number, deck: number}[]} */
-    const drawsTotal = Array.from({ length: config.players }, () => ({ lobby: 0, deck: 0 }));
-    let ties = 0;
-    let totalScore = 0;
-
-    // Analytics aggregations
-    /** @type {Object.<string, number>} */
-    const typeScores = {};
-    /** @type {Object.<string, number>} */
-    const typeCounts = {};
-    /** @type {Object.<string, number>} */
-    const typeScoresDetailed = {};
-    /** @type {Object.<string, number>} */
-    const typeCountsDetailed = {};
-
-    /** @type {Object.<string, number>[]} */
-    const lobbyPicksByPlayer = Array.from({ length: config.players }, () => ({}));
-    /** @type {Object.<string, number>[]} */
-    const lobbyPicksDetailedByPlayer = Array.from({ length: config.players }, () => ({}));
-
-    /** @type {Object.<string, number>[]} */
-    const discardsByPlayer = Array.from({ length: config.players }, () => ({}));
-    /** @type {Object.<string, number>[]} */
-    const discardsDetailedByPlayer = Array.from({ length: config.players }, () => ({}));
-
-    for (const chunk of allWorkerResults) {
-        for (const game of chunk) {
-            /** @type {number[]} */
-            const scores = game.players.map((/** @type {{total: number}} */ p) => p.total);
-            const maxScore = Math.max(...scores);
-            /** @type {number[]} */
-            let winners = scores.map((/** @type {number} */ s, /** @type {number} */ idx) => s === maxScore ? idx : -1)
-                .filter((/** @type {number} */ idx) => idx !== -1);
-
-            if (winners.length > 1) {
-                // Tiebreaker 1: Most Noisy
-                const maxNoisy = Math.max(...winners.map((/** @type {number} */ idx) => game.players[idx].noisyCount));
-                winners = winners.filter((/** @type {number} */ idx) => game.players[idx].noisyCount === maxNoisy);
-
-                if (winners.length > 1) {
-                    // Tiebreaker 2: Most unique types
-                    const maxUnique = Math.max(
-                        ...winners.map((/** @type {number} */ idx) => game.players[idx].uniqueTypesCount),
-                    );
-                    winners = winners.filter((/** @type {number} */ idx) =>
-                        game.players[idx].uniqueTypesCount === maxUnique
-                    );
-
-                    // if (winners.length > 1) {
-                    //     // Tiebreaker 3: Last player in order wins
-                    //     const lastPlayerIdx = Math.max(...winners);
-                    //     winners = [lastPlayerIdx];
-                    // }
-                }
-            }
-
-            if (winners.length > 1) ties++;
-            else wins[winners[0]]++;
-
-            totalScore += scores.reduce((/** @type {number} */ a, /** @type {number} */ b) => a + b, 0);
-
-            // Aggregate Data
-            game.players.forEach((/** @type {any} */ p, /** @type {number} */ idx) => {
-                playerScoresTotal[idx] += p.total;
-                firstTurnsTotal[idx] += p.firstTurns; // Aggregate first turns
-                drawsTotal[idx].lobby += p.draws.lobby;
-                drawsTotal[idx].deck += p.draws.deck;
-
-                // Type Scores
-                for (const [type, data] of Object.entries(p.typeBreakdown)) {
-                    typeScores[type] = (typeScores[type] || 0) + data.vp;
-                    typeCounts[type] = (typeCounts[type] || 0) + data.count;
-                }
-                for (const [keyDetailed, data] of Object.entries(p.typeBreakdownDetailed)) {
-                    typeScoresDetailed[keyDetailed] = (typeScoresDetailed[keyDetailed] || 0) + data.vp;
-                    typeCountsDetailed[keyDetailed] = (typeCountsDetailed[keyDetailed] || 0) + data.count;
-                }
-
-                // Lobby Picks
-                for (const [card, count] of Object.entries(p.lobbyPicks)) {
-                    lobbyPicksByPlayer[idx][card] = (lobbyPicksByPlayer[idx][card] || 0) + count;
-                }
-                for (const [card, count] of Object.entries(p.lobbyPicksDetailed)) {
-                    lobbyPicksDetailedByPlayer[idx][card] = (lobbyPicksDetailedByPlayer[idx][card] || 0) + count;
-                }
-
-                // Discards
-                if (p.discards) {
-                    for (const [card, count] of Object.entries(p.discards)) {
-                        discardsByPlayer[idx][card] = (discardsByPlayer[idx][card] || 0) + count;
-                    }
-                }
-                if (p.discardsDetailed) {
-                    for (const [card, count] of Object.entries(p.discardsDetailed)) {
-                        discardsDetailedByPlayer[idx][card] = (discardsDetailedByPlayer[idx][card] || 0) + count;
-                    }
-                }
-            });
-        }
+    const allWorkerAggregates = await Promise.all(workerPromises);
+    const aggregate = createAggregate(config.players);
+    for (const workerAggregate of allWorkerAggregates) {
+        mergeAggregate(aggregate, workerAggregate);
     }
 
     const durationMs = performance.now() - startMs;
-    const globalAvgScore = totalScore / (config.games * config.players);
+    const globalAvgScore = calculateGlobalAverageScore(aggregate, config.players);
+    const gamesPerSecond = Math.round(config.games / (durationMs / 1000));
 
     // ── Output ──
-    const summary = wins.map((winCount, idx) => ({
+    const summary = aggregate.wins.map((winCount, idx) => ({
         "Player": `Player ${idx + 1}`,
         "Win Rate": `${((winCount / config.games) * 100).toFixed(1)}%`,
-        "Avg Score": (playerScoresTotal[idx] / config.games).toFixed(2),
-        "First Count": firstTurnsTotal[idx].toLocaleString(), // Verify parity
-        "Lobby Draws": drawsTotal[idx].lobby.toLocaleString(),
-        "Deck Draws": drawsTotal[idx].deck.toLocaleString(),
+        "Avg Score": (aggregate.playerScoresTotal[idx] / config.games).toFixed(2),
+        "First Count": aggregate.firstTurnsTotal[idx].toLocaleString(),
+        "Lobby Draws": aggregate.drawsTotal[idx].lobby.toLocaleString(),
+        "Deck Draws": aggregate.drawsTotal[idx].deck.toLocaleString(),
     }));
 
     summary.push({
         "Player": "Ties",
-        "Win Rate": `${((ties / config.games) * 100).toFixed(1)}%`,
+        "Win Rate": `${((aggregate.ties / config.games) * 100).toFixed(1)}%`,
         "Avg Score": "—",
         "First Count": "—",
         "Lobby Draws": "—",
@@ -244,28 +179,40 @@ try {
     clearProgressBar();
     console.table(summary);
 
-    console.log(`\n📊 Patron Type Averages (VP per placement):`);
+    if (config.players === 2) {
+        console.log("\n🎭 Hardcoded Starting Cards:");
+        for (let p = 0; p < aggregate.startingCardsByPlayer.length; p++) {
+            const cards = Object.entries(aggregate.startingCardsByPlayer[p])
+                .sort((a, b) => b[1] - a[1])
+                .map(([card, count]) => `${card}: ${count.toLocaleString()}`)
+                .join(", ");
+            console.log(`Player ${p + 1}: ${cards}`);
+        }
+    }
+
+    console.log("\n📊 Patron Type Averages (VP per placement):");
     for (const type of PatronTypeOrder) {
-        if (typeCounts[type]) {
-            const avg = typeScores[type] / typeCounts[type];
+        if (aggregate.typeCounts[type]) {
+            const avg = aggregate.typeScores[type] / aggregate.typeCounts[type];
             console.log(`- ${type.padEnd(10)}: ${avg.toFixed(2)} VP`);
         }
     }
 
-    console.log(`\n📊 Detailed Type + Trait Averages (VP per placement):`);
-    const sortedDetailedScores = Object.keys(typeCountsDetailed).sort((a, b) => {
-        return (typeScoresDetailed[b] / typeCountsDetailed[b]) - (typeScoresDetailed[a] / typeCountsDetailed[a]);
+    console.log("\n📊 Detailed Type + Trait Averages (VP per placement):");
+    const sortedDetailedScores = Object.keys(aggregate.typeCountsDetailed).sort((a, b) => {
+        return (aggregate.typeScoresDetailed[b] / aggregate.typeCountsDetailed[b]) -
+            (aggregate.typeScoresDetailed[a] / aggregate.typeCountsDetailed[a]);
     });
     for (const key of sortedDetailedScores) {
-        if (typeCountsDetailed[key]) {
-            const avg = typeScoresDetailed[key] / typeCountsDetailed[key];
+        if (aggregate.typeCountsDetailed[key]) {
+            const avg = aggregate.typeScoresDetailed[key] / aggregate.typeCountsDetailed[key];
             console.log(`- ${key.padEnd(25)}: ${avg.toFixed(2)} VP`);
         }
     }
 
-    console.log(`\n🛍️ Top 3 Lobby Picks by Player (By Type):`);
+    console.log("\n🛍️ Top 3 Lobby Picks by Player (By Type):");
     for (let p = 0; p < config.players; p++) {
-        const sortedPicks = Object.entries(lobbyPicksByPlayer[p])
+        const sortedPicks = Object.entries(aggregate.lobbyPicksByPlayer[p])
             .sort((a, b) => b[1] - a[1])
             .slice(0, 3);
 
@@ -275,9 +222,9 @@ try {
         }
     }
 
-    console.log(`\n🛍️ Top 3 Lobby Picks by Player (Detailed):`);
+    console.log("\n🛍️ Top 3 Lobby Picks by Player (Detailed):");
     for (let p = 0; p < config.players; p++) {
-        const sortedPicks = Object.entries(lobbyPicksDetailedByPlayer[p])
+        const sortedPicks = Object.entries(aggregate.lobbyPicksDetailedByPlayer[p])
             .sort((a, b) => b[1] - a[1])
             .slice(0, 3);
 
@@ -288,9 +235,9 @@ try {
     }
 
     if (config.players === 2) {
-        console.log(`\n🗑️ Top 3 Discards by Player (By Type):`);
+        console.log("\n🗑️ Top 3 Discards by Player (By Type):");
         for (let p = 0; p < config.players; p++) {
-            const sortedDiscards = Object.entries(discardsByPlayer[p])
+            const sortedDiscards = Object.entries(aggregate.discardsByPlayer[p])
                 .sort((a, b) => b[1] - a[1])
                 .slice(0, 3);
 
@@ -300,9 +247,9 @@ try {
             }
         }
 
-        console.log(`\n🗑️ Top 3 Discards by Player (Detailed):`);
+        console.log("\n🗑️ Top 3 Discards by Player (Detailed):");
         for (let p = 0; p < config.players; p++) {
-            const sortedDiscards = Object.entries(discardsDetailedByPlayer[p])
+            const sortedDiscards = Object.entries(aggregate.discardsDetailedByPlayer[p])
                 .sort((a, b) => b[1] - a[1])
                 .slice(0, 3);
 
@@ -313,31 +260,10 @@ try {
         }
     }
 
-    console.log(`\n📈 Additional Stats:`);
+    console.log("\n📈 Additional Stats:");
     console.log(`- Global Avg Score: ${globalAvgScore.toFixed(2)} VP`);
-    console.log(`- Total Ties:       ${ties} (${((ties / config.games) * 100).toFixed(1)}%)`);
-    /**
-     * Format a duration in milliseconds into a human-friendly string.
-     * @param {number} ms
-     * @returns {string}
-     */
-    const fmtDuration = (ms) => {
-        const totalSeconds = ms / 1000;
-        if (totalSeconds < 60) {
-            return `${totalSeconds.toFixed(1)}s`;
-        }
-        const minutes = Math.floor(totalSeconds / 60);
-        const seconds = Math.floor(totalSeconds % 60);
-        if (minutes < 60) {
-            return `${minutes}m ${seconds}s`;
-        }
-        const hours = Math.floor(minutes / 60);
-        const remainMin = minutes % 60;
-        return `${hours}h ${remainMin}m ${seconds}s`;
-    };
-    console.log(
-        `- Time Elapsed:     ${fmtDuration(durationMs)} (${Math.round(config.games / (durationMs / 1000))} games/sec)`,
-    );
+    console.log(`- Total Ties:       ${aggregate.ties} (${((aggregate.ties / config.games) * 100).toFixed(1)}%)`);
+    console.log(`- Time Elapsed:     ${fmtDuration(durationMs)} (${gamesPerSecond} games/sec)`);
 
     // ── File Export ──
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
@@ -345,23 +271,28 @@ try {
     await ensureParentDir(outPath);
 
     const report = {
-        config,
+        config: {
+            ...config,
+            experiment: config.players === 2 ? SIMULATOR_EXPERIMENT : null,
+        },
         stats: {
-            wins,
-            ties,
+            wins: aggregate.wins,
+            ties: aggregate.ties,
             globalAvgScore,
             durationMs,
-            firstTurnsTotal,
+            gamesPerSecond,
+            firstTurnsTotal: aggregate.firstTurnsTotal,
         },
         aggregates: {
-            typeScores,
-            typeCounts,
-            typeScoresDetailed,
-            typeCountsDetailed,
-            lobbyPicksByPlayer,
-            lobbyPicksDetailedByPlayer,
-            discardsByPlayer,
-            discardsDetailedByPlayer,
+            typeScores: aggregate.typeScores,
+            typeCounts: aggregate.typeCounts,
+            typeScoresDetailed: aggregate.typeScoresDetailed,
+            typeCountsDetailed: aggregate.typeCountsDetailed,
+            lobbyPicksByPlayer: aggregate.lobbyPicksByPlayer,
+            lobbyPicksDetailedByPlayer: aggregate.lobbyPicksDetailedByPlayer,
+            discardsByPlayer: aggregate.discardsByPlayer,
+            discardsDetailedByPlayer: aggregate.discardsDetailedByPlayer,
+            startingCardsByPlayer: aggregate.startingCardsByPlayer,
         },
     };
 

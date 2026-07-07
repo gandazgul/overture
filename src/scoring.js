@@ -1080,13 +1080,22 @@ function isLovebirdsPaired(grid, r, c, layout) {
     const cols = layout.cols;
     let i = 0;
     while (i < cols - 1) {
-        if (layout.seatMask && !layout.seatMask[r][i]) { i++; continue; }
+        if (layout.seatMask && !layout.seatMask[r][i]) {
+            i++;
+            continue;
+        }
         if (grid[r][i]?.type === PatronType.LOVEBIRDS) {
             const next = i + 1;
-            if (layout.seatMask && !layout.seatMask[r][next]) { i++; continue; }
+            if (layout.seatMask && !layout.seatMask[r][next]) {
+                i++;
+                continue;
+            }
             const srcIsBox = hasSeatLabel(r, i, "box", layout);
             const dstIsBox = hasSeatLabel(r, next, "box", layout);
-            if (srcIsBox !== dstIsBox) { i++; continue; }
+            if (srcIsBox !== dstIsBox) {
+                i++;
+                continue;
+            }
             if (grid[r][next]?.type === PatronType.LOVEBIRDS) {
                 if (i === c || next === c) return true;
                 if (next > c) return false; // greedy passed c; (r,c) wasn't paired
