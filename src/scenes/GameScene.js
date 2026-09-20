@@ -860,7 +860,7 @@ export class GameScene extends Phaser.Scene {
                 grid,
                 this.layout,
                 tempHand,
-                {},
+                { turnsRemaining: this.totalRounds - this.round + 1, playerCount: this.playerCount },
                 opponentGrids,
             );
 
@@ -923,6 +923,7 @@ export class GameScene extends Phaser.Scene {
                 this.playerCount,
                 this.layout,
                 difficulty,
+                { turnsRemaining: this.totalRounds - this.round + 1 },
             );
 
             if (playAndDiscard) {

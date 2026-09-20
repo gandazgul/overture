@@ -1,10 +1,10 @@
 /// <reference lib="deno.ns" />
 
-import { assert, assertEquals } from "@std/assert";
-import { AIDifficulty } from "../ai.js";
+import { assert, assertEquals, assertNotEquals } from "@std/assert";
+import { AIDifficulty, pickCardAndSeat, pickDrawAction } from "../ai.js";
 import { PatronType } from "../types.js";
 import { setGlobalSeed } from "../utils.js";
-import { addGameToAggregate, createAggregate, mergeAggregate } from "./aggregate.js";
+import { addGameToAggregate, calculateFirstPlayerStats, createAggregate, mergeAggregate } from "./aggregate.js";
 import { simulateGame, SIMULATOR_EXPERIMENT, takeExactCard } from "./simulator.js";
 
 /** @typedef {import('../types.js').CardData} CardData */
@@ -70,6 +70,7 @@ Deno.test("simulateGame gives fixed 2P starting cards and then runs normal first
         playerCount: 2,
         layoutId: "grand-empress",
         aiDifficulty: AIDifficulty.HARD,
+        opening: "fixed",
     });
 
     for (const def of SIMULATOR_EXPERIMENT.fixedStartingCards) {
@@ -85,6 +86,102 @@ Deno.test("simulateGame gives fixed 2P starting cards and then runs normal first
     for (const player of result.players) {
         assertEquals(player.draws.lobby + player.draws.deck, 24);
     }
+});
+
+Deno.test("Simulator random opening and fixed turn order match live defaults for 2-4 players", () => {
+    for (const playerCount of [2, 3, 4]) {
+        const result = simulateGame({
+            playerCount,
+            layoutId: "grand-empress",
+            aiDifficulty: AIDifficulty.EASY,
+            seed: 12345,
+        });
+        assertEquals(result.experiment, null);
+        assertEquals(result.players.map((p) => p.firstTurns), [12, ...Array(playerCount - 1).fill(0)]);
+        for (const player of result.players) {
+            assertEquals(Object.values(player.typeBreakdown).reduce((n, type) => n + type.count, 0), 12);
+        }
+        const rotating = simulateGame({
+            playerCount,
+            layoutId: "grand-empress",
+            aiDifficulty: AIDifficulty.EASY,
+            seed: 12345,
+            turnOrder: "rotating",
+        });
+        assertEquals(rotating.players.map((p) => p.firstTurns), Array(playerCount).fill(12 / playerCount));
+    }
+});
+
+Deno.test("Simulator forwards epsilon and the remaining horizon to injected strategies", () => {
+    /** @type {number[]} */
+    const drawTurns = [];
+    /** @type {number[]} */
+    const playTurns = [];
+    /** @type {import('./simulator.js').AIStrategy} */
+    const strategy = {
+        pickDrawAction(...args) {
+            assertEquals(args[6]?.epsilon, 1);
+            assertEquals(args[6]?.playerCount, 2);
+            drawTurns.push(args[6]?.turnsRemaining ?? -1);
+            return pickDrawAction(...args);
+        },
+        pickCardAndSeat(...args) {
+            assertEquals(args[5]?.epsilon, 1);
+            playTurns.push(args[5]?.turnsRemaining ?? -1);
+            return pickCardAndSeat(...args);
+        },
+    };
+    const config = { playerCount: 2, layoutId: "grand-empress", aiDifficulty: AIDifficulty.HARD, seed: 12345 };
+    const random = simulateGame({ ...config, epsilon: 1, strategies: [strategy, strategy] });
+    assertEquals(playTurns, Array.from({ length: 12 }, (_, i) => [12 - i, 12 - i]).flat());
+    assert(drawTurns.includes(12) && drawTurns.includes(1));
+    const greedy = simulateGame({ ...config, epsilon: 0 });
+    assertNotEquals(random.players, greedy.players);
+    assertEquals(random.startingCards, greedy.startingCards);
+    assertEquals(simulateGame({ ...config, epsilon: 1 }), random);
+});
+
+Deno.test("Per-game seeds produce the same aggregate across worker partitions", () => {
+    const run = (/** @type {number[]} */ seeds) => {
+        const result = createAggregate(2);
+        for (const seed of seeds) {
+            addGameToAggregate(
+                result,
+                simulateGame({
+                    playerCount: 2,
+                    layoutId: "grand-empress",
+                    aiDifficulty: AIDifficulty.EASY,
+                    seed,
+                }),
+            );
+        }
+        return result;
+    };
+    assertEquals(mergeAggregate(run([2, 4]), run([1, 3])), run([1, 2, 3, 4]));
+});
+
+Deno.test("Aggregation matches live tiebreakers and separates raw VP ties", () => {
+    const start = card(PatronType.STANDARD, null);
+    const aggregate = createAggregate(2);
+    const players = [playerResult(10, start), playerResult(10, start)];
+    addGameToAggregate(aggregate, { players, startingCards: [start, start] });
+    assertEquals(aggregate.wins, [0, 1]);
+    assertEquals(aggregate.lateOrderTiebreaks, 1);
+    players[0].noisyCount = 1;
+    addGameToAggregate(aggregate, { players, startingCards: [start, start] });
+    assertEquals(aggregate.wins, [1, 1]);
+    players[0].noisyCount = 0;
+    players[0].uniqueTypesCount = 2;
+    addGameToAggregate(aggregate, { players, startingCards: [start, start] });
+    assertEquals(aggregate.wins, [1, 2]);
+    assertEquals(aggregate.lateOrderTiebreaks, 2);
+    assertEquals(aggregate.scoreTies, 3);
+    assertEquals(aggregate.ties, 0);
+    const stats = calculateFirstPlayerStats(aggregate);
+    assert(stats);
+    assertEquals(stats.scoreMarginCI95, [0, 0]);
+    assertEquals(stats.firstPlayerWinRate, 1 / 3);
+    assert(stats.winRateCI95[0] < 0.5 && stats.winRateCI95[1] > 0.5);
 });
 
 Deno.test("simulateGame keeps 3P setup to one random starting card per player", () => {

@@ -2,7 +2,12 @@
 
 import { ensureParentDir } from "../utils.js";
 import { PatronTypeOrder } from "../types.js";
-import { calculateGlobalAverageScore, createAggregate, mergeAggregate } from "./aggregate.js";
+import {
+    calculateFirstPlayerStats,
+    calculateGlobalAverageScore,
+    createAggregate,
+    mergeAggregate,
+} from "./aggregate.js";
 import { SIMULATOR_EXPERIMENT } from "./simulator.js";
 
 /** @typedef {import('./aggregate.js').SimulationAggregate} SimulationAggregate */
@@ -15,6 +20,9 @@ import { SIMULATOR_EXPERIMENT } from "./simulator.js";
  * @property {number} seed
  * @property {number} concurrency
  * @property {string} output
+ * @property {'random' | 'fixed'} opening
+ * @property {'fixed' | 'rotating'} turnOrder
+ * @property {number} epsilon
  */
 
 /**
@@ -22,6 +30,7 @@ import { SIMULATOR_EXPERIMENT } from "./simulator.js";
  * @returns {CliConfig}
  */
 function parseArgs(args) {
+    /** @type {CliConfig} */
     const config = {
         games: 1000,
         layout: "grand-empress",
@@ -29,6 +38,9 @@ function parseArgs(args) {
         seed: Date.now() >>> 0,
         concurrency: globalThis.navigator?.hardwareConcurrency || 4,
         output: "./sim-results/",
+        opening: "random",
+        turnOrder: "fixed",
+        epsilon: 0,
     };
 
     for (let i = 0; i < args.length; i++) {
@@ -37,7 +49,26 @@ function parseArgs(args) {
         if (args[i] === "--players" && args[i + 1]) config.players = parseInt(args[++i], 10);
         if (args[i] === "--seed" && args[i + 1]) config.seed = parseInt(args[++i], 10) >>> 0;
         if (args[i] === "--concurrency" && args[i + 1]) config.concurrency = parseInt(args[++i], 10);
+        if (args[i] === "--epsilon" && args[i + 1]) config.epsilon = Number(args[++i]);
+        if (args[i] === "--opening" && args[i + 1]) {
+            const value = args[++i];
+            if (value !== "random" && value !== "fixed") throw new Error("--opening must be random or fixed");
+            config.opening = value;
+        }
+        if (args[i] === "--turn-order" && args[i + 1]) {
+            const value = args[++i];
+            if (value !== "fixed" && value !== "rotating") throw new Error("--turn-order must be fixed or rotating");
+            config.turnOrder = value;
+        }
     }
+
+    if (!Number.isInteger(config.games) || config.games < 1) throw new Error("--games must be a positive integer");
+    if (!Number.isInteger(config.concurrency) || config.concurrency < 1) {
+        throw new Error("--concurrency must be a positive integer");
+    }
+    if (![2, 3, 4].includes(config.players)) throw new Error("--players must be 2, 3, or 4");
+    if (config.opening === "fixed" && config.players !== 2) throw new Error("Fixed opening requires 2 players");
+    if (!(config.epsilon >= 0 && config.epsilon <= 1)) throw new Error("--epsilon must be between 0 and 1");
 
     return config;
 }
@@ -47,7 +78,8 @@ const config = parseArgs(Deno.args);
 console.log("=========================================");
 console.log("🚀 Overture Balance Simulator");
 console.log("=========================================");
-if (config.players === 2) {
+console.log(`Opening: ${config.opening}; turn order: ${config.turnOrder}; epsilon: ${config.epsilon}`);
+if (config.opening === "fixed") {
     console.log(`Experiment: ${SIMULATOR_EXPERIMENT.description}`);
 }
 
@@ -94,6 +126,7 @@ function renderProgressBar(completed, total) {
     );
 }
 
+let gameOffset = 0;
 for (let i = 0; i < workersCount; i++) {
     const gamesForWorker = baseChunk + (remainder > 0 ? 1 : 0);
     remainder--;
@@ -121,8 +154,13 @@ for (let i = 0; i < workersCount; i++) {
             players: config.players,
             baseSeed: config.seed,
             workerId: i,
+            gameOffset,
+            opening: config.opening,
+            turnOrder: config.turnOrder,
+            epsilon: config.epsilon,
         });
     });
+    gameOffset += gamesForWorker;
     workerPromises.push(promise);
 }
 
@@ -179,8 +217,8 @@ try {
     clearProgressBar();
     console.table(summary);
 
-    if (config.players === 2) {
-        console.log("\n🎭 Hardcoded Starting Cards:");
+    if (config.opening === "fixed") {
+        console.log("\nFixed Starting Cards:");
         for (let p = 0; p < aggregate.startingCardsByPlayer.length; p++) {
             const cards = Object.entries(aggregate.startingCardsByPlayer[p])
                 .sort((a, b) => b[1] - a[1])
@@ -263,6 +301,20 @@ try {
     console.log("\n📈 Additional Stats:");
     console.log(`- Global Avg Score: ${globalAvgScore.toFixed(2)} VP`);
     console.log(`- Total Ties:       ${aggregate.ties} (${((aggregate.ties / config.games) * 100).toFixed(1)}%)`);
+    const firstPlayerStats = calculateFirstPlayerStats(aggregate);
+    if (firstPlayerStats) {
+        console.log(
+            `- P1 - P2 VP:       ${firstPlayerStats.meanScoreMargin.toFixed(2)} (95% CI: ${
+                firstPlayerStats.scoreMarginCI95.map((x) => x.toFixed(2)).join(" to ")
+            })`,
+        );
+        console.log(
+            `- P1 win rate CI:   ${firstPlayerStats.winRateCI95.map((x) => `${(x * 100).toFixed(2)}%`).join(" to ")}`,
+        );
+        console.log(
+            `- VP ties:          ${aggregate.scoreTies}; later-player tiebreaks: ${aggregate.lateOrderTiebreaks}`,
+        );
+    }
     console.log(`- Time Elapsed:     ${fmtDuration(durationMs)} (${gamesPerSecond} games/sec)`);
 
     // ── File Export ──
@@ -273,7 +325,7 @@ try {
     const report = {
         config: {
             ...config,
-            experiment: config.players === 2 ? SIMULATOR_EXPERIMENT : null,
+            experiment: config.opening === "fixed" ? SIMULATOR_EXPERIMENT : null,
         },
         stats: {
             wins: aggregate.wins,
@@ -282,6 +334,9 @@ try {
             durationMs,
             gamesPerSecond,
             firstTurnsTotal: aggregate.firstTurnsTotal,
+            firstPlayerStats,
+            scoreTies: aggregate.scoreTies,
+            lateOrderTiebreaks: aggregate.lateOrderTiebreaks,
         },
         aggregates: {
             typeScores: aggregate.typeScores,

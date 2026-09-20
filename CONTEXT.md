@@ -91,6 +91,7 @@
 - **Two-phase scoring:** Phase 1 = primary type scoring, Phase 2 = trait scoring, Phase 3 = cross-type modifiers (Tall behind penalty, Noisy adjacency), Phase 4 = house rule bonuses.
 - **`scoreSeatBreakdown()`** returns `{ base, total, modifiers[] }` where each modifier has `{ label, value, applied, reason? }`.
 - **`hasSeatLabel(row, col, label, layout)`** is the universal checker for seat properties (front, back, aisle, box).
+- **Winner resolution** — `src/winner.js` is shared by EndGameScene and both simulators. Live 2P uses VP, most Noisy, then later original player; 3P/4P retain diversity before original order. Experiment override `diversity-later` restores the historical 2P rule. The end-game trophy follows the resolved winner, not everyone tied on VP.
 
 ### State Management
 
@@ -100,9 +101,13 @@
 
 ### AI Architecture
 
-- **Three difficulty levels:** `AIDifficulty.EASY` (random), `MEDIUM` (greedy max VP), `HARD` (greedy + positional heuristics + jitter).
-- **Simulated evaluation** — AI uses `cloneGrid()` + `scorePlayer()` to evaluate every possible placement without mutating game state.
+- **Three difficulty levels:** epsilon-greedy `EASY` (75% random decisions), `MEDIUM` (20%), and `HARD` (0%). Hard evaluates every first seat with one-card lookahead and fixed combo estimates; it is not a perfect-play solver.
+- **Simulated evaluation** — Per-decision caches reuse immediate and two-card scores in both placement orders. Temporary placements are restored. Layouts without house rules use `scoreSeatDelta`; house-rule layouts use full `scorePlayer` evaluation.
+- **Endgame horizon** — `AIConfig.turnsRemaining` includes this turn; the live scene and simulator supply it. Final placement evaluation uses actual VP without future heuristics.
 - **Two-phase AI turn:** First determine draw action (`pickDrawAction`), then placement/discard (`pickCardAndSeat`), executed sequentially with animated delays.
+- **Simulator experiments** — Random openings and fixed turn order match live defaults. Optional fixed Patron/Friends openings and rotating starters are compensation experiments. Per-game seeds are independent of worker count; optional per-player strategy injection keeps candidate AI out of the live game. See `docs/AI_EXPERIMENTS.md`.
+- **Paired experiment runner** — `src/simulator/experiment-cli.js` freezes source snapshots, swaps candidate/baseline positions for each seed, and calculates uncertainty over seed pairs. Separate self-play runs test prespecified practical balance bounds. Candidate-only `potentialScale`/`futureWeight` overrides do not change live defaults (1/0.8).
+- **Promoted Hard (2026-09-20)** — Live 2P Hard now draws blind first with a one-card hand and at least two deck cards, deferring the Lobby decision. GameScene and simulator pass explicit `AIConfig.playerCount`; 3P/4P and easier difficulties are unchanged. `blindFirst: false` disables this behavior for controlled experiments. Frozen pre-promotion policies still require the runner's wrapper to reproduce it. Fixed turn order is unchanged. The user subsequently approved the 2P Noisy-then-later tiebreak after fresh 100K confirmation (P1 49.795%, 95% CI 49.485-50.105%). See `docs/AI_EXPERIMENT_RESULTS.md` and `docs/AI_BALANCE_NEXT.md`.
 
 ### Error Handling
 
@@ -121,6 +126,7 @@
 - **GitHub Actions:** lint → format check → type check → test → (on push to main) build + deploy to GitHub Pages + build Docker image → (on v* tag) release to Itch.io via Butler.
 - **Docker:** Multi-stage `Containerfile` — Debian builder for `deno task build`, then distroless CC runtime.
 - **Release tags:** `vYYYY.M.D.N` format pushed to origin.
+- **Rulebook publishing:** `public/RULE_BOOK.md` generates `rules.html` during builds. The itch.io description links to GitHub Pages, so no separate rulebook upload is needed. See `docs/RELEASING.md`.
 
 ### Debug Shortcuts (all scenes)
 

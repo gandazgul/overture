@@ -1,15 +1,14 @@
 /// <reference lib="deno.worker" />
 
-import { setGlobalSeed } from "../utils.js";
 import { AIDifficulty } from "../ai.js";
 import { addGameToAggregate, createAggregate } from "./aggregate.js";
 import { simulateGame } from "./simulator.js";
 
 self.onmessage = (e) => {
-    const data = /** @type {{ games: number, layout: string, players: number, baseSeed: number, workerId: number }} */
+    const data = /** @type {{ games: number, layout: string, players: number, baseSeed: number, workerId: number,
+         * gameOffset: number, opening: 'random' | 'fixed', turnOrder: 'fixed' | 'rotating', epsilon: number }} */
         (e.data);
     const { games, layout, players, baseSeed, workerId } = data;
-    setGlobalSeed(baseSeed + workerId);
 
     const aggregate = createAggregate(players);
     const progressInterval = Math.max(1, Math.min(1000, Math.ceil(games / 10)));
@@ -20,6 +19,10 @@ self.onmessage = (e) => {
             playerCount: players,
             layoutId: layout,
             aiDifficulty: AIDifficulty.HARD,
+            seed: (baseSeed + data.gameOffset + i) >>> 0,
+            opening: data.opening,
+            turnOrder: data.turnOrder,
+            epsilon: data.epsilon,
         });
         addGameToAggregate(aggregate, result);
 

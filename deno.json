@@ -32,6 +32,7 @@
     },
     "exclude": [
         "dist/",
+        "sim-results/",
         "node_modules/",
         "vite.config.js",
         ".idea/",

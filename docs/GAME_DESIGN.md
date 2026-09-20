@@ -659,6 +659,11 @@ referenced by specific Plays.
 
 ## End of Game
 
+This section describes earlier design ideas, not the shipped rules. The current
+game ends after round 12. See the [live rulebook](../public/RULE_BOOK.md#end-of-game):
+2P uses VP, most Noisy, then later original player; 3P/4P retain diversity before
+the final original-order tiebreak. There are no shared victories in the live game.
+
 1. The game ends immediately when the last card is drawn from the patron deck
    (and the Lobby is empty, if applicable).
 2. Each player scores their theater grid:

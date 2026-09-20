@@ -3,13 +3,13 @@
  * AI PLAYER - Pure decision logic, no Phaser dependency
  * ========================================================================
  * Provides seat-selection strategies using Epsilon-Greedy Lookahead.
- * The AI "discovers" optimal plays by temporarily placing cards on the grid
- * and evaluating the actual scoring engine, looking one turn ahead.
+ * The AI ranks plays using the scoring engine and one-card lookahead.
+ * Heuristic potential estimates are not a guarantee of optimal play.
  *
  * Difficulty is determined by the Epsilon (ε) exploration rate:
  *   - easy:   ε = 0.75 (Mostly random placements)
  *   - medium: ε = 0.20 (Greedy with occasional mistakes)
- *   - hard:   ε = 0.00 (Pure tactician, always maximizes Lookahead VP)
+ *   - hard:   ε = 0.00 (Deterministic heuristic search over every seat)
  * ========================================================================
  */
 
@@ -19,6 +19,16 @@ import { random, randomInt } from "./utils.js";
 
 /** @typedef {import('./types.js').CardData} CardData */
 /** @typedef {import('./types.js').LayoutMeta} LayoutMeta */
+/**
+ * @typedef {Object} AIConfig
+ * @property {number} [epsilon]
+ * @property {number} [playerCount] Required to enable the 2P blind-first draw policy.
+ * @property {boolean} [blindFirst] Defaults to true for 2P Hard; false restores the pre-promotion draw policy.
+ * @property {number} [turnsRemaining] Placements left, including this turn.
+ * @property {number} [potentialScale] Experimental combo bonus multiplier; live default 1.
+ * @property {number} [futureWeight] Experimental next-placement weight; live default 0.8.
+ */
+/** @typedef {{row: number, col: number, score: number, bestFutureCard?: CardData}} SeatScore */
 
 /**
  * AI difficulty levels.
@@ -94,8 +104,7 @@ export function evaluateSeat(grid, card, row, col, layout) {
 }
 
 /**
- * Expected Value (EV) potential of a card beyond its immediate placement score.
- * Represents the likelihood of completing its combo in future turns.
+ * Fixed heuristic potential beyond immediate scoring, not a calibrated EV.
  * @param {CardData} cardData
  * @param {string} difficulty
  * @returns {number}
@@ -154,138 +163,135 @@ function getSeatPreferenceBonus(card, row, col, layout, difficulty) {
 }
 
 /**
- * @param {{row: number, col: number}[]} sortedSeats
- * @param {number} topK
- * @param {CardData} card
- * @param {LayoutMeta} layout
- * @returns {Set<number>}
- */
-function getLookaheadCandidateIndexes(sortedSeats, topK, card, layout) {
-    /** @type {Set<number>} */
-    const indexes = new Set();
-    for (let i = 0; i < sortedSeats.length && i < topK; i++) {
-        indexes.add(i);
-    }
-    for (let i = 0; i < sortedSeats.length; i++) {
-        const seat = sortedSeats[i];
-        if (seatMatchesCardPreference(card, seat.row, seat.col, layout)) {
-            indexes.add(i);
-        }
-    }
-    return indexes;
-}
-
-/**
- * Score every empty seat for a card placement, looking one turn ahead to measure
- * synergistic potential with the remaining hand. Uses Top-K pruning for performance.
+ * Cache only within a decision: the underlying board must remain unchanged.
+ * Two placements have the same final score in either order, so one pair scan
+ * supplies both directions of lookahead, including duplicate card types.
  *
  * @param {(CardData | null)[][]} grid
- * @param {CardData} card
  * @param {LayoutMeta} layout
- * @param {CardData[]} lookaheadCards - Cards currently in hand/lobby to evaluate setup
- *     potential. May include `card` itself; the inner loop skips it by identity, so
- *     callers can pass the full hand without allocating a "rest of hand" array.
- * @param {string} [difficulty=AIDifficulty.MEDIUM] - Used to dynamically scale the pruning factor
- * @returns {{row: number, col: number, score: number, bestFutureCard?: CardData}[]} Sorted descending by score
+ * @param {string} difficulty
+ * @param {AIConfig} config
+ * @returns {(card: CardData, hand?: CardData[]) => SeatScore[]}
  */
-export function scoreAllSeats(grid, card, layout, lookaheadCards = [], difficulty = AIDifficulty.MEDIUM) {
+function createSeatSearch(grid, layout, difficulty, config) {
     const empty = getEmptySeats(grid, layout);
-
-    // Delta scoring is correct only for layouts without a house rule (the
-    // simulator always uses Grand Empress, which qualifies). For layouts with a
-    // house rule, fall back to the full scorePlayer baseline + diff approach.
+    const potentialScale = config.potentialScale ?? 1;
+    const futureWeight = config.futureWeight ?? 0.8;
+    const terminal = (config.turnsRemaining ?? Infinity) <= 1 || empty.length <= 1;
     const useDelta = !layout.houseRule;
     const currentScore = useDelta ? 0 : scorePlayer(grid, layout).total;
+    /** @type {Map<string, number[]>} */
+    const immediateCache = new Map();
+    /** @type {Map<string, number[]>} */
+    const pairCache = new Map();
+    const key = (/** @type {CardData} */ card) => `${card.type}|${card.trait ?? ""}`;
 
-    // 1. Calculate IMMEDIATE scores for all empty seats
-    const baseResults = [];
-    for (let e = 0; e < empty.length; e++) {
-        const { row, col } = empty[e];
-        let immediateDelta;
-        if (useDelta) {
-            immediateDelta = scoreSeatDelta(grid, layout, row, col, card);
-        } else {
+    const immediate = (/** @type {CardData} */ card) => {
+        const cached = immediateCache.get(key(card));
+        if (cached) return cached;
+        const values = empty.map(({ row, col }) => {
+            if (useDelta) return scoreSeatDelta(grid, layout, row, col, card);
             grid[row][col] = card;
-            const newScore = scorePlayer(grid, layout).total;
-            grid[row][col] = null;
-            immediateDelta = newScore - currentScore;
-        }
-        baseResults.push({
-            row,
-            col,
-            emptyIdx: e,
-            immediateDelta,
-            /** @type {CardData | undefined} */
-            bestFutureCard: undefined,
+            try {
+                return scorePlayer(grid, layout).total - currentScore;
+            } finally {
+                grid[row][col] = null;
+            }
         });
-    }
+        immediateCache.set(key(card), values);
+        return values;
+    };
 
-    // Sort by immediate score descending
-    baseResults.sort((a, b) => b.immediateDelta - a.immediateDelta);
-
-    // 2. Lookahead Pruning: calculate deep future synergies for the Top K
-    // immediate moves plus all strategic seats matching this card's category
-    // (VIP front, Critic aisle, Lovebirds back, Short front). This keeps the
-    // search bounded while preventing grid-order ties from pruning the seats a
-    // card actually wants.
-    const TOP_K = difficulty === AIDifficulty.HARD ? 12 : 4;
-    const lookaheadCandidateIndexes = getLookaheadCandidateIndexes(baseResults, TOP_K, card, layout);
-    const results = [];
-
-    for (let i = 0; i < baseResults.length; i++) {
-        const candidate = baseResults[i];
-        let lookaheadDelta = 0;
-
-        // Only do the heavy math if we have lookahead cards AND it's a selected candidate.
-        if (lookaheadCards.length > 0 && lookaheadCandidateIndexes.has(i)) {
-            grid[candidate.row][candidate.col] = card; // Apply base placement
-            let bestFuture = 0;
-            let bestFutureCard = undefined;
-
-            for (let f = 0; f < lookaheadCards.length; f++) {
-                const futureCard = lookaheadCards[f];
-                if (futureCard === card) continue; // skip the just-placed card
-                for (let s = 0; s < empty.length; s++) {
-                    if (s === candidate.emptyIdx) continue; // skip the seat we just filled
-                    const fSeat = empty[s];
-                    let fDelta;
+    const future = (/** @type {CardData} */ card, /** @type {CardData} */ next) => {
+        const pairKey = `${key(card)}>${key(next)}`;
+        const cached = pairCache.get(pairKey);
+        if (cached) return cached;
+        const first = immediate(card);
+        const second = immediate(next);
+        const forward = empty.map(() => -Infinity);
+        const reverse = empty.map(() => -Infinity);
+        for (let i = 0; i < empty.length; i++) {
+            const seat = empty[i];
+            grid[seat.row][seat.col] = card;
+            try {
+                for (let j = 0; j < empty.length; j++) {
+                    if (i === j) continue;
+                    const other = empty[j];
+                    let joint;
                     if (useDelta) {
-                        // Delta on top of the (grid + base placement) state — exactly
-                        // scorePlayer(grid+card+futureCard) - scorePlayer(grid+card).
-                        fDelta = scoreSeatDelta(grid, layout, fSeat.row, fSeat.col, futureCard);
+                        joint = first[i] + scoreSeatDelta(grid, layout, other.row, other.col, next);
                     } else {
-                        grid[fSeat.row][fSeat.col] = futureCard;
-                        const futureScore = scorePlayer(grid, layout).total;
-                        grid[fSeat.row][fSeat.col] = null;
-                        fDelta = futureScore - (currentScore + candidate.immediateDelta);
+                        grid[other.row][other.col] = next;
+                        try {
+                            joint = scorePlayer(grid, layout).total - currentScore;
+                        } finally {
+                            grid[other.row][other.col] = null;
+                        }
                     }
-                    const heuristicDelta = fDelta + getCardPotential(futureCard, difficulty);
+                    forward[i] = Math.max(forward[i], joint - first[i]);
+                    reverse[j] = Math.max(reverse[j], joint - second[j]);
+                }
+            } finally {
+                grid[seat.row][seat.col] = null;
+            }
+        }
+        pairCache.set(pairKey, forward);
+        pairCache.set(`${key(next)}>${key(card)}`, reverse);
+        return forward;
+    };
 
-                    if (heuristicDelta > bestFuture) {
-                        bestFuture = heuristicDelta;
-                        bestFutureCard = futureCard;
+    return (card, hand = []) => {
+        const values = immediate(card);
+        const ordered = empty.map((seat, i) => ({ ...seat, i })).sort((a, b) => values[b.i] - values[a.i]);
+        const futures = terminal ? [] : hand.filter((next) => next !== card).map((next) => ({
+            card: next,
+            values: future(card, next),
+            potential: (config.turnsRemaining ?? Infinity) <= 2
+                ? 0
+                : potentialScale * getCardPotential(next, difficulty),
+        }));
+        const results = ordered.map((seat, rank) => {
+            let best = 0;
+            /** @type {CardData | undefined} */
+            let bestFutureCard;
+            if (
+                difficulty === AIDifficulty.HARD || rank < 4 ||
+                seatMatchesCardPreference(card, seat.row, seat.col, layout)
+            ) {
+                for (const next of futures) {
+                    const value = next.values[seat.i] + next.potential;
+                    if (value > best) {
+                        best = value;
+                        bestFutureCard = next.card;
                     }
                 }
             }
-            grid[candidate.row][candidate.col] = null; // Revert base placement
-
-            // Weight future potential at 80% to prioritize immediate guaranteed points
-            lookaheadDelta = bestFuture * 0.8;
-            candidate.bestFutureCard = bestFutureCard;
-        }
-
-        results.push({
-            row: candidate.row,
-            col: candidate.col,
-            score: candidate.immediateDelta + getCardPotential(card, difficulty) + lookaheadDelta +
-                getSeatPreferenceBonus(card, candidate.row, candidate.col, layout, difficulty),
-            bestFutureCard: candidate.bestFutureCard,
+            return {
+                row: seat.row,
+                col: seat.col,
+                score: values[seat.i] +
+                    (terminal ? 0 : potentialScale * getCardPotential(card, difficulty) + best * futureWeight +
+                        getSeatPreferenceBonus(card, seat.row, seat.col, layout, difficulty)),
+                bestFutureCard,
+            };
         });
-    }
+        return results.sort((a, b) => b.score - a.score);
+    };
+}
 
-    // Final sort incorporating lookahead bonuses
-    results.sort((a, b) => b.score - a.score);
-    return results;
+/**
+ * Rank placements with one-card lookahead. Hard examines every first seat;
+ * easier levels retain selective lookahead. Scores are heuristic, not exact EV.
+ * @param {(CardData | null)[][]} grid
+ * @param {CardData} card
+ * @param {LayoutMeta} layout
+ * @param {CardData[]} lookaheadCards
+ * @param {string} difficulty
+ * @param {AIConfig} config
+ * @returns {SeatScore[]}
+ */
+export function scoreAllSeats(grid, card, layout, lookaheadCards = [], difficulty = AIDifficulty.MEDIUM, config = {}) {
+    return createSeatSearch(grid, layout, difficulty, config)(card, lookaheadCards);
 }
 
 // ── Drawing Logic ──────────────────────────────────────────────────────────
@@ -355,21 +361,19 @@ function buildRemainingPool(seen) {
  * Best achievable play score given a hand on a grid, with one-turn lookahead.
  * Iterates each card as the "played" card and uses the others as synergy lookahead.
  *
- * @param {(CardData | null)[][]} grid
  * @param {CardData[]} hand
- * @param {LayoutMeta} layout
- * @param {string} difficulty
+ * @param {(card: CardData, hand?: CardData[]) => SeatScore[]} search
  * @returns {number}
  */
-function bestPlayWithHand(grid, hand, layout, difficulty) {
-    let best = 0;
+function bestPlayWithHand(hand, search) {
+    let best = -Infinity;
     for (let i = 0; i < hand.length; i++) {
         // scoreAllSeats skips hand[i] in its lookahead by identity, so passing
         // the full hand avoids allocating a "rest of hand" array per iteration.
-        const s = scoreAllSeats(grid, hand[i], layout, hand, difficulty);
+        const s = search(hand[i], hand);
         if (s.length > 0 && s[0].score > best) best = s[0].score;
     }
-    return best;
+    return best === -Infinity ? 0 : best;
 }
 
 /**
@@ -387,6 +391,7 @@ function bestPlayWithHand(grid, hand, layout, difficulty) {
  * @param {LayoutMeta} layout
  * @param {CardData[]} currentHand
  * @param {(CardData | null)[][][]} opponentGrids
+ * @param {AIConfig} config
  * @returns {{source: 'lobby' | 'deck', index?: number} | null}
  */
 function pickDrawActionHard(
@@ -399,8 +404,10 @@ function pickDrawActionHard(
     layout,
     currentHand,
     opponentGrids,
+    config,
 ) {
     const diff = AIDifficulty.HARD;
+    const search = createSeatSearch(grid, layout, diff, config);
 
     // 1. Deck EV from remaining composition (with hand-synergy lookahead)
     let deckEV = 0;
@@ -411,7 +418,7 @@ function pickDrawActionHard(
         let weight = 0;
         for (const { card, count } of remaining) {
             const combined = [card, ...currentHand];
-            sum += bestPlayWithHand(grid, combined, layout, diff) * count;
+            sum += bestPlayWithHand(combined, search) * count;
             weight += count;
         }
         deckEV = weight > 0 ? sum / weight : 0;
@@ -432,6 +439,7 @@ function pickDrawActionHard(
 
     for (let o = 0; o < oppCount; o++) {
         const og = opponentGrids[o];
+        const opponentSearch = createSeatSearch(og, layout, diff, config);
 
         // Opp deck EV on their grid (no hand context — public info only)
         const seen = countVisibleCards(og, [grid], lobby, []);
@@ -439,7 +447,7 @@ function pickDrawActionHard(
         let sum = 0;
         let weight = 0;
         for (const { card, count } of remaining) {
-            const s = scoreAllSeats(og, card, layout, [], diff);
+            const s = opponentSearch(card);
             sum += (s.length > 0 ? s[0].score : 0) * count;
             weight += count;
         }
@@ -449,7 +457,7 @@ function pickDrawActionHard(
         /** @type {number[]} */
         const scores = new Array(lobby.length);
         for (let l = 0; l < lobby.length; l++) {
-            const s = scoreAllSeats(og, lobby[l], layout, [], diff);
+            const s = opponentSearch(lobby[l]);
             scores[l] = s.length > 0 ? s[0].score : 0;
         }
         lobbyScoresByOpp[o] = scores;
@@ -493,7 +501,7 @@ function pickDrawActionHard(
         for (let i = 0; i < availableLobby.length; i++) {
             const L = availableLobby[i];
             const combined = [L, ...currentHand];
-            const myGain = bestPlayWithHand(grid, combined, layout, diff);
+            const myGain = bestPlayWithHand(combined, search);
 
             const myAbsoluteIdx = lobbyStartIndex + i;
             // Pool = entire lobby except the card we picked (opp could still take the
@@ -523,7 +531,7 @@ function pickDrawActionHard(
  * @param {(CardData | null)[][]} grid
  * @param {LayoutMeta} layout
  * @param {CardData[]} currentHand - Used to evaluate synergy with the lobby card
- * @param {{ epsilon?: number }} config
+ * @param {AIConfig} config
  * @param {(CardData | null)[][][]} opponentGrids - Other players' grids (public info)
  * @returns {{source: 'lobby' | 'deck', index?: number} | null} Action to take
  */
@@ -544,6 +552,7 @@ export function pickDrawAction(
     const epsilon = config.epsilon ?? getEpsilon(difficulty);
 
     if (!hasLobby && !hasDeck) return null;
+    if (!hasLobby) return { source: "deck" };
 
     // Explore (Random)
     if (random() < epsilon) {
@@ -563,6 +572,11 @@ export function pickDrawAction(
 
     // HARD AI: deck-composition-aware EV + marginal opponent opportunity cost
     if (difficulty === AIDifficulty.HARD) {
+        // Preserve the Lobby choice until a blind card is known. With one deck
+        // card left, exhaustion changes draw legality, so use normal evaluation.
+        if (config.playerCount === 2 && config.blindFirst !== false && deckSize >= 2 && currentHand.length === 1) {
+            return { source: "deck" };
+        }
         return pickDrawActionHard(
             lobby,
             availableLobby,
@@ -573,11 +587,13 @@ export function pickDrawAction(
             layout,
             currentHand,
             opponentGrids,
+            config,
         );
     }
 
     // MEDIUM (and EASY when exploit fires): hand-aware threshold with magic +2.5 deckEV
     if (hasLobby) {
+        const search = createSeatSearch(grid, layout, difficulty, config);
         let bestScore = -Infinity;
         let bestIdx = -1;
 
@@ -586,7 +602,7 @@ export function pickDrawAction(
         let deckBaseScore = 0;
         if (currentHand.length > 0) {
             for (let i = 0; i < currentHand.length; i++) {
-                const s = scoreAllSeats(grid, currentHand[i], layout, currentHand, difficulty);
+                const s = search(currentHand[i], currentHand);
                 if (s.length > 0 && s[0].score > deckBaseScore) {
                     deckBaseScore = s[0].score;
                 }
@@ -602,7 +618,7 @@ export function pickDrawAction(
             // Best move available if we add this lobby card to our hand
             let maxCombinedScore = 0;
             for (let j = 0; j < combinedHand.length; j++) {
-                const s = scoreAllSeats(grid, combinedHand[j], layout, combinedHand, difficulty);
+                const s = search(combinedHand[j], combinedHand);
                 if (s.length > 0 && s[0].score > maxCombinedScore) {
                     maxCombinedScore = s[0].score;
                 }
@@ -629,7 +645,7 @@ export function pickDrawAction(
  * @param {CardData} card
  * @param {LayoutMeta} layout
  * @param {string} difficulty
- * @param {{ epsilon?: number }} config
+ * @param {AIConfig} config
  * @returns {{row: number, col: number} | null}
  */
 export function pickSeat(grid, card, layout, difficulty, config = {}) {
@@ -642,7 +658,7 @@ export function pickSeat(grid, card, layout, difficulty, config = {}) {
         return empty[randomInt(empty.length - 1)];
     }
 
-    const scored = scoreAllSeats(grid, card, layout, [], difficulty);
+    const scored = scoreAllSeats(grid, card, layout, [], difficulty, config);
     return scored.length > 0 ? { row: scored[0].row, col: scored[0].col } : null;
 }
 
@@ -654,7 +670,7 @@ export function pickSeat(grid, card, layout, difficulty, config = {}) {
  * @param {number} playerCount
  * @param {LayoutMeta} layout
  * @param {string} difficulty
- * @param {{ epsilon?: number }} config
+ * @param {AIConfig} config
  * @returns {{play: {cardData: CardData, row: number, col: number}, discard?: {cardData: CardData}} | null}
  */
 export function pickCardAndSeat(grid, hand, playerCount, layout, difficulty, config = {}) {
@@ -682,7 +698,7 @@ export function pickCardAndSeat(grid, hand, playerCount, layout, difficulty, con
         /** @type {{play: {cardData: CardData, row: number, col: number}, discard?: {cardData: CardData}}} */
         const result = { play: { cardData: playCard, row: seat.row, col: seat.col } };
 
-        if (playerCount === 2 && hand.length > 1) {
+        if (playerCount === 2 && hand.length > 2) {
             let discardIdx = randomInt(hand.length - 1);
             while (discardIdx === randomCardIdx) {
                 discardIdx = randomInt(hand.length - 1);
@@ -698,11 +714,12 @@ export function pickCardAndSeat(grid, hand, playerCount, layout, difficulty, con
 
     // Evaluate pairs of (Play, Keep) if we have to discard
     const mustDiscardCount = Math.max(0, hand.length - 2);
+    const search = createSeatSearch(grid, layout, difficulty, config);
 
     if (playerCount === 2 && mustDiscardCount > 0) {
         for (let playIdx = 0; playIdx < hand.length; playIdx++) {
             const playCard = hand[playIdx];
-            const scoredSeats = scoreAllSeats(grid, playCard, layout, hand, difficulty);
+            const scoredSeats = search(playCard, hand);
 
             if (scoredSeats.length > 0) {
                 const bestSeat = scoredSeats[0];
@@ -732,7 +749,7 @@ export function pickCardAndSeat(grid, hand, playerCount, layout, difficulty, con
         // Normal lookahead without discarding
         for (let i = 0; i < hand.length; i++) {
             const card = hand[i];
-            const scoredSeats = scoreAllSeats(grid, card, layout, hand, difficulty);
+            const scoredSeats = search(card, hand);
 
             if (scoredSeats.length > 0) {
                 candidates.push({

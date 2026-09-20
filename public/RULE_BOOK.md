@@ -30,7 +30,7 @@ You are a 1920s theater usher. Each player has their own theater grid — a seat
 
 Different patron types score points in different ways — VIPs want front-row seats, Critics crave the aisle, and Lovebirds need to sit together. On top of that, patrons can have secondary traits like Tall or Noisy that affect their neighbors.
 
-The player with the **highest total VP** when the deck runs out wins.
+The player with the **highest total VP** after round 12 wins, with tiebreakers described below.
 
 ---
 
@@ -38,8 +38,8 @@ The player with the **highest total VP** when the deck runs out wins.
 
 1. **Choose Players** — 2–4 players. Each can be human or AI (Easy, Medium, or Hard).
 2. **Select a Theater** — All players share the same theater layout. Pick one or randomize it.
-3. **Deal Hands** — Each player is dealt 3 cards from the shuffled 56-card patron deck.
-4. **Play 12 Rounds** — Players take turns placing one card per round.
+3. **Deal Hands and Lobby** — Each player is dealt **1 card** from the shuffled 56-card patron deck. In a 3-player game, remove one additional card face down for the ghost player. Then reveal 3 cards for the Lobby.
+4. **Play 12 Rounds** — Players take turns placing one card per round, in the same player order every round. In a 3-player game, remove one card from the deck after each round if any remain, simulating a fourth player's draw.
 5. **Score** — After round 12, tally VP for every patron in your theater. Highest score wins!
 
 <p align="center">
@@ -53,7 +53,7 @@ The player with the **highest total VP** when the deck runs out wins.
 
 Each player starts the game with **1 card** in hand. On your turn:
 
-1. **Draw** — You may either:
+1. **Draw** — Refill your hand to **2 cards** (or **3 cards in a 2-player game**), when possible. For each draw, you may either:
    - Pick one of the available cards from the **Lobby** (the shared market).
    - Click the **Deck** to draw a card blindly.
    - If neither the Deck nor Lobby has drawable cards left, skip drawing.
@@ -75,9 +75,9 @@ The Lobby is a shared market of 3 face-up cards.
 
 In a 2-player game the draw-and-discard rhythm changes:
 
-1. **Draw 2** cards instead of 1, when possible. **At most one** of those draws may come from the Lobby — the other card must come from the Deck. You can choose where to draw from first.
+1. **Draw 2** cards instead of 1, when possible, to refill your hand to 3 cards. While the Deck has cards, **at most one** draw may come from the Lobby. You can choose where to draw from first. Once the Deck is empty, you may take additional remaining Lobby cards, including slot 0.
 2. **Place** one card into your theater.
-3. **Discard** one of the remaining cards (it's removed from the game), if you still have extra cards.
+3. **Discard** one of the remaining cards face down (it's removed from the game), only if you have **more than 1 card** left after placing.
 
 You still normally end your turn with 1 card in hand.
 
@@ -97,6 +97,8 @@ Key seat types:
 - **Back Row** — The farthest row. Paired Lovebirds get a bonus here.
 - **Aisle Seats** — Seats on the edges (marked with gold borders). Critics score bonus VP here.
 - **Royal Box** — Special isolated seats in some theaters (marked with a crown). Count as both aisle and front row, but are **not adjacent** to regular seats.
+
+Seat labels depend on the selected theater. On staggered layouts, adjacency can include offset seats in neighboring rows. Empty stage cells and layout breaks can remove connections.
 
 ---
 
@@ -123,7 +125,7 @@ The backbone of your theater. Drop them wherever you have a hole. They won't imp
 <img src="./assets/patron_vip.png" alt="VIP" width="80" align="left" style="margin-right:16px" />
 
 **3 VP** base.<br>
-**+2 VP** if seated in a **front row** (first 2 rows).<br>
+**+2 VP** if seated in a seat labeled **front** (the first 2 rows in The Grand Empress).<br>
 **−2 VP** per adjacent **Kid**.<br>
 **−2 VP** per adjacent **Noisy** patron.
 
@@ -154,7 +156,7 @@ Pairs only! Two adjacent Lovebirds = 4 VP each. Three in a row? The first two pa
 **1 VP** uncapped.<br>
 **4 VP** when **capped** by Teachers.
 
-A Kid is capped when a contiguous horizontal group of Kids has a **Teacher on both ends** (e.g., Teacher–Kid–Kid–Teacher). Uncapped Kids are nearly worthless. Cap them for big points!
+A Kid is capped when a contiguous **horizontal or vertical** group of Kids has a **Teacher on both ends** (e.g., Teacher–Kid–Kid–Teacher). Vertical chains must stay in one column and cannot cross a layout adjacency break; offset staggered neighbors do not form a capping chain. A Kid capped in both directions still scores 4 VP, not 8. The Dinner Playhouse uses its table-specific rule instead.
 
 <br clear="all" />
 
@@ -165,9 +167,9 @@ A Kid is capped when a contiguous horizontal group of Kids has a **Teacher on bo
 <img src="./assets/patron_teacher.png" alt="Teacher" width="80" align="left" style="margin-right:16px" />
 
 **3 VP** base.<br>
-**+1 VP** per adjacent **capped Kid**.
+**+1 VP** per **Kid this Teacher caps**.
 
-Teachers are useful solo (3 VP), but shine when capping Kids. A Teacher flanking two capped Kids earns 5 VP (3 base + 1 + 1). Build Teacher–Kid–Teacher chains for maximum value.
+Each Teacher at the end of a capped chain earns +1 VP for every Kid in that chain, even Kids not directly adjacent to that Teacher. In Teacher–Kid–Kid–Teacher, each Teacher scores 5 VP. A Teacher merely adjacent to someone else's capped Kid gets no bonus. Count each Kid once per Teacher, even when multiple capping relationships apply.
 
 <br clear="all" />
 
@@ -210,7 +212,7 @@ About 43% of cards have a **secondary trait** on top of their primary type. Trai
 
 <img src="./assets/badge_tall.png" alt="Tall badge" width="48" align="left" style="margin-right:12px" />
 
-The patron seated **directly behind** this card gets **−2 VP**.
+Each non-Short patron whose front-neighbor seats include this Tall card gets **−2 VP**. On a regular grid this is the patron directly behind; staggered layouts can have offset seats behind. A patron behind multiple Tall cards loses 2 VP per Tall card.
 
 The Tall patron itself is unaffected. Place them in the **back row** where no one sits behind them to avoid the penalty.
 
@@ -222,8 +224,8 @@ The Tall patron itself is unaffected. Place them in the **back row** where no on
 
 <img src="./assets/badge_short.png" alt="Short badge" width="48" align="left" style="margin-right:12px" />
 
-**+2 VP** if the seat directly in front is **empty** (or this is the front row).<br>
-**−3 VP** if a **Tall** patron is directly in front.
+**+2 VP** if all front-neighbor seats are **empty**, or there are no seats in front.<br>
+**−3 VP** if any front-neighbor seat contains a **Tall** patron. This penalty applies once and replaces the ordinary Tall penalty.
 
 Short patrons love unobstructed views — place them in the front row or behind an empty seat. Never behind a Tall patron.
 
@@ -237,7 +239,7 @@ Short patrons love unobstructed views — place them in the front row or behind 
 
 **+2 VP** unless seated in the **back row**.
 
-Simple and strong. Front three rows = bonus VP. Back row = no bonus. A Bespectacled VIP in the front row scores 3 + 2 + 2 = **7 VP** — one of the highest-value single cards possible in the base game.
+Simple and strong. Any seat not labeled back gets the bonus, regardless of row number. A Bespectacled VIP in a front seat scores 3 + 2 + 2 = **7 VP** — one of the highest-value single cards possible in the base game.
 
 <br clear="all" />
 
@@ -312,7 +314,7 @@ The selected theater's house rule bonus is applied (see [Theaters](#theaters)).
 | **VIP**       |  3   |    5+     | Front row, no Kids or Noisy    |
 | **Lovebirds** |  1   |     6     | Paired in back row             |
 | **Kid**       |  1   |     4     | Capped by Teachers             |
-| **Teacher**   |  3   |    5+     | Adjacent to 2+ capped Kids     |
+| **Teacher**   |  3   |    5+     | Caps 2+ Kids                   |
 | **Critic**    |  3   |     5     | Aisle seat, no Noisy neighbors |
 | **Friends**   |  3   |     7     | 4 adjacent Friends (rare)      |
 
@@ -396,6 +398,8 @@ Zero aisles = Critics are dead (3 VP only, no aisle bonus). The narrow 3-seat fr
 
 **Special Capping Rule:** Normal Teacher–Kid chains don't work here (tables are only 2 wide). Instead, a Kid is **capped if any Teacher sits at the same table**. One Teacher can cap up to 3 Kids!
 
+Each Teacher earns +1 VP per Kid at that table, including a diagonally seated Kid.
+
 Gaps between tables break adjacency — Noisy only hurts tablemates. Lovebirds pair within a table row. Fill tables for +3 VP even if it means placing a mediocre card.
 
 ---
@@ -453,7 +457,7 @@ Everything changes in the round. VIPs are strong everywhere (10 front-row seats!
 
 ## End of Game
 
-1. The game ends after **round 12** (all hands played, 56 cards dealt across all players).
+1. The game ends after every player has taken their turn in **round 12**, even if cards remain in hands, the Deck, or the Lobby. Only seated cards score; there is no extra round to empty hands. If drawing becomes impossible earlier, play from the cards still in hand.
 2. Each player's theater is scored as follows:
    - For each patron type calculate base VP and bonuses per seat.
      - Apply trait bonuses and penalties when adding each seat.
@@ -461,8 +465,8 @@ Everything changes in the round. VIPs are strong everywhere (10 front-row seats!
 3. The player with the **highest total VP** wins!
 4. **Tiebreaker:**
    - The Lead Usher: The player who successfully seated the most Noisy patrons in their theater.
-   - The Ensemble: If still tied, the player with the most unique Primary Types (diversity of audience).
-   - The Final Call: If still tied, players share the victory, celebrating a well-attended show.
+   - The Ensemble (**3–4 players only**): If still tied, the player with the most unique Primary Types (diversity of audience). Skip this step in a 2-player game.
+   - The Final Call: If still tied, the tied player **latest in the original player order** wins (Player 2 in a 2-player game).
 
 ---
 

@@ -1,3 +1,5 @@
+import { resolveWinner } from "../winner.js";
+
 /** @typedef {import('../types.js').CardData} CardData */
 
 /**
@@ -30,6 +32,10 @@
  * @property {number[]} firstTurnsTotal
  * @property {{lobby: number, deck: number}[]} drawsTotal
  * @property {number} ties
+ * @property {number} scoreTies Games tied on VP before tiebreakers.
+ * @property {number} lateOrderTiebreaks Games decided by the final player-order tiebreaker.
+ * @property {number} scoreMarginTotal Sum of P1 minus P2 VP in 2P games.
+ * @property {number} scoreMarginSquaredTotal
  * @property {number} totalScore
  * @property {Record<string, number>} typeScores
  * @property {Record<string, number>} typeCounts
@@ -54,6 +60,10 @@ export function createAggregate(playerCount) {
         firstTurnsTotal: Array(playerCount).fill(0),
         drawsTotal: Array.from({ length: playerCount }, () => ({ lobby: 0, deck: 0 })),
         ties: 0,
+        scoreTies: 0,
+        lateOrderTiebreaks: 0,
+        scoreMarginTotal: 0,
+        scoreMarginSquaredTotal: 0,
         totalScore: 0,
         typeScores: {},
         typeCounts: {},
@@ -105,21 +115,15 @@ export function addGameToAggregate(aggregate, game) {
     aggregate.games++;
 
     const scores = game.players.map((p) => p.total);
-    const maxScore = Math.max(...scores);
-    let winners = scores.map((score, idx) => score === maxScore ? idx : -1).filter((idx) => idx !== -1);
-
-    if (winners.length > 1) {
-        const maxNoisy = Math.max(...winners.map((idx) => game.players[idx].noisyCount));
-        winners = winners.filter((idx) => game.players[idx].noisyCount === maxNoisy);
-
-        if (winners.length > 1) {
-            const maxUnique = Math.max(...winners.map((idx) => game.players[idx].uniqueTypesCount));
-            winners = winners.filter((idx) => game.players[idx].uniqueTypesCount === maxUnique);
-        }
+    const { winner, scoreTie, orderTiebreak } = resolveWinner(game.players);
+    aggregate.scoreTies += Number(scoreTie);
+    aggregate.lateOrderTiebreaks += Number(orderTiebreak);
+    aggregate.wins[winner]++;
+    if (scores.length === 2) {
+        const margin = scores[0] - scores[1];
+        aggregate.scoreMarginTotal += margin;
+        aggregate.scoreMarginSquaredTotal += margin * margin;
     }
-
-    if (winners.length > 1) aggregate.ties++;
-    else aggregate.wins[winners[0]]++;
 
     aggregate.totalScore += scores.reduce((sum, score) => sum + score, 0);
 
@@ -158,6 +162,10 @@ export function addGameToAggregate(aggregate, game) {
 export function mergeAggregate(target, source) {
     target.games += source.games;
     target.ties += source.ties;
+    target.scoreTies += source.scoreTies;
+    target.lateOrderTiebreaks += source.lateOrderTiebreaks;
+    target.scoreMarginTotal += source.scoreMarginTotal;
+    target.scoreMarginSquaredTotal += source.scoreMarginSquaredTotal;
     target.totalScore += source.totalScore;
 
     for (let i = 0; i < target.wins.length; i++) {
@@ -188,4 +196,30 @@ export function mergeAggregate(target, source) {
  */
 export function calculateGlobalAverageScore(aggregate, playerCount) {
     return aggregate.games > 0 ? aggregate.totalScore / (aggregate.games * playerCount) : 0;
+}
+
+/**
+ * 95% normal interval for mean VP margin; Wilson interval for awarded P1 wins.
+ * Assumes independent game seeds. Not a confidence interval for optimal play.
+ * @param {SimulationAggregate} aggregate A two-player aggregate.
+ */
+export function calculateFirstPlayerStats(aggregate) {
+    const n = aggregate.games;
+    if (aggregate.wins.length !== 2 || n < 2) return null;
+    const z = 1.959963984540054;
+    const mean = aggregate.scoreMarginTotal / n;
+    const variance = Math.max(0, (aggregate.scoreMarginSquaredTotal - n * mean * mean) / (n - 1));
+    const margin = z * Math.sqrt(variance / n);
+    const p = aggregate.wins[0] / n;
+    const denominator = 1 + z * z / n;
+    const center = (p + z * z / (2 * n)) / denominator;
+    const halfWidth = z * Math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / denominator;
+    return {
+        meanScoreMargin: mean,
+        scoreMarginCI95: [mean - margin, mean + margin],
+        firstPlayerWinRate: p,
+        winRateCI95: [Math.max(0, center - halfWidth), Math.min(1, center + halfWidth)],
+        scoreTies: aggregate.scoreTies,
+        lateOrderTiebreaks: aggregate.lateOrderTiebreaks,
+    };
 }

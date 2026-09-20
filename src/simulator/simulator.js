@@ -2,9 +2,11 @@
 import { createDeck, Layouts, PatronType, Trait } from "../types.js";
 import { scorePlayer } from "../scoring.js";
 import { pickCardAndSeat, pickDrawAction } from "../ai.js";
+import { setGlobalSeed } from "../utils.js";
 
 /** @typedef {import('../types.js').CardData} CardData */
 /** @typedef {import('../types.js').LayoutMeta} LayoutMeta */
+/** @typedef {{pickCardAndSeat: typeof pickCardAndSeat, pickDrawAction: typeof pickDrawAction}} AIStrategy */
 
 export const SIMULATOR_EXPERIMENT = Object.freeze({
     id: "fixed-2p-opening-cards",
@@ -21,6 +23,10 @@ export const SIMULATOR_EXPERIMENT = Object.freeze({
  * @property {string} layoutId
  * @property {string} aiDifficulty
  * @property {number} [epsilon]
+ * @property {'random' | 'fixed'} [opening] Defaults to the live random opening.
+ * @property {'fixed' | 'rotating'} [turnOrder] Defaults to the live fixed order.
+ * @property {number} [seed] Independent seed for this game, not its worker.
+ * @property {AIStrategy[]} [strategies] Optional per-player simulator-only AI implementations.
  */
 
 /**
@@ -71,14 +77,26 @@ export function takeExactCard(deck, type, trait) {
  * @returns {SimulationResult}
  */
 export function simulateGame(config) {
+    if (![2, 3, 4].includes(config.playerCount)) throw new Error("playerCount must be 2, 3, or 4");
+    if (config.epsilon !== undefined && !(config.epsilon >= 0 && config.epsilon <= 1)) {
+        throw new Error("epsilon must be between 0 and 1");
+    }
+    const opening = config.opening ?? "random";
+    const turnOrder = config.turnOrder ?? "fixed";
+    if (!["random", "fixed"].includes(opening)) throw new Error("Unknown opening");
+    if (!["fixed", "rotating"].includes(turnOrder)) throw new Error("Unknown turn order");
+    if (opening === "fixed" && config.playerCount !== 2) throw new Error("Fixed opening requires 2 players");
     const firstPlayerCounts = Array(config.playerCount).fill(0);
 
     /** @type {LayoutMeta} */
     const layout = Layouts[config.layoutId];
     if (!layout) throw new Error(`Unknown layout: ${config.layoutId}`);
 
+    if (config.seed !== undefined) setGlobalSeed(config.seed);
     /** @type {CardData[]} */
     const deck = createDeck();
+    // Exploration must not change another game's shuffled deck.
+    if (config.seed !== undefined) setGlobalSeed(config.seed ^ 0xA17E5EED);
 
     /** @type {CardData[]} */
     const lobby = [];
@@ -120,11 +138,8 @@ export function simulateGame(config) {
 
     // ── Setup ───────────────────────────────────────────────────────────
 
-    if (config.playerCount === 2) {
-        // Hardcoded 2P balance experiment. Cards are removed from the shuffled
-        // deck so the remaining deck composition is accurate. Keep
-        // SIMULATOR_EXPERIMENT.fixedStartingCards as the single source of truth
-        // so editing the experiment metadata changes the actual simulation.
+    if (opening === "fixed") {
+        // Optional first-player compensation experiment, not the live baseline.
         for (const def of SIMULATOR_EXPERIMENT.fixedStartingCards) {
             const playerIndex = def.player - 1;
             const card = takeExactCard(deck, def.type, def.trait);
@@ -132,8 +147,7 @@ export function simulateGame(config) {
             hands[playerIndex].push(card);
         }
     } else {
-        // 3P/4P are not part of this fixed-start experiment. Keep live GameScene
-        // setup semantics: each player receives one random starting card.
+        // Live setup: each player receives one random starting card.
         for (let p = 0; p < config.playerCount; p++) {
             const card = deck.pop() ?? null;
             startingCards[p] = card;
@@ -150,14 +164,20 @@ export function simulateGame(config) {
 
     // ── Core Loop ───────────────────────────────────────────────────────
     const drawTarget = config.playerCount === 2 ? 3 : 2;
+    const totalRounds = 12;
     let round = 1;
-    while (round <= 12) {
-        // In the game, the first player stays the same for 2 players, but rotates for 3 or 4 players.
-        const firstPlayerThisRound = config.playerCount > 2 ? (round - 1) % config.playerCount : 0;
+    while (round <= totalRounds) {
+        const firstPlayerThisRound = turnOrder === "rotating" ? (round - 1) % config.playerCount : 0;
         firstPlayerCounts[firstPlayerThisRound]++;
+        const aiConfig = {
+            epsilon: config.epsilon,
+            turnsRemaining: totalRounds - round + 1,
+            playerCount: config.playerCount,
+        };
 
         for (let i = 0; i < config.playerCount; i++) {
             const p = (firstPlayerThisRound + i) % config.playerCount;
+            const strategy = config.strategies?.[p] ?? { pickDrawAction, pickCardAndSeat };
 
             fillLobby();
 
@@ -170,14 +190,14 @@ export function simulateGame(config) {
                 const canDrawLobby = config.playerCount !== 2 || deck.length === 0 || lobbyDrawsThisTurn < 1;
                 const availableLobby = canDrawLobby ? lobby : [];
 
-                const action = pickDrawAction(
+                const action = strategy.pickDrawAction(
                     availableLobby,
                     deck.length,
                     config.aiDifficulty,
                     grids[p],
                     layout,
                     hands[p],
-                    {},
+                    aiConfig,
                     opponentGrids,
                 );
                 if (!action) break;
@@ -206,7 +226,14 @@ export function simulateGame(config) {
 
             // 2. Play Phase
             if (hands[p].length > 0) {
-                const action = pickCardAndSeat(grids[p], hands[p], config.playerCount, layout, config.aiDifficulty);
+                const action = strategy.pickCardAndSeat(
+                    grids[p],
+                    hands[p],
+                    config.playerCount,
+                    layout,
+                    config.aiDifficulty,
+                    aiConfig,
+                );
                 if (action) {
                     grids[p][action.play.row][action.play.col] = action.play.cardData;
                     // Identity-based removal (deck cards are unique object references):
@@ -292,6 +319,6 @@ export function simulateGame(config) {
     return {
         players: playerResults,
         startingCards,
-        experiment: config.playerCount === 2 ? SIMULATOR_EXPERIMENT : null,
+        experiment: opening === "fixed" ? SIMULATOR_EXPERIMENT : null,
     };
 }

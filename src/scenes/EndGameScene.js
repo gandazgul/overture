@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { px, s } from "../config.js";
 import { PatronTypeOrder, PlayerColors, PlayerColorsHex, PlayerNames, Trait } from "../types.js";
 import { scorePlayer } from "../scoring.js";
+import { resolveWinner } from "../winner.js";
 import { createButton } from "../factories/Button.js";
 import { createLogo } from "../factories/Logo.js";
 import { TheaterOverlay } from "../objects/TheaterOverlay.js";
@@ -112,81 +113,16 @@ export class EndGameScene extends Phaser.Scene {
         }
 
         // ── Winner announcement ─────────────────────────────────────────
-        const maxScore = Math.max(...totals);
-        const potentialWinners = [];
-        for (let i = 0; i < this.playerCount; i++) {
-            if (totals[i] === maxScore) {
-                potentialWinners.push(i);
-            }
-        }
-
-        let winners = potentialWinners;
-        let tiebreakerReason = "";
-
-        if (winners.length > 1) {
-            // Tiebreaker 1: The Lead Usher (most Noisy patrons)
-            const noisyCounts = winners.map((p) => {
-                let count = 0;
-                const grid = this.placedPatrons[p];
-                for (let r = 0; r < this.layout.rows; r++) {
-                    for (let c = 0; c < this.layout.cols; c++) {
-                        if (grid[r][c]?.trait === Trait.NOISY) {
-                            count++;
-                        }
-                    }
-                }
-                return { player: p, count };
-            });
-
-            const maxNoisy = Math.max(...noisyCounts.map((x) => x.count));
-            const afterTB1 = noisyCounts.filter((x) => x.count === maxNoisy).map((x) => x.player);
-
-            if (afterTB1.length === 1) {
-                winners = afterTB1;
-                tiebreakerReason = "Most noisy patrons";
-            } else {
-                // Tiebreaker 2: The Ensemble (most unique primary types)
-                const uniqueTypesCounts = afterTB1.map((p) => {
-                    const types = new Set();
-                    const grid = this.placedPatrons[p];
-                    for (let r = 0; r < this.layout.rows; r++) {
-                        for (let c = 0; c < this.layout.cols; c++) {
-                            const card = grid[r][c];
-                            if (card) {
-                                types.add(card.type);
-                            }
-                        }
-                    }
-                    return { player: p, count: types.size };
-                });
-
-                const maxUnique = Math.max(...uniqueTypesCounts.map((x) => x.count));
-                const afterTB2 = uniqueTypesCounts.filter((x) => x.count === maxUnique).map((x) => x.player);
-
-                winners = afterTB2;
-                if (winners.length === 1) {
-                    tiebreakerReason = "Most unique primary types";
-                } else if (winners.length > 1) {
-                    // Tiebreaker 3: Last player in order
-                    const lastPlayerIdx = Math.max(...winners);
-                    winners = [lastPlayerIdx];
-                    tiebreakerReason = "Last player in order";
-                }
-            }
-        }
-
-        const winnerNames = winners.map((p) => PlayerNames[p]);
-        const isTie = winnerNames.length > 1;
-
-        let winnerMsg = "";
-        if (isTie) {
-            winnerMsg = `It's a tie! ${winnerNames.join(" & ")}`;
-        } else {
-            winnerMsg = `${winnerNames[0]} wins!`;
-            if (tiebreakerReason) {
-                winnerMsg += ` (${tiebreakerReason})`;
-            }
-        }
+        const standings = totals.map((total, player) => {
+            const cards = this.placedPatrons[player].flat().filter((card) => card !== null);
+            return {
+                total,
+                noisyCount: cards.filter((card) => card.trait === Trait.NOISY).length,
+                uniqueTypesCount: new Set(cards.map((card) => card.type)).size,
+            };
+        });
+        const { winner, reason } = resolveWinner(standings);
+        const winnerMsg = `${PlayerNames[winner]} wins!${reason ? ` (${reason})` : ""}`;
 
         // Subtitle position/style to match setup/selection scenes
         this.add
@@ -427,7 +363,7 @@ export class EndGameScene extends Phaser.Scene {
         // Player totals
         for (let p = 0; p < this.playerCount; p++) {
             const colX = tableLeft + labelColW + p * playerColW + playerColW / 2;
-            const isWinner = totals[p] === maxScore;
+            const isWinner = p === winner;
 
             this.add
                 .text(colX, totalY + totalRowH / 2, `${totals[p]}`, {

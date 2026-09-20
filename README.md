@@ -68,7 +68,7 @@ Traits can be applied to any patron type, adding unique bonuses or penalties.
 
 ### AI Opponents
 
-- **3 Difficulty Levels** — Easy (random), Medium (greedy best-score), Hard (greedy + positional heuristics with jitter)
+- **3 Difficulty Levels** — Easy and Medium mix exploration with scoring heuristics. Hard uses deterministic exhaustive first-seat search with one-card lookahead; in 2-player games it draws blind first before evaluating the second draw.
 - **Player Setup Screen** — Choose human or AI per slot, pick difficulty, and swap player colors with a color picker
 - **Seamless Integration** — AI turns auto-play with pacing delays; robot emoji marks AI players on the scoreboard
 
@@ -244,6 +244,7 @@ deno task analytics:crunch
 ## 📚 Documentation
 
 - **[Game Design Document](./docs/GAME_DESIGN.md)** — Full design spec including planned features and ideas (lobby, play cards, season deck).
+- **[Releases and Rulebook Updates](./docs/RELEASING.md)** — Publish to itch.io and update the linked rulebook.
 
 ## 🚧 Roadmap
 
